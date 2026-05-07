@@ -73,4 +73,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-ADMIN_PASSWORD = "sky@admin2026"

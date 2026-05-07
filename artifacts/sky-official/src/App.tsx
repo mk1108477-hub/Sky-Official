@@ -494,15 +494,17 @@ function WhatsAppFAB() {
   );
 }
 
+// Module-level flag — resets on every hard refresh, survives in-page navigation
+let introPlayedThisSession = false;
+
 // ── Main Site Page ─────────────────────────────────────────────────────────
 function MainSite() {
-  const alreadySeen = typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("intro_seen");
-  const [introDone, setIntroDone] = useState(alreadySeen);
-  const [introMounted, setIntroMounted] = useState(!alreadySeen);
+  const [introDone, setIntroDone] = useState(introPlayedThisSession);
+  const [introMounted, setIntroMounted] = useState(!introPlayedThisSession);
   const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntroDone = () => {
-    sessionStorage.setItem("intro_seen", "1");
+    introPlayedThisSession = true;
     setIntroDone(true);
     setTimeout(() => setIntroMounted(false), 1000);
   };

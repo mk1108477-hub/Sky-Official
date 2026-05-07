@@ -215,22 +215,41 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [loopFading, setLoopFading] = useState(false);
+  const nearEndRef = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
     return () => clearInterval(interval);
   }, []);
 
-  // Start playing immediately on mount regardless of visibility
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     video.muted = true;
     const tryPlay = () => video.play().catch(() => setTimeout(tryPlay, 300));
     tryPlay();
+
+    const onTimeUpdate = () => {
+      if (!video.duration) return;
+      const remaining = video.duration - video.currentTime;
+      // Start fading to black 0.6s before end
+      if (remaining <= 0.6 && !nearEndRef.current) {
+        nearEndRef.current = true;
+        setLoopFading(true);
+      }
+      // Detect restart: currentTime jumped back to near 0
+      if (video.currentTime < 0.25 && nearEndRef.current) {
+        nearEndRef.current = false;
+        // Brief pause at black, then fade back in
+        setTimeout(() => setLoopFading(false), 250);
+      }
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+    return () => video.removeEventListener("timeupdate", onTimeUpdate);
   }, []);
 
-  // Re-trigger play whenever the section becomes visible after crossfade
   useEffect(() => {
     if (!animate) return;
     const video = videoRef.current;
@@ -254,14 +273,12 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ opacity: 0.25, zIndex: 0 }}
-        onEnded={() => {
-          const v = videoRef.current;
-          if (v) { v.currentTime = 0; v.play().catch(() => {}); }
-        }}
       >
         <source src="/hero.mp4" type="video/mp4" />
       </video>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 1 }} />
+      {/* Black crossfade overlay at loop point */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "#000", zIndex: 1, opacity: loopFading ? 1 : 0, transition: loopFading ? "opacity 0.5s ease" : "opacity 0.5s ease 0.1s" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-5 px-6 pt-10 pb-16 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>
           <span className="px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.18em" }}>MLBB Diamond Top Up</span>

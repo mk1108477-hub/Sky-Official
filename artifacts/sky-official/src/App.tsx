@@ -62,11 +62,12 @@ function DiamondLogo({ size = 60 }: { size?: number }) {
 function LoadingScreen({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
   const [textIndex, setTextIndex] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("hold"), 800);
-    const t2 = setTimeout(() => setPhase("out"), 3200);
-    const t3 = setTimeout(() => onDone(), 4200);
+    const t1 = setTimeout(() => setPhase("hold"), 600);
+    const t2 = setTimeout(() => setPhase("out"), 4000);
+    const t3 = setTimeout(() => onDone(), 5200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
 
@@ -82,26 +83,32 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background: "#0a0a0a",
-        transition: "opacity 1s ease",
+        transition: "opacity 1.2s ease",
         opacity: phase === "out" ? 0 : 1,
         pointerEvents: phase === "out" ? "none" : "auto",
       }}
     >
-      {/* Animated smoke/ember background */}
-      <div
-        className="absolute inset-0 animate-smoke"
-        style={{
-          backgroundImage: `radial-gradient(ellipse 80% 60% at 50% 60%, rgba(120,30,10,0.45) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at 30% 40%, rgba(80,20,5,0.3) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at 70% 70%, rgba(100,25,5,0.25) 0%, transparent 60%)`,
-        }}
-      />
+      {/* Video background */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ opacity: 0.85 }}
+      >
+        <source src="/intro.mp4" type="video/mp4" />
+      </video>
+      {/* Dark overlay so text stays readable */}
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.35)" }} />
+
       <div className="relative flex flex-col items-center gap-6 z-10">
         <div
           className="animate-diamond-pulse"
           style={{
-            filter: "drop-shadow(0 0 24px rgba(245,158,11,0.7))",
-            transition: "opacity 0.8s ease",
+            filter: "drop-shadow(0 0 28px rgba(245,158,11,0.8))",
+            transition: "opacity 0.9s ease",
             opacity: phase === "in" ? 0 : 1,
           }}
         >
@@ -109,20 +116,20 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
         </div>
         <div
           style={{
-            transition: "opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s",
+            transition: "opacity 0.9s ease 0.3s, transform 0.9s ease 0.3s",
             opacity: phase === "in" ? 0 : 1,
-            transform: phase === "in" ? "translateY(16px)" : "translateY(0)",
+            transform: phase === "in" ? "translateY(18px)" : "translateY(0)",
           }}
           className="flex flex-col items-center gap-2"
         >
           <h1
-            className="text-white font-bold tracking-[0.25em] uppercase"
-            style={{ fontSize: 28, fontFamily: "'Cinzel', serif", letterSpacing: "0.3em" }}
+            className="text-white font-bold uppercase"
+            style={{ fontSize: 28, letterSpacing: "0.3em" }}
           >
             SKY OFFICIAL
           </h1>
           <p
-            className="uppercase tracking-[0.3em] text-xs font-semibold"
+            className="uppercase text-xs font-semibold"
             style={{ color: "#f59e0b", letterSpacing: "0.35em" }}
           >
             INSTANT TOP UP
@@ -131,7 +138,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           <div className="h-6 mt-2 flex items-center justify-center overflow-hidden" style={{ minWidth: 260 }}>
             <span
               key={textIndex}
-              className="text-sm text-gray-300 text-center"
+              className="text-sm text-gray-200 text-center"
               style={{
                 animation: "textFadeLoop 1.8s ease forwards",
                 display: "block",

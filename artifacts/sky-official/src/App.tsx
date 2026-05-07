@@ -18,9 +18,9 @@ const WHATSAPP_GROUP = "https://chat.whatsapp.com/DB3FwXqNUi649KT18VjVu9";
 const WHATSAPP_NUMBER = "https://wa.me/919362003788";
 
 const NAV_SUBTITLES = [
-  "⚡ Instant Delivery",
-  "💰 Affordable Prices",
-  "💬 24/7 Chat Support",
+  "Instant Delivery",
+  "Affordable Prices",
+  "24/7 Chat Support",
 ];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -221,6 +221,7 @@ function Navbar() {
 
 // ── Hero ───────────────────────────────────────────────────────────────────
 function HeroSection({ animate = false }: { animate?: boolean }) {
+  const [, setLocation] = useLocation();
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -308,9 +309,9 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           ))}
         </div>
         <div className="flex justify-center mt-2" style={diag(0.78)}>
-          <a href="#packages" className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-bold text-base text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 32px rgba(245,158,11,0.55), 0 4px 20px rgba(0,0,0,0.5)", textDecoration: "none", fontSize: 17 }}>
+          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-bold text-base text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 32px rgba(245,158,11,0.55), 0 4px 20px rgba(0,0,0,0.5)", fontSize: 17, border: "none", cursor: "pointer" }}>
             View Packages <span style={{ fontSize: 18 }}>→</span>
-          </a>
+          </button>
         </div>
       </div>
       <style>{`
@@ -368,6 +369,7 @@ function StatsSection() {
 
 // ── How It Works ───────────────────────────────────────────────────────────
 function HowItWorks() {
+  const [, setLocation] = useLocation();
   const steps = [
     { num: "1", title: "Pick a Pack", desc: "Browse 5 categories and select your diamond pack." },
     { num: "2", title: "Verify & Pay", desc: "Enter your MLBB ID, verify your account, then scan our UPI QR to pay." },
@@ -390,9 +392,9 @@ function HowItWorks() {
             </div>
           ))}
         </div>
-        <a href={WHATSAPP_GROUP} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base text-black mt-10" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 30px rgba(245,158,11,0.5)", textDecoration: "none" }}>
+        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base text-black mt-10" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 30px rgba(245,158,11,0.5)", border: "none", cursor: "pointer" }}>
           Start Now <span>→</span>
-        </a>
+        </button>
       </div>
     </section>
   );
@@ -509,7 +511,6 @@ function MainSite() {
       <div style={{ pointerEvents: introDone ? "auto" : "none" }}>
         <Navbar />
         <HeroSection animate={introDone} />
-        <PackagesSection onPackageSelect={(_id) => {}} />
         <StatsSection />
         <HowItWorks />
         <LiveTicker />
@@ -525,6 +526,30 @@ function MainSite() {
       )}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </>
+  );
+}
+
+// ── Packages Page ──────────────────────────────────────────────────────────
+function PackagesPage() {
+  const [, setLocation] = useLocation();
+  return (
+    <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
+      <Navbar />
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 16px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4, paddingTop: 12 }}>
+          <button
+            onClick={() => setLocation("/")}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <h1 style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>Packages</h1>
+        </div>
+      </div>
+      <PackagesSection onPackageSelect={(_id) => {}} />
+    </div>
   );
 }
 
@@ -587,6 +612,7 @@ function AppRoutes() {
     >
       <Switch>
         <Route path="/" component={MainSite} />
+        <Route path="/packages" component={PackagesPage} />
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route path="/orders" component={OrderHistoryPage} />

@@ -434,6 +434,20 @@ function WhatsAppSection() {
 
 // ── Footer ─────────────────────────────────────────────────────────────────
 function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
+  const tapCount = useRef(0);
+  const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyrightTap = () => {
+    tapCount.current += 1;
+    if (tapTimer.current) clearTimeout(tapTimer.current);
+    if (tapCount.current >= 5) {
+      tapCount.current = 0;
+      onAdminOpen();
+      return;
+    }
+    tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 2000);
+  };
+
   return (
     <footer className="py-10 px-6 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
       <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
@@ -449,22 +463,13 @@ function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
             <a key={link} href="#" className="text-gray-400 text-sm hover:text-gray-700 transition-colors" style={{ textDecoration: "none" }}>{link}</a>
           ))}
         </div>
-        <p className="text-gray-300 text-xs mt-3">© 2026 Sky Official. All rights reserved.</p>
-        {/* Hidden admin key — subtle, only you know it's here */}
-        <button
-          onClick={onAdminOpen}
-          title=""
-          aria-label="admin"
-          style={{ opacity: 0.08, marginTop: 8, background: "none", border: "none", cursor: "pointer", padding: 4, transition: "opacity 0.3s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.3")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.08")}
+        <p
+          className="text-gray-300 text-xs mt-3 select-none"
+          style={{ cursor: "default" }}
+          onClick={handleCopyrightTap}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="7.5" cy="15.5" r="5.5"/>
-            <path d="M21 2l-9.6 9.6"/>
-            <path d="M15.5 7.5l3 3L22 7l-3-3"/>
-          </svg>
-        </button>
+          © 2026 Sky Official. All rights reserved.
+        </p>
       </div>
     </footer>
   );

@@ -137,7 +137,7 @@ function Navbar() {
       style={{ background: "rgba(10,10,10,0.93)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
     >
       <div className="flex items-center gap-2.5">
-        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 flex-shrink-0" style={{ background: "#000" }}>
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
@@ -515,8 +515,8 @@ function Footer() {
   return (
     <footer className="py-10 px-6 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
       <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
-        <div className="w-14 h-14 rounded-full border-2 border-gray-200 flex items-center justify-center overflow-hidden" style={{ background: "#111" }}>
-          <span className="text-white font-bold text-xl">⚡</span>
+        <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.45)" }}>
+          <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
           <div className="font-bold text-gray-900 text-base">Sky Official</div>

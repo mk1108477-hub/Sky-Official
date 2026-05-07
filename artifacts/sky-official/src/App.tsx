@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import AdminPanel from "./components/AdminPanel";
 import PackagesSection from "./components/PackagesSection";
+import OrderHistoryPage from "./components/OrderHistoryPage";
 import {
   ClerkProvider,
   SignIn,
@@ -187,6 +188,13 @@ function Navbar() {
       {isLoaded && (
         user ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLocation("/orders")}
+              className="px-3 py-1.5 rounded-full text-xs font-bold"
+              style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}
+            >
+              My Orders
+            </button>
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
               <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
             </div>
@@ -567,6 +575,7 @@ function AppRoutes() {
         <Route path="/" component={MainSite} />
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
+        <Route path="/orders" component={OrderHistoryPage} />
         <Route component={MainSite} />
       </Switch>
     </ClerkProvider>

@@ -123,8 +123,14 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
         <source src="/intro.mp4" type="video/mp4" />
       </video>
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.32)" }} />
-      <div className="relative flex flex-col items-center z-10">
+      <div className="relative flex flex-col items-center gap-3 z-10">
         <AnimatedDiamonds size={48} />
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-white font-bold uppercase" style={{ fontSize: 16, letterSpacing: "0.3em" }}>SKY OFFICIAL</h1>
+          <p className="uppercase font-bold" style={{ fontSize: 9, letterSpacing: "0.38em", background: "linear-gradient(90deg, transparent 0%, #f59e0b 20%, #fcd34d 50%, #f59e0b 80%, transparent 100%)", backgroundSize: "200% 100%", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "shimmerLR 2.8s ease-in-out infinite" }}>
+            INSTANT TOP UP
+          </p>
+        </div>
       </div>
       <style>{`
         @keyframes diamondSeq {

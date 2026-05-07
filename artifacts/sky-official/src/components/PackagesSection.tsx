@@ -317,6 +317,9 @@ function ImagePane({ src }: { src: string }) {
   return (
     <div style={{ position: "relative", height: 100, overflow: "hidden", flexShrink: 0 }}>
       <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 45%", display: "block" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 18,
+        background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.5) 60%, transparent 100%)",
+        zIndex: 1, pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
         background: "linear-gradient(to top, #111 0%, rgba(17,17,17,0.7) 55%, transparent 100%)",
         zIndex: 1, pointerEvents: "none" }} />

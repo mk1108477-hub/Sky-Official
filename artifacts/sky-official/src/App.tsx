@@ -226,7 +226,17 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
-      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.38, zIndex: 0 }}>
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ opacity: 0.38, zIndex: 0 }}
+        onEnded={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
+        onPause={(e) => { if (!document.hidden) e.currentTarget.play().catch(() => {}); }}
+        onStalled={(e) => { e.currentTarget.load(); e.currentTarget.play().catch(() => {}); }}
+      >
         <source src="/hero.mp4" type="video/mp4" />
       </video>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 1 }} />

@@ -253,7 +253,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.38, zIndex: 0 }}
+        style={{ opacity: 0.25, zIndex: 0 }}
         onEnded={() => {
           const v = videoRef.current;
           if (v) { v.currentTime = 0; v.play().catch(() => {}); }

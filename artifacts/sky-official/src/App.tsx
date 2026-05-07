@@ -21,7 +21,6 @@ const NAV_SUBTITLES = [
   "⚡ Instant Delivery",
   "💰 Affordable Prices",
   "💬 24/7 Chat Support",
-  "✦ Shop Smart, Play Hard",
 ];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");

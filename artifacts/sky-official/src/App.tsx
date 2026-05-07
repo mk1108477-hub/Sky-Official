@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -105,18 +105,16 @@ function AnimatedDiamonds({ size = 80 }: { size?: number }) {
 
 // ── Loading Screen ─────────────────────────────────────────────────────────
 function LoadingScreen({ onDone }: { onDone: () => void }) {
-  const [fading, setFading] = useState(false);
   const doneRef = useRef(false);
 
   const triggerDone = () => {
     if (doneRef.current) return;
     doneRef.current = true;
     onDone();
-    setFading(true);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden" style={{ background: "#0a0a0a", transition: "opacity 0.5s ease", opacity: fading ? 0 : 1, pointerEvents: fading ? "none" : "auto" }}>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden" style={{ background: "#0a0a0a" }}>
       <video autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.45 }} onEnded={triggerDone} onError={triggerDone}>
         <source src="/intro.mp4" type="video/mp4" />
       </video>
@@ -213,7 +211,7 @@ function Navbar() {
 }
 
 // ── Hero ───────────────────────────────────────────────────────────────────
-function HeroSection() {
+function HeroSection({ animate = false }: { animate?: boolean }) {
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
   useEffect(() => {
@@ -221,34 +219,48 @@ function HeroSection() {
     return () => clearInterval(interval);
   }, []);
 
+  const diag = (delay: number): React.CSSProperties =>
+    animate
+      ? { animation: `fadeInDiag 0.75s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}s both` }
+      : { opacity: 0 };
+
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.38) 0%, transparent 70%)" }} />
+      <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.38, zIndex: 0 }}>
+        <source src="/hero.mp4" type="video/mp4" />
+      </video>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 1 }} />
       <div className="relative z-10 flex flex-col gap-5 px-6 pt-10 pb-16 max-w-lg mx-auto w-full">
-        <div className="flex justify-center">
+        <div className="flex justify-center" style={diag(0)}>
           <span className="px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.18em" }}>MLBB Diamond Top Up</span>
         </div>
         <div className="text-center">
           <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(2rem,9vw,2.8rem)" }}>
-            <span className="text-white block">Recharge Fast.</span>
-            <span style={{ color: "#f59e0b" }} className="block">Dominate the</span>
-            <span style={{ color: "#f59e0b" }} className="block">Game.</span>
+            <span className="text-white block" style={diag(0.13)}>Recharge Fast.</span>
+            <span className="block" style={{ color: "#f59e0b", ...diag(0.26) }}>Dominate the</span>
+            <span className="block" style={{ color: "#f59e0b", ...diag(0.39) }}>Game.</span>
           </h1>
         </div>
-        <p className="text-center text-gray-400 text-sm leading-relaxed px-2" style={{ maxWidth: 320, margin: "0 auto" }}>
+        <p className="text-center text-gray-400 text-sm leading-relaxed px-2" style={{ maxWidth: 320, margin: "0 auto", ...diag(0.52) }}>
           Instant delivery, secure payments, and the best prices for Mobile Legends Bang Bang. Shop smart, play hard.
         </p>
-        <div className="relative h-6 flex items-center justify-center overflow-hidden">
+        <div className="relative h-6 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
           {featureTexts.map((text, i) => (
             <span key={i} className="absolute text-xs font-semibold text-center" style={{ color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
           ))}
         </div>
-        <div className="flex justify-center mt-2">
+        <div className="flex justify-center mt-2" style={diag(0.78)}>
           <a href="#packages" className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-bold text-base text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 32px rgba(245,158,11,0.55), 0 4px 20px rgba(0,0,0,0.5)", textDecoration: "none", fontSize: 17 }}>
             View Packages <span style={{ fontSize: 18 }}>→</span>
           </a>
         </div>
       </div>
+      <style>{`
+        @keyframes fadeInDiag {
+          from { opacity: 0; transform: translate(-24px, -24px); }
+          to   { opacity: 1; transform: translate(0, 0); }
+        }
+      `}</style>
     </section>
   );
 }
@@ -404,13 +416,24 @@ function WhatsAppFAB() {
 
 // ── Main Site Page ─────────────────────────────────────────────────────────
 function MainSite() {
-  const [loaded, setLoaded] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
+  const [introMounted, setIntroMounted] = useState(true);
+
+  const handleIntroDone = () => {
+    setIntroDone(true);
+    setTimeout(() => setIntroMounted(false), 1000);
+  };
+
   return (
     <>
-      {!loaded && <LoadingScreen onDone={() => setLoaded(true)} />}
-      <div style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.6s ease", pointerEvents: loaded ? "auto" : "none" }}>
+      {introMounted && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, opacity: introDone ? 0 : 1, transition: "opacity 0.9s ease", pointerEvents: introDone ? "none" : "auto" }}>
+          <LoadingScreen onDone={handleIntroDone} />
+        </div>
+      )}
+      <div style={{ opacity: introDone ? 1 : 0, transition: "opacity 0.9s ease 0.3s", pointerEvents: introDone ? "auto" : "none" }}>
         <Navbar />
-        <HeroSection />
+        <HeroSection animate={introDone} />
         <FeaturesSection />
         <StatsSection />
         <HowItWorks />

@@ -1,0 +1,2 @@
+artifacts/sky-official/public/hero.mp4 filter=lfs diff=lfs merge=lfs -text
+attached_assets/lv_0_20260507201427_1778165742852.mp4 filter=lfs diff=lfs merge=lfs -text

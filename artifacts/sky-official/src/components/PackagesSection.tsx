@@ -5,6 +5,7 @@ const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") 
 interface Package {
   id: number;
   diamonds: number;
+  bonus_diamonds: number;
   price: string;
   label: string | null;
   is_popular: boolean;
@@ -23,6 +24,8 @@ function getPackImage(diamonds: number): string {
 
 function PackCard({ pack }: { pack: Package }) {
   const img = getPackImage(pack.diamonds);
+  const baseDiamonds = pack.diamonds - pack.bonus_diamonds;
+  const hasBonus = pack.bonus_diamonds > 0;
 
   return (
     <div
@@ -57,109 +60,92 @@ function PackCard({ pack }: { pack: Package }) {
           : "0 2px 12px rgba(0,0,0,0.4)";
       }}
     >
+      {/* Popular badge */}
       {pack.is_popular && (
         <div style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          zIndex: 3,
+          position: "absolute", top: 10, right: 10, zIndex: 3,
           background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
-          color: "#000",
-          fontSize: 9,
-          fontWeight: 800,
-          letterSpacing: "0.1em",
-          padding: "3px 8px",
-          borderRadius: 999,
-          textTransform: "uppercase",
+          color: "#000", fontSize: 9, fontWeight: 800,
+          letterSpacing: "0.1em", padding: "3px 8px",
+          borderRadius: 999, textTransform: "uppercase",
         }}>
           Popular
         </div>
       )}
 
+      {/* Label badge (Small Pack, Top Pick, etc.) */}
       {pack.label && (
         <div style={{
-          position: "absolute",
-          top: 10,
-          left: 10,
-          zIndex: 3,
-          background: "rgba(0,0,0,0.65)",
-          color: "#fbbf24",
-          fontSize: 9,
-          fontWeight: 700,
-          padding: "3px 8px",
-          borderRadius: 999,
-          backdropFilter: "blur(4px)",
+          position: "absolute", top: 10, left: 10, zIndex: 3,
+          background: "rgba(0,0,0,0.65)", color: "#fbbf24",
+          fontSize: 9, fontWeight: 700, padding: "3px 8px",
+          borderRadius: 999, backdropFilter: "blur(4px)",
         }}>
           {pack.label}
         </div>
       )}
 
-      {/* Image area with gradient overlays to crop out text and banners */}
+      {/* Image with gradient overlays to hide text/banner from original images */}
       <div style={{ position: "relative", height: 110, overflow: "hidden", flexShrink: 0 }}>
         <img
           src={img}
           alt={`${pack.diamonds} diamonds`}
           style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center 45%",
+            width: "100%", height: "100%",
+            objectFit: "cover", objectPosition: "center 45%",
             display: "block",
           }}
         />
-        {/* Top gradient: hides diamond count text */}
+        {/* Top gradient — hides diamond count text */}
         <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: 38,
-          background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.7) 60%, transparent 100%)",
-          zIndex: 1,
-          pointerEvents: "none",
+          position: "absolute", top: 0, left: 0, right: 0, height: 40,
+          background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.75) 55%, transparent 100%)",
+          zIndex: 1, pointerEvents: "none",
         }} />
-        {/* Bottom gradient: hides blue bonus banner */}
+        {/* Bottom gradient — hides blue bonus banner */}
         <div style={{
-          position: "absolute",
-          bottom: 0, left: 0, right: 0,
-          height: 34,
-          background: "linear-gradient(to top, #111 0%, rgba(17,17,17,0.7) 60%, transparent 100%)",
-          zIndex: 1,
-          pointerEvents: "none",
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 36,
+          background: "linear-gradient(to top, #111 0%, rgba(17,17,17,0.75) 55%, transparent 100%)",
+          zIndex: 1, pointerEvents: "none",
         }} />
       </div>
 
       {/* Info area */}
-      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ color: "#38bdf8", fontSize: 13 }}>♦</span>
-          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>
+      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 6 }}>
+
+        {/* Diamond count row */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+          <span style={{ color: "#38bdf8", fontSize: 12, lineHeight: 1 }}>♦</span>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1 }}>
             {pack.diamonds.toLocaleString()}
           </span>
-          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 500 }}>Diamonds</span>
+          <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 10, fontWeight: 500 }}>Diamonds</span>
         </div>
 
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginTop: 2,
-        }}>
-          <div style={{
-            color: "#f59e0b",
-            fontWeight: 800,
-            fontSize: 17,
-            letterSpacing: "-0.01em",
-          }}>
+        {/* Bonus breakdown */}
+        {hasBonus ? (
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", lineHeight: 1.3 }}>
+            <span style={{ color: "rgba(255,255,255,0.5)" }}>{baseDiamonds.toLocaleString()}</span>
+            {" "}+{" "}
+            <span style={{ color: "#4ade80", fontWeight: 700 }}>
+              {pack.bonus_diamonds} bonus
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.22)", lineHeight: 1.3 }}>
+            No bonus
+          </div>
+        )}
+
+        {/* Price + Buy button */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
+          <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, letterSpacing: "-0.01em" }}>
             ₹{Number(pack.price).toLocaleString("en-IN")}
           </div>
           <div style={{
             background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
-            color: "#000",
-            fontSize: 11,
-            fontWeight: 800,
-            padding: "5px 14px",
-            borderRadius: 999,
-            cursor: "pointer",
-            flexShrink: 0,
+            color: "#000", fontSize: 11, fontWeight: 800,
+            padding: "5px 14px", borderRadius: 999, cursor: "pointer", flexShrink: 0,
           }}>
             Buy
           </div>
@@ -171,22 +157,18 @@ function PackCard({ pack }: { pack: Package }) {
 
 function SkeletonCard() {
   return (
-    <div style={{
-      background: "#111",
-      borderRadius: 18,
-      border: "1px solid rgba(255,255,255,0.07)",
-      overflow: "hidden",
-    }}>
+    <div style={{ background: "#111", borderRadius: 18, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
       <div style={{ height: 110, background: "rgba(255,255,255,0.04)" }} />
-      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ height: 16, width: "60%", background: "rgba(255,255,255,0.07)", borderRadius: 6 }} />
+      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ height: 15, width: "60%", background: "rgba(255,255,255,0.07)", borderRadius: 6 }} />
+        <div style={{ height: 10, width: "45%", background: "rgba(255,255,255,0.05)", borderRadius: 6 }} />
         <div style={{ height: 20, width: "40%", background: "rgba(255,255,255,0.07)", borderRadius: 6 }} />
       </div>
     </div>
   );
 }
 
-export default function PackagesSection({ onPackageSelect }: { onPackageSelect: (id: string) => void }) {
+export default function PackagesSection({ onPackageSelect: _onPackageSelect }: { onPackageSelect: (id: string) => void }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -203,17 +185,10 @@ export default function PackagesSection({ onPackageSelect }: { onPackageSelect: 
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{
-            display: "inline-block",
-            padding: "5px 16px",
-            borderRadius: 999,
-            background: "rgba(245,200,40,0.1)",
-            border: "1px solid rgba(245,200,40,0.3)",
-            color: "#f5c842",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            marginBottom: 12,
+            display: "inline-block", padding: "5px 16px", borderRadius: 999,
+            background: "rgba(245,200,40,0.1)", border: "1px solid rgba(245,200,40,0.3)",
+            color: "#f5c842", fontSize: 11, fontWeight: 700,
+            letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 12,
           }}>
             Our Packages
           </div>

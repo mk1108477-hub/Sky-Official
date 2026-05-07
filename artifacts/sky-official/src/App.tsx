@@ -91,21 +91,20 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           <h1 className="text-white font-bold uppercase" style={{ fontSize: 28, letterSpacing: "0.3em" }}>
             SKY OFFICIAL
           </h1>
-          <div className="flex items-center gap-2 uppercase text-xs font-semibold" style={{ color: "#f59e0b", letterSpacing: "0.35em" }}>
-            {["INSTANT", "TOP", "UP"].map((word, i) => (
-              <span
-                key={word}
-                style={{
-                  animation: "wordFadeLR 3s ease-in-out infinite",
-                  animationDelay: `${i * 1}s`,
-                  display: "inline-block",
-                  opacity: 0,
-                }}
-              >
-                {word}
-              </span>
-            ))}
-          </div>
+          <p
+            className="uppercase text-xs font-bold"
+            style={{
+              letterSpacing: "0.38em",
+              background: "linear-gradient(90deg, transparent 0%, #f59e0b 20%, #fcd34d 50%, #f59e0b 80%, transparent 100%)",
+              backgroundSize: "200% 100%",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              animation: "shimmerLR 2.8s ease-in-out infinite",
+            }}
+          >
+            INSTANT TOP UP
+          </p>
         </div>
       </div>
 
@@ -116,13 +115,9 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           60%  { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
           100% { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
         }
-        @keyframes wordFadeLR {
-          0%   { opacity: 0; }
-          8%   { opacity: 1; }
-          25%  { opacity: 1; }
-          33%  { opacity: 0; }
-          34%  { opacity: 0; }
-          100% { opacity: 0; }
+        @keyframes shimmerLR {
+          0%   { background-position: 150% 0; }
+          100% { background-position: -150% 0; }
         }
       `}</style>
     </div>

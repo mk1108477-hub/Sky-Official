@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import AdminPanel from "./components/AdminPanel";
 import {
   ClerkProvider,
   SignIn,
@@ -432,7 +433,7 @@ function WhatsAppSection() {
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
-function Footer() {
+function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
   return (
     <footer className="py-10 px-6 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
       <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
@@ -449,6 +450,21 @@ function Footer() {
           ))}
         </div>
         <p className="text-gray-300 text-xs mt-3">© 2026 Sky Official. All rights reserved.</p>
+        {/* Hidden admin key — subtle, only you know it's here */}
+        <button
+          onClick={onAdminOpen}
+          title=""
+          aria-label="admin"
+          style={{ opacity: 0.08, marginTop: 8, background: "none", border: "none", cursor: "pointer", padding: 4, transition: "opacity 0.3s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.3")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.08")}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="7.5" cy="15.5" r="5.5"/>
+            <path d="M21 2l-9.6 9.6"/>
+            <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+          </svg>
+        </button>
       </div>
     </footer>
   );
@@ -467,6 +483,7 @@ function WhatsAppFAB() {
 function MainSite() {
   const [introDone, setIntroDone] = useState(false);
   const [introMounted, setIntroMounted] = useState(true);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntroDone = () => {
     setIntroDone(true);
@@ -484,7 +501,7 @@ function MainSite() {
         <HowItWorks />
         <LiveTicker />
         <WhatsAppSection />
-        <Footer />
+        <Footer onAdminOpen={() => setShowAdmin(true)} />
         <WhatsAppFAB />
       </div>
       {/* Intro overlays on top and fades out — content plays underneath */}
@@ -493,6 +510,7 @@ function MainSite() {
           <LoadingScreen onDone={handleIntroDone} />
         </div>
       )}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </>
   );
 }

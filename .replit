@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -66,3 +66,11 @@ externalPort = 8000
 [[ports]]
 localPort = 24534
 externalPort = 3000
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+ADMIN_PASSWORD = "sky@admin2026"

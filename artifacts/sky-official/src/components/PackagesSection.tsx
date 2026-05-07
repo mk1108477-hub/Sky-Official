@@ -472,8 +472,9 @@ function SkeletonCard() {
 }
 
 function filterByCategory(packages: Package[], id: CategoryId): Package[] {
-  if (id === "small") return packages.filter(p => p.diamonds <= 49);
-  if (id === "normal") return packages.filter(p => p.diamonds >= 50);
+  const sort = (arr: Package[]) => [...arr].sort((a, b) => a.diamonds - b.diamonds);
+  if (id === "small") return sort(packages.filter(p => p.diamonds <= 49));
+  if (id === "normal") return sort(packages.filter(p => p.diamonds >= 50));
   return [];
 }
 

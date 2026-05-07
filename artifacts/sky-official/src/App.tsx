@@ -91,12 +91,21 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           <h1 className="text-white font-bold uppercase" style={{ fontSize: 28, letterSpacing: "0.3em" }}>
             SKY OFFICIAL
           </h1>
-          <p
-            className="uppercase text-xs font-semibold"
-            style={{ color: "#f59e0b", letterSpacing: "0.35em", animation: "topUpPulse 2s ease-in-out infinite" }}
-          >
-            INSTANT TOP UP
-          </p>
+          <div className="flex items-center gap-2 uppercase text-xs font-semibold" style={{ color: "#f59e0b", letterSpacing: "0.35em" }}>
+            {["INSTANT", "TOP", "UP"].map((word, i) => (
+              <span
+                key={word}
+                style={{
+                  animation: "wordFadeLR 2.4s ease-in-out infinite",
+                  animationDelay: `${i * 0.5}s`,
+                  display: "inline-block",
+                  opacity: 0,
+                }}
+              >
+                {word}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -107,9 +116,12 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           60%  { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
           100% { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
         }
-        @keyframes topUpPulse {
-          0%, 100% { opacity: 0.5; letter-spacing: 0.35em; }
-          50%       { opacity: 1;   letter-spacing: 0.42em; }
+        @keyframes wordFadeLR {
+          0%   { opacity: 0; transform: translateY(4px); }
+          20%  { opacity: 1; transform: translateY(0); }
+          55%  { opacity: 1; transform: translateY(0); }
+          75%  { opacity: 0; transform: translateY(-4px); }
+          100% { opacity: 0; transform: translateY(4px); }
         }
       `}</style>
     </div>

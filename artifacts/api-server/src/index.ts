@@ -25,6 +25,23 @@ async function initDb() {
       note TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS wallets (
+      clerk_user_id TEXT PRIMARY KEY,
+      balance NUMERIC(10,2) NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id SERIAL PRIMARY KEY,
+      clerk_user_id TEXT NOT NULL,
+      amount NUMERIC(10,2) NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      upi_ref TEXT,
+      description TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   await pool.query(`

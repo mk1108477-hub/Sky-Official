@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import AdminPanel from "./components/AdminPanel";
 import PackagesSection from "./components/PackagesSection";
 import OrderHistoryPage from "./components/OrderHistoryPage";
+import ProfilePage from "./components/ProfilePage";
 import {
   ClerkProvider,
   SignIn,
@@ -195,9 +196,11 @@ function Navbar() {
             >
               My Orders
             </button>
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
-              <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
-            </div>
+            <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
+              <div className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
+                <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
+              </div>
+            </button>
             <button
               onClick={() => signOut(() => setLocation("/"))}
               className="px-3 py-1.5 rounded-full text-xs font-bold text-black"
@@ -618,6 +621,7 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={MainSite} />
         <Route path="/packages" component={PackagesPage} />
+        <Route path="/profile" component={ProfilePage} />
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />
         <Route path="/orders" component={OrderHistoryPage} />

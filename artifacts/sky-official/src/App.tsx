@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import AdminPanel from "./components/AdminPanel";
+import PackagesSection from "./components/PackagesSection";
 import {
   ClerkProvider,
   SignIn,
@@ -501,7 +502,7 @@ function MainSite() {
       <div style={{ pointerEvents: introDone ? "auto" : "none" }}>
         <Navbar />
         <HeroSection animate={introDone} />
-        <FeaturesSection />
+        <PackagesSection onPackageSelect={(_id) => {}} />
         <StatsSection />
         <HowItWorks />
         <LiveTicker />

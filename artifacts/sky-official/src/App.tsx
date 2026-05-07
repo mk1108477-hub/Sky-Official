@@ -77,7 +77,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.88 }}
+        style={{ opacity: 0.45 }}
         onEnded={triggerDone}
         onError={triggerDone}
       >

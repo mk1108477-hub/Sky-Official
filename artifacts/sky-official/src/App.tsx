@@ -182,7 +182,7 @@ function Navbar() {
         </div>
         <div>
           <div className="text-white font-bold text-sm leading-tight">Sky Official</div>
-          <div className="text-xs leading-tight" style={{ color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+          <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
         </div>
       </div>
       {isLoaded && (
@@ -570,6 +570,21 @@ function AppRoutes() {
       signUpUrl={`${basePath}/sign-up`}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+      localization={{
+        socialButtonsBlockButton: "Continue with {{provider}}",
+        signIn: {
+          start: {
+            title: "Sign in to Sky Official",
+            subtitle: "Welcome back! Please sign in to continue.",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Join Sky Official",
+            subtitle: "Create your account to get started.",
+          },
+        },
+      }}
     >
       <Switch>
         <Route path="/" component={MainSite} />

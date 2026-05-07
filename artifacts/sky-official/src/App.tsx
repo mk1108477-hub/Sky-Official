@@ -17,144 +17,99 @@ const NAV_SUBTITLES = [
   "✦ Shop Smart, Play Hard",
 ];
 
-function DiamondLogo({ size = 60 }: { size?: number }) {
+function AnimatedDiamonds({ size = 80 }: { size?: number }) {
   const s = size * 0.34;
-  const gap = size * 0.38;
+  const lg = size * 0.415;
+  const diamonds = [
+    { w: s, h: s, bg: "linear-gradient(135deg,#f59e0b,#d97706)", shadow: "0 0 10px 3px rgba(245,158,11,0.45)", delay: "0s" },
+    { w: lg, h: lg, bg: "linear-gradient(135deg,#fcd34d,#f59e0b)", shadow: "0 0 20px 7px rgba(245,158,11,0.65)", delay: "0.28s" },
+    { w: s, h: s, bg: "linear-gradient(135deg,#f59e0b,#d97706)", shadow: "0 0 10px 3px rgba(245,158,11,0.45)", delay: "0.56s" },
+  ];
   return (
-    <div className="flex items-center justify-center" style={{ gap: size * 0.08 }}>
-      <div
-        style={{
-          width: s,
-          height: s,
-          background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-          transform: "rotate(45deg)",
-          borderRadius: 3,
-          boxShadow: "0 0 10px 3px rgba(245,158,11,0.45)",
-          flexShrink: 0,
-        }}
-      />
-      <div
-        style={{
-          width: s * 1.22,
-          height: s * 1.22,
-          background: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)",
-          transform: "rotate(45deg)",
-          borderRadius: 4,
-          boxShadow: "0 0 18px 6px rgba(245,158,11,0.65)",
-          flexShrink: 0,
-        }}
-      />
-      <div
-        style={{
-          width: s,
-          height: s,
-          background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-          transform: "rotate(45deg)",
-          borderRadius: 3,
-          boxShadow: "0 0 10px 3px rgba(245,158,11,0.45)",
-          flexShrink: 0,
-        }}
-      />
+    <div className="flex items-center justify-center" style={{ gap: size * 0.09 }}>
+      {diamonds.map((d, i) => (
+        <div
+          key={i}
+          style={{
+            width: d.w,
+            height: d.h,
+            background: d.bg,
+            transform: "rotate(45deg)",
+            borderRadius: 4,
+            boxShadow: d.shadow,
+            flexShrink: 0,
+            animation: `diamondSeq 1.8s ease-in-out infinite`,
+            animationDelay: d.delay,
+          }}
+        />
+      ))}
     </div>
   );
 }
 
 function LoadingScreen({ onDone }: { onDone: () => void }) {
-  const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
-  const [textIndex, setTextIndex] = useState(0);
+  const [fading, setFading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const doneRef = useRef(false);
 
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase("hold"), 600);
-    const t2 = setTimeout(() => setPhase("out"), 4000);
-    const t3 = setTimeout(() => onDone(), 5200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [onDone]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTextIndex((i) => (i + 1) % FEATURE_TEXTS.length);
-    }, 1800);
-    return () => clearInterval(interval);
-  }, []);
+  const triggerDone = () => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    onDone(); // reveal main page immediately
+    setFading(true); // loading screen fades out on top
+    setTimeout(() => {}, 0); // no-op, keep for possible future use
+  };
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background: "#0a0a0a",
-        transition: "opacity 1.2s ease",
-        opacity: phase === "out" ? 0 : 1,
-        pointerEvents: phase === "out" ? "none" : "auto",
+        transition: "opacity 0.5s ease",
+        opacity: fading ? 0 : 1,
+        pointerEvents: fading ? "none" : "auto",
       }}
     >
-      {/* Video background */}
+      {/* Video — no loop so onEnded fires */}
       <video
         ref={videoRef}
         autoPlay
         muted
-        loop
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.85 }}
+        style={{ opacity: 0.88 }}
+        onEnded={triggerDone}
+        onError={triggerDone}
       >
         <source src="/intro.mp4" type="video/mp4" />
       </video>
-      {/* Dark overlay so text stays readable */}
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.35)" }} />
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.32)" }} />
 
-      <div className="relative flex flex-col items-center gap-6 z-10">
-        <div
-          className="animate-diamond-pulse"
-          style={{
-            filter: "drop-shadow(0 0 28px rgba(245,158,11,0.8))",
-            transition: "opacity 0.9s ease",
-            opacity: phase === "in" ? 0 : 1,
-          }}
-        >
-          <DiamondLogo size={80} />
-        </div>
-        <div
-          style={{
-            transition: "opacity 0.9s ease 0.3s, transform 0.9s ease 0.3s",
-            opacity: phase === "in" ? 0 : 1,
-            transform: phase === "in" ? "translateY(18px)" : "translateY(0)",
-          }}
-          className="flex flex-col items-center gap-2"
-        >
-          <h1
-            className="text-white font-bold uppercase"
-            style={{ fontSize: 28, letterSpacing: "0.3em" }}
-          >
+      <div className="relative flex flex-col items-center gap-5 z-10">
+        <AnimatedDiamonds size={80} />
+        <div className="flex flex-col items-center gap-2">
+          <h1 className="text-white font-bold uppercase" style={{ fontSize: 28, letterSpacing: "0.3em" }}>
             SKY OFFICIAL
           </h1>
           <p
             className="uppercase text-xs font-semibold"
-            style={{ color: "#f59e0b", letterSpacing: "0.35em" }}
+            style={{ color: "#f59e0b", letterSpacing: "0.35em", animation: "topUpPulse 2s ease-in-out infinite" }}
           >
             INSTANT TOP UP
           </p>
-          {/* Looping feature text */}
-          <div className="h-6 mt-2 flex items-center justify-center overflow-hidden" style={{ minWidth: 260 }}>
-            <span
-              key={textIndex}
-              className="text-sm text-gray-200 text-center"
-              style={{
-                animation: "textFadeLoop 1.8s ease forwards",
-                display: "block",
-              }}
-            >
-              {FEATURE_TEXTS[textIndex]}
-            </span>
-          </div>
         </div>
       </div>
+
       <style>{`
-        @keyframes textFadeLoop {
-          0% { opacity: 0; transform: translateY(8px); }
-          20% { opacity: 1; transform: translateY(0); }
-          75% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-8px); }
+        @keyframes diamondSeq {
+          0%   { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
+          30%  { opacity: 1;    transform: rotate(45deg) scale(1.08); }
+          60%  { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
+          100% { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
+        }
+        @keyframes topUpPulse {
+          0%, 100% { opacity: 0.5; letter-spacing: 0.35em; }
+          50%       { opacity: 1;   letter-spacing: 0.42em; }
         }
       `}</style>
     </div>

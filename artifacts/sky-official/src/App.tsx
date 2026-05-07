@@ -178,17 +178,17 @@ function Navbar() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3"
-      style={{ background: "rgba(10,10,10,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-2.5"
+      style={{ background: "rgba(10,10,10,0.93)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
     >
-      <div className="flex items-center gap-3">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-amber-500 flex items-center justify-center" style={{ background: "#111" }}>
-          <span className="text-white font-bold text-lg">⚡</span>
+      <div className="flex items-center gap-2.5">
+        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-600 flex-shrink-0" style={{ background: "#000" }}>
+          <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
-          <div className="text-white font-bold text-base leading-tight">Sky Official</div>
+          <div className="text-white font-bold text-sm leading-tight">Sky Official</div>
           <div
-            className="text-xs leading-tight transition-opacity duration-400"
+            className="text-xs leading-tight"
             style={{ color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}
           >
             {NAV_SUBTITLES[subtitleIdx]}
@@ -209,84 +209,99 @@ function Navbar() {
 }
 
 function HeroSection() {
-  const features = [
-    { icon: "⚡", text: "Instant delivery" },
-    { icon: "💰", text: "Affordable prices" },
-    { icon: "💬", text: "P2P chat support" },
-    { icon: "🔒", text: "Safe and secure transaction" },
+  const featureTexts = [
+    "Instant delivery",
+    "Affordable prices",
+    "P2P chat support",
+    "Safe and secure transaction",
   ];
   const [activeFeature, setActiveFeature] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveFeature((i) => (i + 1) % features.length);
+      setActiveFeature((i) => (i + 1) % featureTexts.length);
     }, 2200);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <section
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20"
-      style={{ background: "#0a0a0a" }}
+      className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16"
+      style={{ background: "#0d0d0d" }}
     >
-      {/* Background */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `radial-gradient(ellipse 80% 60% at 50% 50%, rgba(120,40,10,0.5) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 40% at 20% 30%, rgba(80,20,5,0.35) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 50% at 80% 70%, rgba(100,30,5,0.3) 0%, transparent 60%)`,
-          animation: "smokeMove 14s ease-in-out infinite",
-        }} />
-      </div>
+      {/* Subtle radial glow behind text */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.38) 0%, transparent 70%)",
+        }}
+      />
 
-      <div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center max-w-lg mx-auto">
-        <div className="animate-diamond-pulse" style={{ filter: "drop-shadow(0 0 30px rgba(245,158,11,0.7))" }}>
-          <DiamondLogo size={90} />
+      <div className="relative z-10 flex flex-col gap-5 px-6 pt-10 pb-16 max-w-lg mx-auto w-full">
+        {/* Badge */}
+        <div className="flex justify-center">
+          <span
+            className="px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+            style={{
+              border: "1.5px solid rgba(245,158,11,0.55)",
+              color: "#f59e0b",
+              background: "rgba(245,158,11,0.07)",
+              letterSpacing: "0.18em",
+            }}
+          >
+            MLBB Diamond Top Up
+          </span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-white font-extrabold tracking-widest uppercase" style={{ fontSize: 30, letterSpacing: "0.28em", fontFamily: "inherit" }}>
-            SKY OFFICIAL
+        {/* Main headline */}
+        <div className="text-center">
+          <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(2rem,9vw,2.8rem)" }}>
+            <span className="text-white block">Recharge Fast.</span>
+            <span style={{ color: "#f59e0b" }} className="block">Dominate the</span>
+            <span style={{ color: "#f59e0b" }} className="block">Game.</span>
           </h1>
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#f59e0b", letterSpacing: "0.35em" }}>
-            INSTANT TOP UP
-          </p>
-
-          {/* Looping feature animation */}
-          <div className="mt-3 h-7 flex items-center justify-center overflow-hidden" style={{ minWidth: 280 }}>
-            {features.map((f, i) => (
-              <span
-                key={i}
-                className="absolute text-sm font-medium text-gray-300"
-                style={{
-                  opacity: activeFeature === i ? 1 : 0,
-                  transform: activeFeature === i ? "translateY(0)" : "translateY(10px)",
-                  transition: "opacity 0.6s ease, transform 0.6s ease",
-                  pointerEvents: "none",
-                }}
-              >
-                {f.icon} {f.text}
-              </span>
-            ))}
-          </div>
         </div>
 
-        <p className="text-gray-300 font-semibold text-lg mt-2" style={{ textShadow: "0 0 20px rgba(0,0,0,0.8)" }}>
-          Shop smart, play hard.
+        {/* Description */}
+        <p className="text-center text-gray-400 text-sm leading-relaxed px-2" style={{ maxWidth: 320, margin: "0 auto" }}>
+          Instant delivery, secure payments, and the best prices for Mobile Legends Bang Bang. Shop smart, play hard.
         </p>
 
-        <a
-          href="#packages"
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base text-black cursor-pointer"
-          style={{
-            background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-            boxShadow: "0 0 30px rgba(245,158,11,0.5), 0 4px 20px rgba(0,0,0,0.4)",
-            textDecoration: "none",
-          }}
-        >
-          View Packages <span>→</span>
-        </a>
+        {/* Looping feature animation */}
+        <div className="relative h-6 flex items-center justify-center overflow-hidden">
+          {featureTexts.map((text, i) => (
+            <span
+              key={i}
+              className="absolute text-xs font-semibold text-center"
+              style={{
+                color: "#fbbf24",
+                opacity: activeFeature === i ? 1 : 0,
+                transform: activeFeature === i ? "translateY(0)" : "translateY(8px)",
+                transition: "opacity 0.55s ease, transform 0.55s ease",
+                pointerEvents: "none",
+                letterSpacing: "0.05em",
+              }}
+            >
+              ✦ {text}
+            </span>
+          ))}
+        </div>
+
+        {/* CTA Button */}
+        <div className="flex justify-center mt-2">
+          <a
+            href="#packages"
+            className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-bold text-base text-black"
+            style={{
+              background: "linear-gradient(135deg, #fcd34d, #f59e0b)",
+              boxShadow: "0 0 32px rgba(245,158,11,0.55), 0 4px 20px rgba(0,0,0,0.5)",
+              textDecoration: "none",
+              fontSize: 17,
+            }}
+          >
+            View Packages <span style={{ fontSize: 18 }}>→</span>
+          </a>
+        </div>
       </div>
     </section>
   );

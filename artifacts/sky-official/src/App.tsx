@@ -214,10 +214,30 @@ function Navbar() {
 function HeroSection({ animate = false }: { animate?: boolean }) {
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
     return () => clearInterval(interval);
   }, []);
+
+  // Start playing immediately on mount regardless of visibility
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    const tryPlay = () => video.play().catch(() => setTimeout(tryPlay, 300));
+    tryPlay();
+  }, []);
+
+  // Re-trigger play whenever the section becomes visible after crossfade
+  useEffect(() => {
+    if (!animate) return;
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = true;
+    video.play().catch(() => {});
+  }, [animate]);
 
   const diag = (delay: number): React.CSSProperties =>
     animate
@@ -227,15 +247,17 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
       <video
-        autoPlay
+        ref={videoRef}
         muted
         loop
         playsInline
+        preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
         style={{ opacity: 0.38, zIndex: 0 }}
-        onEnded={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
-        onPause={(e) => { if (!document.hidden) e.currentTarget.play().catch(() => {}); }}
-        onStalled={(e) => { e.currentTarget.load(); e.currentTarget.play().catch(() => {}); }}
+        onEnded={() => {
+          const v = videoRef.current;
+          if (v) { v.currentTime = 0; v.play().catch(() => {}); }
+        }}
       >
         <source src="/hero.mp4" type="video/mp4" />
       </video>
@@ -436,12 +458,8 @@ function MainSite() {
 
   return (
     <>
-      {introMounted && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, opacity: introDone ? 0 : 1, transition: "opacity 0.9s ease", pointerEvents: introDone ? "none" : "auto" }}>
-          <LoadingScreen onDone={handleIntroDone} />
-        </div>
-      )}
-      <div style={{ opacity: introDone ? 1 : 0, transition: "opacity 0.9s ease 0.3s", pointerEvents: introDone ? "auto" : "none" }}>
+      {/* Main content always rendered so video starts immediately */}
+      <div style={{ pointerEvents: introDone ? "auto" : "none" }}>
         <Navbar />
         <HeroSection animate={introDone} />
         <FeaturesSection />
@@ -452,6 +470,12 @@ function MainSite() {
         <Footer />
         <WhatsAppFAB />
       </div>
+      {/* Intro overlays on top and fades out — content plays underneath */}
+      {introMounted && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, opacity: introDone ? 0 : 1, transition: "opacity 0.9s ease", pointerEvents: introDone ? "none" : "auto" }}>
+          <LoadingScreen onDone={handleIntroDone} />
+        </div>
+      )}
     </>
   );
 }

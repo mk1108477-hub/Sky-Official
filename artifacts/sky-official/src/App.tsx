@@ -21,6 +21,7 @@ const NAV_SUBTITLES = [
   "Instant Delivery",
   "Affordable Prices",
   "P2P Chat Support",
+  "Secure Transaction",
 ];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");

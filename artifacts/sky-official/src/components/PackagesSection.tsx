@@ -1,210 +1,255 @@
-const PACKS = [
-  {
-    id: "small",
-    title: "Small Pack",
-    subtitle: "Entry-level diamonds for quick top-ups",
-    color: "#3b82f6",
-    glow: "rgba(59,130,246,0.3)",
-    diamonds: "56 – 257",
-    available: true,
-  },
-  {
-    id: "normal",
-    title: "Normal Pack",
-    subtitle: "Best value diamonds for regular players",
-    color: "#f59e0b",
-    glow: "rgba(245,158,11,0.3)",
-    diamonds: "514 – 1,048",
-    available: true,
-  },
-  {
-    id: "double",
-    title: "Double Diamond",
-    subtitle: "2× bonus diamonds on every purchase",
-    color: "#00e5ff",
-    glow: "rgba(0,229,255,0.25)",
-    diamonds: "Coming Soon",
-    available: false,
-  },
-  {
-    id: "passes",
-    title: "Passes & Bundles",
-    subtitle: "Weekly & monthly passes with extra perks",
-    color: "#a855f7",
-    glow: "rgba(168,85,247,0.25)",
-    diamonds: "Weekly / Monthly",
-    available: true,
-  },
-  {
-    id: "starlight",
-    title: "Starlight Cards",
-    subtitle: "Exclusive skins & limited rewards",
-    color: "#f5c842",
-    glow: "rgba(245,200,66,0.25)",
-    diamonds: "Coming Soon",
-    available: false,
-  },
-  {
-    id: "rank",
-    title: "Rank Boosting",
-    subtitle: "Rise to Mythical Glory with expert boosters",
-    color: "#ec4899",
-    glow: "rgba(236,72,153,0.25)",
-    diamonds: "Coming Soon",
-    available: false,
-  },
-];
+import { useEffect, useState } from "react";
 
-function DiamondSVG({ color, size = 42 }: { color: string; size?: number }) {
+const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
+
+interface Package {
+  id: number;
+  diamonds: number;
+  price: string;
+  label: string | null;
+  is_popular: boolean;
+  sort_order: number;
+}
+
+function getPackImage(diamonds: number): string {
+  if (diamonds <= 10) return "/pack1.jpg";
+  if (diamonds <= 49) return "/pack2.jpg";
+  if (diamonds <= 99) return "/pack3.jpg";
+  if (diamonds <= 499) return "/pack4.jpg";
+  if (diamonds <= 999) return "/pack5.jpg";
+  if (diamonds <= 1500) return "/pack6.jpg";
+  return "/pack7.jpg";
+}
+
+function PackCard({ pack }: { pack: Package }) {
+  const img = getPackImage(pack.diamonds);
+
   return (
-    <svg width={size} height={size} viewBox="0 0 36 36">
-      <defs>
-        <linearGradient id={`dg-${color.replace("#", "")}`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fff" stopOpacity={0.9} />
-          <stop offset="100%" stopColor={color} stopOpacity={1} />
-        </linearGradient>
-      </defs>
-      <polygon points="18,2 34,14 18,34 2,14" fill={`url(#dg-${color.replace("#", "")})`} />
-      <polygon points="18,2 26,10 18,14 10,10" fill="rgba(255,255,255,0.45)" />
-    </svg>
+    <div
+      style={{
+        background: "#111",
+        borderRadius: 18,
+        border: pack.is_popular
+          ? "1.5px solid rgba(245,158,11,0.6)"
+          : "1px solid rgba(255,255,255,0.08)",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: pack.is_popular
+          ? "0 0 24px rgba(245,158,11,0.25)"
+          : "0 2px 12px rgba(0,0,0,0.4)",
+        position: "relative",
+        cursor: "pointer",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.transform = "translateY(-3px) scale(1.02)";
+        el.style.boxShadow = pack.is_popular
+          ? "0 8px 36px rgba(245,158,11,0.4)"
+          : "0 8px 28px rgba(0,0,0,0.6)";
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.transform = "";
+        el.style.boxShadow = pack.is_popular
+          ? "0 0 24px rgba(245,158,11,0.25)"
+          : "0 2px 12px rgba(0,0,0,0.4)";
+      }}
+    >
+      {pack.is_popular && (
+        <div style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          zIndex: 3,
+          background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
+          color: "#000",
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          padding: "3px 8px",
+          borderRadius: 999,
+          textTransform: "uppercase",
+        }}>
+          Popular
+        </div>
+      )}
+
+      {pack.label && (
+        <div style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          zIndex: 3,
+          background: "rgba(0,0,0,0.65)",
+          color: "#fbbf24",
+          fontSize: 9,
+          fontWeight: 700,
+          padding: "3px 8px",
+          borderRadius: 999,
+          backdropFilter: "blur(4px)",
+        }}>
+          {pack.label}
+        </div>
+      )}
+
+      {/* Image area with gradient overlays to crop out text and banners */}
+      <div style={{ position: "relative", height: 110, overflow: "hidden", flexShrink: 0 }}>
+        <img
+          src={img}
+          alt={`${pack.diamonds} diamonds`}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center 45%",
+            display: "block",
+          }}
+        />
+        {/* Top gradient: hides diamond count text */}
+        <div style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0,
+          height: 38,
+          background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.7) 60%, transparent 100%)",
+          zIndex: 1,
+          pointerEvents: "none",
+        }} />
+        {/* Bottom gradient: hides blue bonus banner */}
+        <div style={{
+          position: "absolute",
+          bottom: 0, left: 0, right: 0,
+          height: 34,
+          background: "linear-gradient(to top, #111 0%, rgba(17,17,17,0.7) 60%, transparent 100%)",
+          zIndex: 1,
+          pointerEvents: "none",
+        }} />
+      </div>
+
+      {/* Info area */}
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ color: "#38bdf8", fontSize: 13 }}>♦</span>
+          <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>
+            {pack.diamonds.toLocaleString()}
+          </span>
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 500 }}>Diamonds</span>
+        </div>
+
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 2,
+        }}>
+          <div style={{
+            color: "#f59e0b",
+            fontWeight: 800,
+            fontSize: 17,
+            letterSpacing: "-0.01em",
+          }}>
+            ₹{Number(pack.price).toLocaleString("en-IN")}
+          </div>
+          <div style={{
+            background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
+            color: "#000",
+            fontSize: 11,
+            fontWeight: 800,
+            padding: "5px 14px",
+            borderRadius: 999,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}>
+            Buy
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{
+      background: "#111",
+      borderRadius: 18,
+      border: "1px solid rgba(255,255,255,0.07)",
+      overflow: "hidden",
+    }}>
+      <div style={{ height: 110, background: "rgba(255,255,255,0.04)" }} />
+      <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ height: 16, width: "60%", background: "rgba(255,255,255,0.07)", borderRadius: 6 }} />
+        <div style={{ height: 20, width: "40%", background: "rgba(255,255,255,0.07)", borderRadius: 6 }} />
+      </div>
+    </div>
   );
 }
 
 export default function PackagesSection({ onPackageSelect }: { onPackageSelect: (id: string) => void }) {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/packages`)
+      .then(r => r.json())
+      .then(data => { setPackages(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
+
   return (
     <section style={{ background: "#0a0a0a", minHeight: "60vh", paddingBottom: 48 }}>
-      <style>{`
-        @keyframes pkg-diagIn {
-          from { opacity: 0; transform: translate(-20px, -20px); }
-          to   { opacity: 1; transform: translate(0, 0); }
-        }
-        @keyframes pkg-diagInDim {
-          from { opacity: 0; transform: translate(-20px, -20px); }
-          to   { opacity: 0.5; transform: translate(0, 0); }
-        }
-      `}</style>
-
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999, background: "rgba(245,200,40,0.1)", border: "1px solid rgba(245,200,40,0.3)", color: "#f5c842", fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 12 }}>
+          <div style={{
+            display: "inline-block",
+            padding: "5px 16px",
+            borderRadius: 999,
+            background: "rgba(245,200,40,0.1)",
+            border: "1px solid rgba(245,200,40,0.3)",
+            color: "#f5c842",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            marginBottom: 12,
+          }}>
             Our Packages
           </div>
           <h2 style={{ color: "#fff", fontSize: "clamp(1.6rem,6vw,2.2rem)", fontWeight: 800, lineHeight: 1.2, margin: 0 }}>
             Choose Your Pack
           </h2>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 8 }}>
-            Tap a category to view available diamond packs
+            Instant delivery · Best prices · Secure payment
           </p>
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 14,
-        }}>
-          {PACKS.map((pack, i) => {
-            const col = i % 2;
-            const row = Math.floor(i / 2);
-            const delay = (col + row) * 0.1;
-            return (
-              <div
-                key={pack.id}
-                onClick={() => pack.available && onPackageSelect(pack.id)}
-                style={{
-                  background: "#111",
-                  borderRadius: 18,
-                  border: `1px solid ${pack.available ? pack.color + "45" : "rgba(255,255,255,0.07)"}`,
-                  padding: "20px 16px 18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  cursor: pack.available ? "pointer" : "default",
-                  boxShadow: pack.available ? `0 0 24px ${pack.glow}` : "none",
-                  animation: `${pack.available ? "pkg-diagIn" : "pkg-diagInDim"} 0.65s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}s both`,
-                  transition: "transform 0.18s ease, box-shadow 0.18s ease",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-                onMouseEnter={e => {
-                  if (!pack.available) return;
-                  const el = e.currentTarget as HTMLDivElement;
-                  el.style.transform = "translateY(-3px) scale(1.02)";
-                  el.style.boxShadow = `0 8px 36px ${pack.glow}`;
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLDivElement;
-                  el.style.transform = "";
-                  el.style.boxShadow = pack.available ? `0 0 24px ${pack.glow}` : "none";
-                }}
-              >
-                {/* subtle corner glow */}
-                {pack.available && (
-                  <div style={{
-                    position: "absolute",
-                    top: -30,
-                    right: -30,
-                    width: 80,
-                    height: 80,
-                    borderRadius: "50%",
-                    background: pack.color + "18",
-                    pointerEvents: "none",
-                  }} />
-                )}
+        {loading && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
 
-                <div style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: pack.color + "15",
-                  border: `1px solid ${pack.color}30`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  <DiamondSVG color={pack.color} size={30} />
-                </div>
+        {error && (
+          <div style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", padding: "40px 0", fontSize: 14 }}>
+            Could not load packages. Please try again later.
+          </div>
+        )}
 
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>{pack.title}</div>
-                  <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{pack.subtitle}</div>
-                </div>
+        {!loading && !error && packages.length === 0 && (
+          <div style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", padding: "40px 0", fontSize: 14 }}>
+            No packages available yet. Check back soon!
+          </div>
+        )}
 
-                <div style={{
-                  padding: "3px 10px",
-                  borderRadius: 7,
-                  background: pack.available ? pack.color + "18" : "rgba(255,255,255,0.05)",
-                  color: pack.available ? pack.color : "rgba(255,255,255,0.25)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}>
-                  {pack.available ? pack.diamonds : "Coming Soon"}
-                </div>
-
-                {pack.available && (
-                  <div style={{
-                    position: "absolute",
-                    bottom: 14,
-                    right: 14,
-                    width: 26,
-                    height: 26,
-                    borderRadius: "50%",
-                    background: pack.color + "18",
-                    border: `1px solid ${pack.color}40`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6h8M7 3l3 3-3 3" stroke={pack.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {!loading && !error && packages.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {packages.map(pack => (
+              <PackCard key={pack.id} pack={pack} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

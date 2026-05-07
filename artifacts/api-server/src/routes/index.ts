@@ -4,6 +4,7 @@ import adminRouter from "./admin";
 import ordersRouter from "./orders";
 import walletRouter from "./wallet";
 import profileRouter from "./profile";
+import pool from "../lib/db";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,16 @@ router.use("/admin", adminRouter);
 router.use("/orders", ordersRouter);
 router.use("/wallet", walletRouter);
 router.use("/profile", profileRouter);
+
+router.get("/packages", async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM packages ORDER BY sort_order ASC, diamonds ASC"
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "DB error" });
+  }
+});
 
 export default router;

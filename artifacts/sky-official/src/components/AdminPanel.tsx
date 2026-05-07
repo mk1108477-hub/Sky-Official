@@ -28,7 +28,18 @@ interface Stats {
   total_diamonds: string;
 }
 
-type Tab = "packages" | "orders";
+interface WalletRequest {
+  id: number;
+  clerk_user_id: string;
+  amount: string;
+  type: string;
+  status: string;
+  upi_ref: string | null;
+  description: string | null;
+  created_at: string;
+}
+
+type Tab = "packages" | "orders" | "wallet";
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("admin_token"));
@@ -44,6 +55,8 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [showAddPkg, setShowAddPkg] = useState(false);
   const [newOrder, setNewOrder] = useState({ diamonds: "", price: "", mlbb_id: "", status: "completed", note: "" });
   const [showAddOrder, setShowAddOrder] = useState(false);
+  const [walletRequests, setWalletRequests] = useState<WalletRequest[]>([]);
+  const [walletLoading, setWalletLoading] = useState<number | null>(null);
 
   const token = sessionStorage.getItem("admin_token") || "";
 
@@ -63,11 +76,31 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     }
   }, [token]);
 
+  const fetchWalletRequests = useCallback(async () => {
+    const res = await fetch(`${API}/admin/wallet-requests`, { headers });
+    if (res.ok) setWalletRequests(await res.json());
+  }, [token]);
+
   useEffect(() => {
     if (!authed) return;
     fetchPackages();
     fetchOrders();
+    fetchWalletRequests();
   }, [authed]);
+
+  const approveWallet = async (id: number) => {
+    setWalletLoading(id);
+    await fetch(`${API}/admin/wallet-requests/${id}/approve`, { method: "POST", headers });
+    await fetchWalletRequests();
+    setWalletLoading(null);
+  };
+
+  const rejectWallet = async (id: number) => {
+    setWalletLoading(id);
+    await fetch(`${API}/admin/wallet-requests/${id}/reject`, { method: "POST", headers });
+    await fetchWalletRequests();
+    setWalletLoading(null);
+  };
 
   const login = async () => {
     setLoginError("");
@@ -205,19 +238,25 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <>
             {/* Tabs */}
             <div className="flex gap-1 px-4 pt-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              {(["packages", "orders"] as Tab[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className="px-5 py-2 text-sm font-semibold capitalize rounded-t-lg transition-colors"
-                  style={tab === t
-                    ? { color: "#f59e0b", borderBottom: "2px solid #f59e0b", background: "rgba(245,158,11,0.07)" }
-                    : { color: "#9ca3af" }
-                  }
-                >
-                  {t}
-                </button>
-              ))}
+              {(["packages", "orders", "wallet"] as Tab[]).map((t) => {
+                const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className="px-5 py-2 text-sm font-semibold capitalize rounded-t-lg transition-colors flex items-center gap-1.5"
+                    style={tab === t
+                      ? { color: "#f59e0b", borderBottom: "2px solid #f59e0b", background: "rgba(245,158,11,0.07)" }
+                      : { color: "#9ca3af" }
+                    }
+                  >
+                    {t}
+                    {pendingCount > 0 && (
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#ef4444", color: "#fff", fontSize: 10 }}>{pendingCount}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="overflow-y-auto flex-1 p-5">
@@ -385,6 +424,62 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              {/* ── WALLET TAB ── */}
+              {tab === "wallet" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-bold text-sm">Top-up Requests</span>
+                    <button onClick={fetchWalletRequests} className="px-3 py-1.5 rounded-lg text-xs font-bold text-gray-300" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)" }}>Refresh</button>
+                  </div>
+
+                  {walletRequests.length === 0 && (
+                    <div className="text-center text-gray-500 text-sm py-8">No wallet requests yet.</div>
+                  )}
+
+                  {walletRequests.map((req) => {
+                    const isPending = req.status === "pending";
+                    const isProcessing = walletLoading === req.id;
+                    const statusColor = req.status === "approved" ? "#22c55e" : req.status === "rejected" ? "#ef4444" : "#f59e0b";
+                    return (
+                      <div key={req.id} className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: `1px solid ${isPending ? "rgba(245,158,11,0.25)" : "rgba(255,255,255,0.07)"}` }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-white font-bold text-sm">₹{parseFloat(req.amount).toFixed(2)}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: statusColor + "20", color: statusColor }}>{req.status}</span>
+                            </div>
+                            <div className="text-gray-400 text-xs mt-1 font-mono break-all">{req.clerk_user_id}</div>
+                            {req.upi_ref && (
+                              <div className="text-gray-300 text-xs mt-1">UPI Ref: <span className="font-semibold text-amber-300">{req.upi_ref}</span></div>
+                            )}
+                            <div className="text-gray-600 text-xs mt-1">{new Date(req.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                          </div>
+                        </div>
+                        {isPending && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => approveWallet(req.id)}
+                              disabled={isProcessing}
+                              className="flex-1 py-2 rounded-lg text-xs font-bold text-black"
+                              style={{ background: isProcessing ? "rgba(34,197,94,0.4)" : "#22c55e" }}
+                            >
+                              {isProcessing ? "Processing…" : "Approve & Credit"}
+                            </button>
+                            <button
+                              onClick={() => rejectWallet(req.id)}
+                              disabled={isProcessing}
+                              className="flex-1 py-2 rounded-lg text-xs font-bold"
+                              style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

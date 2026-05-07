@@ -129,4 +129,58 @@ router.delete("/orders/:id", requireAdmin, async (req, res) => {
   }
 });
 
+router.get("/wallet-requests", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM wallet_transactions ORDER BY created_at DESC LIMIT 100`
+    );
+    res.json(rows);
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
+router.post("/wallet-requests/:id/approve", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const txRes = await pool.query(
+      "SELECT * FROM wallet_transactions WHERE id=$1 AND status='pending'",
+      [id]
+    );
+    if (!txRes.rows[0]) return res.status(404).json({ error: "Not found or already processed" });
+    const tx = txRes.rows[0];
+
+    await pool.query(
+      `INSERT INTO wallets (clerk_user_id, balance, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (clerk_user_id)
+       DO UPDATE SET balance = wallets.balance + $2, updated_at = NOW()`,
+      [tx.clerk_user_id, tx.amount]
+    );
+
+    await pool.query(
+      "UPDATE wallet_transactions SET status='approved' WHERE id=$1",
+      [id]
+    );
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
+router.post("/wallet-requests/:id/reject", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rowCount } = await pool.query(
+      "UPDATE wallet_transactions SET status='rejected' WHERE id=$1 AND status='pending'",
+      [id]
+    );
+    if (!rowCount) return res.status(404).json({ error: "Not found or already processed" });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
 export default router;

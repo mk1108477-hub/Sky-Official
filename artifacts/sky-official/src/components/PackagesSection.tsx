@@ -8,6 +8,8 @@ interface Package {
   bonus_diamonds: number;
   price: string;
   label: string | null;
+  name: string | null;
+  category: string | null;
   is_popular: boolean;
   sort_order: number;
 }
@@ -27,8 +29,8 @@ interface Category {
 const CATEGORIES: Category[] = [
   { id: "small",     title: "Small Pack",       subtitle: "Quick top-ups for daily players",        color: "#38bdf8", glow: "rgba(56,189,248,0.30)",   available: true },
   { id: "normal",    title: "Normal Pack",       subtitle: "Best value with bonus diamonds",         color: "#f59e0b", glow: "rgba(245,158,11,0.30)",   available: true, badge: "Most Popular" },
-  { id: "double",    title: "Double Diamond",    subtitle: "2× bonus diamonds every purchase",       color: "#00e5ff", glow: "rgba(0,229,255,0.22)",    available: false },
-  { id: "passes",    title: "Passes & Bundles",  subtitle: "Weekly & monthly passes with perks",     color: "#a855f7", glow: "rgba(168,85,247,0.25)",   available: false },
+  { id: "double",    title: "Double Diamond",    subtitle: "2× bonus diamonds every purchase",       color: "#00e5ff", glow: "rgba(0,229,255,0.22)",    available: true },
+  { id: "passes",    title: "Passes & Bundles",  subtitle: "Weekly & monthly passes with perks",     color: "#a855f7", glow: "rgba(168,85,247,0.25)",   available: true },
   { id: "starlight", title: "Starlight Cards",   subtitle: "Exclusive skins & limited rewards",      color: "#f5c842", glow: "rgba(245,200,66,0.25)",   available: false },
   { id: "rank",      title: "Rank Boosting",     subtitle: "Rise to Mythical Glory with experts",    color: "#ec4899", glow: "rgba(236,72,153,0.25)",   available: false },
 ];
@@ -302,7 +304,7 @@ const PANEL_ANIMS: Record<CategoryId, React.ReactNode> = {
   rank: <RankBoostAnim />,
 };
 
-// ── Image helper for individual pack cards ──────────────────────────────────
+// ── Image helpers ────────────────────────────────────────────────────────────
 function getPackImage(diamonds: number): string {
   if (diamonds <= 10) return "/pack1.jpg";
   if (diamonds <= 49) return "/pack2.jpg";
@@ -311,6 +313,17 @@ function getPackImage(diamonds: number): string {
   if (diamonds <= 999) return "/pack5.jpg";
   if (diamonds <= 1500) return "/pack6.jpg";
   return "/pack7.jpg";
+}
+
+const PASS_IMAGES: Record<string, string> = {
+  "Weekly Pass":          "/pass1.jpg",
+  "Twilight Pass":        "/pass2.jpg",
+  "Weekly Elite Bundle":  "/pass3.jpg",
+  "Monthly Epic Bundle":  "/pass4.jpg",
+};
+
+function getPassImage(name: string | null): string {
+  return (name && PASS_IMAGES[name]) || "/pass1.jpg";
 }
 
 function ImagePane({ src }: { src: string }) {
@@ -401,8 +414,8 @@ function CategoryCard({ cat, onClick, index }: { cat: Category; onClick: () => v
   );
 }
 
-// ── Individual pack card ────────────────────────────────────────────────────
-function PackCard({ pack }: { pack: Package }) {
+// ── Individual pack card (small / normal / double) ──────────────────────────
+function PackCard({ pack, isDouble }: { pack: Package; isDouble?: boolean }) {
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
 
@@ -410,23 +423,30 @@ function PackCard({ pack }: { pack: Package }) {
     <div
       style={{
         background: "#111", borderRadius: 18,
-        border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.6)" : "1px solid rgba(255,255,255,0.08)",
+        border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.6)" : isDouble ? "1.5px solid rgba(0,229,255,0.35)" : "1px solid rgba(255,255,255,0.08)",
         overflow: "hidden", display: "flex", flexDirection: "column",
-        boxShadow: pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : "0 2px 12px rgba(0,0,0,0.4)",
+        boxShadow: pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)",
         position: "relative", cursor: "pointer",
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
       }}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "translateY(-3px) scale(1.02)";
-        el.style.boxShadow = pack.is_popular ? "0 8px 36px rgba(245,158,11,0.4)" : "0 8px 28px rgba(0,0,0,0.6)";
+        el.style.boxShadow = pack.is_popular ? "0 8px 36px rgba(245,158,11,0.4)" : isDouble ? "0 8px 28px rgba(0,229,255,0.3)" : "0 8px 28px rgba(0,0,0,0.6)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "";
-        el.style.boxShadow = pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : "0 2px 12px rgba(0,0,0,0.4)";
+        el.style.boxShadow = pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)";
       }}
     >
+      {/* 2× badge for double diamond */}
+      {isDouble && (
+        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 3,
+          background: "#dc2626", color: "#fff",
+          fontSize: 9, fontWeight: 900, letterSpacing: "0.05em",
+          padding: "3px 8px", borderRadius: 999 }}>2×</div>
+      )}
       {pack.is_popular && (
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3,
           background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
@@ -436,7 +456,7 @@ function PackCard({ pack }: { pack: Package }) {
       <ImagePane src={getPackImage(pack.diamonds)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ color: "#38bdf8", fontSize: 12 }}>♦</span>
+          <span style={{ color: isDouble ? "#00e5ff" : "#38bdf8", fontSize: 12 }}>♦</span>
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>{pack.diamonds.toLocaleString()}</span>
           <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 10 }}>Diamonds</span>
         </div>
@@ -444,12 +464,49 @@ function PackCard({ pack }: { pack: Package }) {
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>
             <span style={{ color: "rgba(255,255,255,0.5)" }}>{base.toLocaleString()}</span>
             {" + "}
-            <span style={{ color: "#4ade80", fontWeight: 700 }}>{pack.bonus_diamonds} bonus</span>
+            <span style={{ color: isDouble ? "#00e5ff" : "#4ade80", fontWeight: 700 }}>{pack.bonus_diamonds} bonus</span>
           </div>
         ) : (
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>No bonus</div>
         )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
+          <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
+          <div style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer" }}>Buy</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pass card (Passes & Bundles) ────────────────────────────────────────────
+function PassCard({ pack }: { pack: Package }) {
+  return (
+    <div
+      style={{
+        background: "#111", borderRadius: 18,
+        border: "1.5px solid rgba(168,85,247,0.35)",
+        overflow: "hidden", display: "flex", flexDirection: "column",
+        boxShadow: "0 0 18px rgba(168,85,247,0.18)",
+        position: "relative", cursor: "pointer",
+        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.transform = "translateY(-3px) scale(1.02)";
+        el.style.boxShadow = "0 8px 28px rgba(168,85,247,0.3)";
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.transform = "";
+        el.style.boxShadow = "0 0 18px rgba(168,85,247,0.18)";
+      }}
+    >
+      <ImagePane src={getPassImage(pack.name)} />
+      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>
+          {pack.name}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
           <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
           <div style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer" }}>Buy</div>
         </div>
@@ -472,9 +529,11 @@ function SkeletonCard() {
 }
 
 function filterByCategory(packages: Package[], id: CategoryId): Package[] {
-  const sort = (arr: Package[]) => [...arr].sort((a, b) => a.diamonds - b.diamonds);
-  if (id === "small") return sort(packages.filter(p => p.diamonds <= 49));
-  if (id === "normal") return sort(packages.filter(p => p.diamonds >= 50));
+  const sort = (arr: Package[]) => [...arr].sort((a, b) => a.sort_order - b.sort_order || a.diamonds - b.diamonds);
+  if (id === "small")  return sort(packages.filter(p => (p.category ?? (p.diamonds <= 49 ? "small" : "normal")) === "small"));
+  if (id === "normal") return sort(packages.filter(p => (p.category ?? (p.diamonds <= 49 ? "small" : "normal")) === "normal"));
+  if (id === "double") return sort(packages.filter(p => p.category === "double"));
+  if (id === "passes") return sort(packages.filter(p => p.category === "passes"));
   return [];
 }
 
@@ -577,7 +636,11 @@ export default function PackagesSection({ onPackageSelect: _p }: { onPackageSele
             )}
             {!loading && activePacks.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                {activePacks.map(pack => <PackCard key={pack.id} pack={pack} />)}
+                {activePacks.map(pack =>
+                  activeCategory?.id === "passes"
+                    ? <PassCard key={pack.id} pack={pack} />
+                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} />
+                )}
               </div>
             )}
           </>

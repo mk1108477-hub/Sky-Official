@@ -33,12 +33,12 @@ router.get("/packages", requireAdmin, async (_req, res) => {
 });
 
 router.post("/packages", requireAdmin, async (req, res) => {
-  const { diamonds, price, label, is_popular, sort_order } = req.body;
+  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category } = req.body;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO packages (diamonds, price, label, is_popular, sort_order, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
-      [diamonds, price, label || null, is_popular || false, sort_order || 0]
+      `INSERT INTO packages (diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *`,
+      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null]
     );
     res.json(rows[0]);
   } catch (err) {
@@ -48,12 +48,12 @@ router.post("/packages", requireAdmin, async (req, res) => {
 
 router.put("/packages/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { diamonds, price, label, is_popular, sort_order } = req.body;
+  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE packages SET diamonds=$1, price=$2, label=$3, is_popular=$4, sort_order=$5, updated_at=NOW()
-       WHERE id=$6 RETURNING *`,
-      [diamonds, price, label || null, is_popular || false, sort_order || 0, id]
+      `UPDATE packages SET diamonds=$1, bonus_diamonds=$2, price=$3, label=$4, is_popular=$5, sort_order=$6, name=$7, category=$8, updated_at=NOW()
+       WHERE id=$9 RETURNING *`,
+      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null, id]
     );
     if (!rows[0]) return res.status(404).json({ error: "Not found" });
     res.json(rows[0]);

@@ -20,7 +20,7 @@ const WHATSAPP_NUMBER = "https://wa.me/919362003788";
 const NAV_SUBTITLES = [
   "Instant Delivery",
   "Affordable Prices",
-  "24/7 Chat Support",
+  "P2P Chat Support",
 ];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -496,11 +496,13 @@ function WhatsAppFAB() {
 
 // ── Main Site Page ─────────────────────────────────────────────────────────
 function MainSite() {
-  const [introDone, setIntroDone] = useState(false);
-  const [introMounted, setIntroMounted] = useState(true);
+  const alreadySeen = typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("intro_seen");
+  const [introDone, setIntroDone] = useState(alreadySeen);
+  const [introMounted, setIntroMounted] = useState(!alreadySeen);
   const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntroDone = () => {
+    sessionStorage.setItem("intro_seen", "1");
     setIntroDone(true);
     setTimeout(() => setIntroMounted(false), 1000);
   };

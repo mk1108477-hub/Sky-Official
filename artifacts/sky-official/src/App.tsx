@@ -96,8 +96,8 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
               <span
                 key={word}
                 style={{
-                  animation: "wordFadeLR 2.4s ease-in-out infinite",
-                  animationDelay: `${i * 0.5}s`,
+                  animation: "wordFadeLR 3s ease-in-out infinite",
+                  animationDelay: `${i * 1}s`,
                   display: "inline-block",
                   opacity: 0,
                 }}
@@ -117,11 +117,12 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           100% { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
         }
         @keyframes wordFadeLR {
-          0%   { opacity: 0; transform: translateY(4px); }
-          20%  { opacity: 1; transform: translateY(0); }
-          55%  { opacity: 1; transform: translateY(0); }
-          75%  { opacity: 0; transform: translateY(-4px); }
-          100% { opacity: 0; transform: translateY(4px); }
+          0%   { opacity: 0; }
+          8%   { opacity: 1; }
+          25%  { opacity: 1; }
+          33%  { opacity: 0; }
+          34%  { opacity: 0; }
+          100% { opacity: 0; }
         }
       `}</style>
     </div>

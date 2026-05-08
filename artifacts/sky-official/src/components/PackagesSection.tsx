@@ -37,48 +37,75 @@ const CATEGORIES: Category[] = [
 
 // ── Animated Panels ─────────────────────────────────────────────────────────
 
+// MLBB-style 💎 diamond: flat-top crown + pointed pavilion
+function MLBBDiamond({ cx, cy, hw, gradId, opacity = 1, style }: {
+  cx: number; cy: number; hw: number; gradId: string; opacity?: number; style?: React.CSSProperties;
+}) {
+  // Outer shape (5 pts): table-left, table-right, belt-right, bottom, belt-left
+  const tl = `${cx - hw * 0.62},${cy - hw}`;
+  const tr = `${cx + hw * 0.62},${cy - hw}`;
+  const br = `${cx + hw},${cy - hw * 0.28}`;
+  const bl = `${cx - hw},${cy - hw * 0.28}`;
+  const bot = `${cx},${cy + hw}`;
+  // Belt y (for internal facet lines)
+  const by = cy - hw * 0.28;
+  // Inner crown highlight (bright trapezoid centred on table)
+  const hl = `${cx - hw * 0.32},${cy - hw} ${cx + hw * 0.32},${cy - hw} ${cx + hw * 0.2},${cy - hw * 0.55} ${cx - hw * 0.2},${cy - hw * 0.55}`;
+  return (
+    <g style={style} opacity={opacity}>
+      {/* Main body */}
+      <polygon points={`${tl} ${tr} ${br} ${bot} ${bl}`} fill={`url(#${gradId})`} />
+      {/* Crown face (slightly lighter overlay) */}
+      <polygon points={`${tl} ${tr} ${br} ${bl}`} fill="rgba(180,230,255,0.18)" />
+      {/* Crown table highlight */}
+      <polygon points={hl} fill="rgba(255,255,255,0.5)" />
+      {/* Left pavilion face */}
+      <polygon points={`${bl} ${cx},${by} ${bot}`} fill="rgba(0,55,150,0.38)" />
+      {/* Right pavilion face */}
+      <polygon points={`${br} ${cx},${by} ${bot}`} fill="rgba(0,30,120,0.5)" />
+      {/* Belt edge highlight line */}
+      <line x1={cx - hw} y1={by} x2={cx + hw} y2={by} stroke="rgba(255,255,255,0.28)" strokeWidth="0.6" />
+      {/* Centre pavilion ridge */}
+      <line x1={cx} y1={by} x2={cx} y2={cy + hw} stroke="rgba(255,255,255,0.18)" strokeWidth="0.5" />
+    </g>
+  );
+}
+
 function SmallPackAnim() {
   return (
     <svg viewBox="0 0 120 80" width="100%" height="100%" style={{ display: "block" }}>
       <defs>
-        <radialGradient id="sp-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.18" />
+        <radialGradient id="sp-glow" cx="50%" cy="55%" r="52%">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.22" />
           <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="sp-d1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#bae6fd" />
+        <linearGradient id="sp-d1" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#93e8ff" />
+          <stop offset="50%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0369a1" />
+        </linearGradient>
+        <linearGradient id="sp-d2" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#e0f9ff" />
+          <stop offset="45%" stopColor="#7dd3fc" />
           <stop offset="100%" stopColor="#0284c7" />
         </linearGradient>
-        <linearGradient id="sp-d2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e0f2fe" />
-          <stop offset="100%" stopColor="#38bdf8" />
-        </linearGradient>
       </defs>
-      <ellipse cx="60" cy="52" rx="38" ry="14" fill="url(#sp-glow)" />
-      {/* Diamond 1 – left, small */}
-      <g style={{ animation: "sp-bob1 2.4s ease-in-out infinite", transformOrigin: "33px 42px" }}>
-        <polygon points="33,28 42,37 33,50 24,37" fill="url(#sp-d1)" opacity="0.92" />
-        <polygon points="33,28 38,34 33,37 28,34" fill="rgba(255,255,255,0.55)" />
-        <polygon points="33,50 38,43 33,37 28,43" fill="rgba(0,100,180,0.35)" />
-      </g>
-      {/* Diamond 2 – center, large */}
-      <g style={{ animation: "sp-bob2 2.0s ease-in-out infinite", transformOrigin: "60px 38px" }}>
-        <polygon points="60,18 74,32 60,54 46,32" fill="url(#sp-d2)" opacity="0.97" />
-        <polygon points="60,18 68,28 60,34 52,28" fill="rgba(255,255,255,0.6)" />
-        <polygon points="60,54 68,40 60,34 52,40" fill="rgba(0,80,160,0.35)" />
-      </g>
-      {/* Diamond 3 – right, small */}
-      <g style={{ animation: "sp-bob3 2.7s ease-in-out infinite", transformOrigin: "87px 44px" }}>
-        <polygon points="87,30 96,40 87,53 78,40" fill="url(#sp-d1)" opacity="0.88" />
-        <polygon points="87,30 92,37 87,40 82,37" fill="rgba(255,255,255,0.5)" />
-        <polygon points="87,53 92,45 87,40 82,45" fill="rgba(0,100,180,0.3)" />
-      </g>
+      <ellipse cx="60" cy="56" rx="40" ry="12" fill="url(#sp-glow)" />
+      {/* Left small diamond */}
+      <MLBBDiamond cx={30} cy={44} hw={10} gradId="sp-d1" opacity={0.9}
+        style={{ animation: "sp-bob1 2.4s ease-in-out infinite", transformOrigin: "30px 44px" }} />
+      {/* Centre large diamond */}
+      <MLBBDiamond cx={60} cy={37} hw={15} gradId="sp-d2" opacity={1}
+        style={{ animation: "sp-bob2 2.0s ease-in-out infinite", transformOrigin: "60px 37px" }} />
+      {/* Right small diamond */}
+      <MLBBDiamond cx={90} cy={44} hw={10} gradId="sp-d1" opacity={0.88}
+        style={{ animation: "sp-bob3 2.7s ease-in-out infinite", transformOrigin: "90px 44px" }} />
       {/* Sparkles */}
-      <circle cx="22" cy="22" r="1.5" fill="#bae6fd" style={{ animation: "sp-twinkle 1.8s ease-in-out infinite 0.2s" }} />
-      <circle cx="100" cy="18" r="2"   fill="#7dd3fc" style={{ animation: "sp-twinkle 2.1s ease-in-out infinite 0.6s" }} />
-      <circle cx="110" cy="55" r="1.2" fill="#e0f2fe" style={{ animation: "sp-twinkle 1.6s ease-in-out infinite 0.9s" }} />
-      <circle cx="10"  cy="60" r="1.8" fill="#7dd3fc" style={{ animation: "sp-twinkle 2.4s ease-in-out infinite 0.3s" }} />
-      <circle cx="60"  cy="10" r="1.3" fill="#bae6fd" style={{ animation: "sp-twinkle 1.9s ease-in-out infinite 1.1s" }} />
+      <circle cx="18" cy="20" r="1.5" fill="#bae6fd" style={{ animation: "sp-twinkle 1.8s ease-in-out infinite 0.2s" }} />
+      <circle cx="104" cy="18" r="2"   fill="#7dd3fc" style={{ animation: "sp-twinkle 2.1s ease-in-out infinite 0.6s" }} />
+      <circle cx="112" cy="56" r="1.2" fill="#e0f2fe" style={{ animation: "sp-twinkle 1.6s ease-in-out infinite 0.9s" }} />
+      <circle cx="8"   cy="58" r="1.8" fill="#7dd3fc" style={{ animation: "sp-twinkle 2.4s ease-in-out infinite 0.3s" }} />
+      <circle cx="60"  cy="9"  r="1.3" fill="#bae6fd" style={{ animation: "sp-twinkle 1.9s ease-in-out infinite 1.1s" }} />
     </svg>
   );
 }
@@ -91,33 +118,31 @@ function NormalPackAnim() {
           <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.22" />
           <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
         </radialGradient>
-        <linearGradient id="np-d1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#bae6fd" /><stop offset="100%" stopColor="#0284c7" />
+        <linearGradient id="np-d1" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#93e8ff" />
+          <stop offset="50%" stopColor="#38bdf8" />
+          <stop offset="100%" stopColor="#0369a1" />
         </linearGradient>
-        <linearGradient id="np-d2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#e0f2fe" /><stop offset="100%" stopColor="#38bdf8" />
+        <linearGradient id="np-d2" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#e0f9ff" />
+          <stop offset="45%" stopColor="#7dd3fc" />
+          <stop offset="100%" stopColor="#0284c7" />
         </linearGradient>
       </defs>
-      <ellipse cx="60" cy="60" rx="48" ry="14" fill="url(#np-glow)" />
+      <ellipse cx="60" cy="62" rx="46" ry="12" fill="url(#np-glow)" />
       {/* Rotating gold ring */}
       <circle cx="60" cy="40" r="30" fill="none" stroke="#f59e0b" strokeWidth="0.6" strokeOpacity="0.25"
         strokeDasharray="6 4" style={{ animation: "np-ring 6s linear infinite", transformOrigin: "60px 40px" }} />
-      {/* Back diamonds */}
-      <g style={{ animation: "sp-bob3 2.6s ease-in-out infinite 0.4s", transformOrigin: "38px 48px" }} opacity="0.7">
-        <polygon points="38,34 46,44 38,56 30,44" fill="url(#np-d1)" />
-        <polygon points="38,34 43,40 38,43 33,40" fill="rgba(255,255,255,0.45)" />
-      </g>
-      <g style={{ animation: "sp-bob1 2.9s ease-in-out infinite 0.7s", transformOrigin: "82px 46px" }} opacity="0.7">
-        <polygon points="82,32 90,43 82,56 74,43" fill="url(#np-d1)" />
-        <polygon points="82,32 87,39 82,42 77,39" fill="rgba(255,255,255,0.45)" />
-      </g>
+      {/* Back-left diamond */}
+      <MLBBDiamond cx={35} cy={48} hw={10} gradId="np-d1" opacity={0.68}
+        style={{ animation: "sp-bob3 2.6s ease-in-out infinite 0.4s", transformOrigin: "35px 48px" }} />
+      {/* Back-right diamond */}
+      <MLBBDiamond cx={85} cy={47} hw={10} gradId="np-d1" opacity={0.68}
+        style={{ animation: "sp-bob1 2.9s ease-in-out infinite 0.7s", transformOrigin: "85px 47px" }} />
       {/* Front large diamond */}
-      <g style={{ animation: "sp-bob2 2.1s ease-in-out infinite", transformOrigin: "60px 36px" }}>
-        <polygon points="60,14 78,32 60,58 42,32" fill="url(#np-d2)" opacity="0.97" />
-        <polygon points="60,14 70,26 60,34 50,26" fill="rgba(255,255,255,0.6)" />
-        <polygon points="60,58 70,42 60,34 50,42" fill="rgba(0,80,160,0.35)" />
-      </g>
-      {/* Sparkles */}
+      <MLBBDiamond cx={60} cy={36} hw={18} gradId="np-d2" opacity={1}
+        style={{ animation: "sp-bob2 2.1s ease-in-out infinite", transformOrigin: "60px 36px" }} />
+      {/* Sparkles — gold to match the category colour */}
       {[[16,16,1.8,0],[104,20,1.4,0.5],[112,58,1.6,1],[8,62,1.3,0.8],[60,7,1.5,1.4],[96,60,1.2,0.3]].map(([x,y,r,d],i) => (
         <circle key={i} cx={x} cy={y} r={r} fill="#fde68a" style={{ animation: `sp-twinkle ${1.6+Number(d)}s ease-in-out infinite ${d}s` }} />
       ))}
@@ -129,33 +154,31 @@ function DoubleDiamondAnim() {
   return (
     <svg viewBox="0 0 120 80" width="100%" height="100%" style={{ display: "block" }}>
       <defs>
-        <linearGradient id="dd-d1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a5f3fc" /><stop offset="100%" stopColor="#0ea5e9" />
+        <linearGradient id="dd-d1" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#a5f3fc" />
+          <stop offset="50%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#0369a1" />
         </linearGradient>
-        <linearGradient id="dd-d2" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#cffafe" /><stop offset="100%" stopColor="#06b6d4" />
+        <linearGradient id="dd-d2" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#e0f9ff" />
+          <stop offset="45%" stopColor="#67e8f9" />
+          <stop offset="100%" stopColor="#0284c7" />
         </linearGradient>
         <filter id="dd-blur"><feGaussianBlur stdDeviation="3" /></filter>
       </defs>
       {/* Glow blobs */}
-      <ellipse cx="38" cy="42" rx="20" ry="20" fill="#0ea5e9" fillOpacity="0.15" filter="url(#dd-blur)"
-        style={{ animation: "dd-pulse1 2s ease-in-out infinite", transformOrigin: "38px 42px" }} />
-      <ellipse cx="82" cy="42" rx="20" ry="20" fill="#00e5ff" fillOpacity="0.15" filter="url(#dd-blur)"
-        style={{ animation: "dd-pulse2 2s ease-in-out infinite", transformOrigin: "82px 42px" }} />
-      {/* Left diamond */}
-      <g style={{ animation: "dd-pulse1 2s ease-in-out infinite", transformOrigin: "38px 40px" }}>
-        <polygon points="38,18 54,34 38,58 22,34" fill="url(#dd-d1)" />
-        <polygon points="38,18 47,28 38,34 29,28" fill="rgba(255,255,255,0.55)" />
-        <polygon points="38,58 47,44 38,34 29,44" fill="rgba(0,80,160,0.3)" />
-      </g>
-      {/* Right diamond */}
-      <g style={{ animation: "dd-pulse2 2s ease-in-out infinite", transformOrigin: "82px 40px" }}>
-        <polygon points="82,18 98,34 82,58 66,34" fill="url(#dd-d2)" />
-        <polygon points="82,18 91,28 82,34 73,28" fill="rgba(255,255,255,0.55)" />
-        <polygon points="82,58 91,44 82,34 73,44" fill="rgba(0,80,160,0.3)" />
-      </g>
+      <ellipse cx="36" cy="44" rx="18" ry="18" fill="#0ea5e9" fillOpacity="0.15" filter="url(#dd-blur)"
+        style={{ animation: "dd-pulse1 2s ease-in-out infinite", transformOrigin: "36px 44px" }} />
+      <ellipse cx="84" cy="44" rx="18" ry="18" fill="#00e5ff" fillOpacity="0.15" filter="url(#dd-blur)"
+        style={{ animation: "dd-pulse2 2s ease-in-out infinite", transformOrigin: "84px 44px" }} />
+      {/* Left MLBB diamond */}
+      <MLBBDiamond cx={36} cy={40} hw={17} gradId="dd-d1" opacity={1}
+        style={{ animation: "dd-pulse1 2s ease-in-out infinite", transformOrigin: "36px 40px" }} />
+      {/* Right MLBB diamond */}
+      <MLBBDiamond cx={84} cy={40} hw={17} gradId="dd-d2" opacity={1}
+        style={{ animation: "dd-pulse2 2s ease-in-out infinite", transformOrigin: "84px 40px" }} />
       {/* ×2 label */}
-      <text x="60" y="44" textAnchor="middle" fontSize="10" fontWeight="900" fill="#00e5ff" opacity="0.9"
+      <text x="60" y="46" textAnchor="middle" fontSize="10" fontWeight="900" fill="#00e5ff" opacity="0.92"
         style={{ animation: "sp-twinkle 2s ease-in-out infinite" }}>×2</text>
       {/* Sparkles */}
       {[[12,12,1.5,0],[60,8,1.8,0.6],[108,14,1.4,0.3],[6,70,1.3,1],[114,68,1.6,0.9]].map(([x,y,r,d],i) => (

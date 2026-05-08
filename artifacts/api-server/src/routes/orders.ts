@@ -2,6 +2,7 @@ import { Router } from "express";
 import pool from "../lib/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sendPushToAll } from "./push";
+import { sendOrderEmail } from "../lib/email";
 
 const router = Router();
 
@@ -99,6 +100,15 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
       "Open admin panel to fulfill →",
     ];
     sendWhatsApp(lines.filter(Boolean).join("\n"));
+
+    // Email notification
+    sendOrderEmail({
+      orderId,
+      diamonds: pkg.diamonds,
+      price: pkg.price,
+      mlbbId,
+      remark: remark ?? null,
+    }).catch(() => {});
 
     res.json({ ok: true, id: orderId });
   } catch {

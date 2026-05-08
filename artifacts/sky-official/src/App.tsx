@@ -596,7 +596,29 @@ function PackagesPage() {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
       <Navbar />
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 16px 0" }} />
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
+        {/* Verify banner */}
+        <div
+          style={{ background: "linear-gradient(135deg,#111a00,#0f1500)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)" }}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
+          </div>
+          <button
+            onClick={() => setLocation("/verify")}
+            style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+          >
+            Verify →
+          </button>
+        </div>
+      </div>
       <PackagesSection onPackageSelect={(_id) => {}} onBack={() => setLocation("/")} />
     </div>
   );

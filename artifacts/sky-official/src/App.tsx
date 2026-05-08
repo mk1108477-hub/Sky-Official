@@ -162,33 +162,40 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
 }
 
 // ── 3-D Shopping Bag + Navbar ──────────────────────────────────────────────
-function ShoppingBag3D() {
+function ShoppingBag3D({ rattling }: { rattling: boolean }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", animation: "bagFloat 3s ease-in-out infinite" }}>
-      <style>{`
-        @keyframes bagFloat {
-          0%,100% { transform: translateY(0) rotate(-3deg); filter: drop-shadow(0 0 4px rgba(245,158,11,0.5)); }
-          50%      { transform: translateY(-4px) rotate(3deg); filter: drop-shadow(0 0 9px rgba(245,158,11,0.85)); }
-        }
-        @keyframes navSlideDown {
-          from { opacity: 0; transform: translateY(-100%); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-      <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      transformOrigin: "50% 10%",
+      animation: rattling
+        ? "bagRattle 0.7s cubic-bezier(0.36,0.07,0.19,0.97) both"
+        : "bagIdle 2.8s ease-in-out infinite",
+      filter: rattling
+        ? "drop-shadow(0 0 14px rgba(245,158,11,1)) drop-shadow(0 0 28px rgba(245,158,11,0.6))"
+        : "drop-shadow(0 0 4px rgba(245,158,11,0.45))",
+      transition: "filter 0.2s ease",
+    }}>
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* side face for 3-D depth */}
+        <path d="M22.5 11.5l3 1.5-1.8 14-3-1.5z" fill="#92400e" opacity="0.7"/>
         {/* handle */}
-        <path d="M9.5 10V8.5a4.5 4.5 0 019 0V10" stroke="#fbbf24" strokeWidth="1.8" strokeLinecap="round"/>
-        {/* bag body — front face */}
-        <path d="M5.5 10h17l-1.6 13H7.1L5.5 10z" fill="url(#bagGrad)" stroke="#f59e0b" strokeWidth="1.2"/>
-        {/* bag body — top edge highlight (3-D feel) */}
-        <path d="M5.5 10h17" stroke="#fcd34d" strokeWidth="1.5" strokeLinecap="round"/>
-        {/* shine */}
-        <path d="M9 14.5c0 0 1.5-1 3 0" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeLinecap="round"/>
+        <path d="M10.5 11.5V9.5a5.5 5.5 0 0111 0v2" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round"/>
+        {/* bag body */}
+        <path d="M4.5 11.5h18l-2 15H6.5z" fill="url(#bagG2)" stroke="#f59e0b" strokeWidth="1.3"/>
+        {/* top highlight edge */}
+        <path d="M4.5 11.5h18" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
+        {/* centre crease */}
+        <path d="M13 15v8" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeLinecap="round"/>
+        {/* shine streak */}
+        <path d="M8 16c0 0 2-1.2 3.5 0" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" strokeLinecap="round"/>
+        {/* diamond icon on bag */}
+        <path d="M13.5 20l2-2.5 2 2.5-2 2.5z" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7"/>
         <defs>
-          <linearGradient id="bagGrad" x1="5" y1="10" x2="22" y2="26" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#fcd34d"/>
-            <stop offset="60%" stopColor="#f59e0b"/>
-            <stop offset="100%" stopColor="#b45309"/>
+          <linearGradient id="bagG2" x1="4" y1="11" x2="23" y2="28" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#fde68a"/>
+            <stop offset="55%" stopColor="#f59e0b"/>
+            <stop offset="100%" stopColor="#92400e"/>
           </linearGradient>
         </defs>
       </svg>
@@ -199,9 +206,21 @@ function ShoppingBag3D() {
 function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [rattling, setRattling] = useState(false);
   const [, setLocation] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+
+  useEffect(() => {
+    // Rattle on first mount after a short delay, then every 5 s
+    const trigger = () => {
+      setRattling(true);
+      setTimeout(() => setRattling(false), 750);
+    };
+    const t = setTimeout(() => { trigger(); }, 1200);
+    const iv = setInterval(trigger, 5000);
+    return () => { clearTimeout(t); clearInterval(iv); };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -222,6 +241,33 @@ function Navbar() {
         animation: "navSlideDown 0.5s cubic-bezier(0.22,1,0.36,1) both",
       }}
     >
+      <style>{`
+        @keyframes navSlideDown {
+          from { opacity: 0; transform: translateY(-100%); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bagIdle {
+          0%,100% { transform: rotate(-4deg) scale(1); }
+          50%      { transform: rotate(4deg) scale(1.06); }
+        }
+        @keyframes bagRattle {
+          0%   { transform: rotate(0deg) scale(1); }
+          10%  { transform: rotate(-22deg) scale(1.18); }
+          20%  { transform: rotate(22deg) scale(1.18); }
+          30%  { transform: rotate(-16deg) scale(1.12); }
+          40%  { transform: rotate(16deg) scale(1.12); }
+          50%  { transform: rotate(-10deg) scale(1.07); }
+          60%  { transform: rotate(10deg) scale(1.07); }
+          70%  { transform: rotate(-5deg) scale(1.03); }
+          80%  { transform: rotate(5deg) scale(1.03); }
+          90%  { transform: rotate(-2deg) scale(1.01); }
+          100% { transform: rotate(0deg) scale(1); }
+        }
+        @keyframes navBrandPulse {
+          0%,100% { text-shadow: none; }
+          50% { text-shadow: 0 0 12px rgba(245,158,11,0.7), 0 0 24px rgba(245,158,11,0.3); }
+        }
+      `}</style>
       <button
         onClick={() => setLocation("/")}
         className="flex items-center gap-2"
@@ -232,8 +278,14 @@ function Navbar() {
         </div>
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="text-white font-bold text-sm leading-tight">Sky Official</span>
-            <ShoppingBag3D />
+            <span
+              className="font-bold text-sm leading-tight"
+              style={{
+                color: "#fff",
+                animation: rattling ? "navBrandPulse 0.7s ease both" : "none",
+              }}
+            >Sky Official</span>
+            <ShoppingBag3D rattling={rattling} />
           </div>
           <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
         </div>
@@ -715,6 +767,28 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
         @keyframes authFadeIn {
           from { opacity: 0; transform: translate(-18px, -18px); }
           to   { opacity: 1; transform: translate(0, 0); }
+        }
+        /* Force Clerk social buttons to have visible outline */
+        .cl-socialButtonsBlockButton {
+          background: #13151c !important;
+          border: 1.5px solid rgba(255,255,255,0.22) !important;
+          border-radius: 10px !important;
+          height: 44px !important;
+          transition: border-color 0.2s ease, background 0.2s ease !important;
+        }
+        .cl-socialButtonsBlockButton:hover {
+          border-color: rgba(245,158,11,0.55) !important;
+          background: #1b1d26 !important;
+        }
+        .cl-socialButtonsBlockButtonText {
+          color: #f3f4f6 !important;
+          font-weight: 500 !important;
+          font-size: 0.875rem !important;
+        }
+        .cl-socialButtonsBlockButtonIconBox img,
+        .cl-socialButtonsBlockButtonIconBox svg {
+          width: 18px !important;
+          height: 18px !important;
         }
       `}</style>
 

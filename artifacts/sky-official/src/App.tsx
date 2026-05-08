@@ -67,7 +67,7 @@ const clerkAppearance = {
     headerSubtitle: "hidden",
     header: "hidden",
     socialButtonsBlockButtonArrow: "hidden",
-    socialButtonsBlockButton: "!bg-[#1a1c22] !border !border-white/20 hover:!border-amber-500/40 hover:!bg-[#22242c] !transition-all !rounded-lg !h-11 !shadow-none",
+    socialButtonsBlockButton: "!bg-[#1a1c22] !border-2 !border-white/35 hover:!border-amber-500/60 hover:!bg-[#22242c] !transition-all !rounded-lg !h-11 !shadow-none",
     socialButtonsBlockButtonText: "!text-white !font-medium !text-sm",
     formFieldLabel: "!text-gray-400 !font-medium !text-xs !uppercase !tracking-wide",
     footerActionLink: "!text-amber-400 !font-semibold hover:!text-amber-300",
@@ -276,18 +276,18 @@ function Navbar() {
         <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
-        <div>
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <div>
             <span
-              className="font-bold text-sm leading-tight"
+              className="font-bold text-sm leading-tight block"
               style={{
                 color: "#fff",
                 animation: rattling ? "navBrandPulse 0.7s ease both" : "none",
               }}
             >Sky Official</span>
-            <ShoppingBag3D rattling={rattling} />
+            <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 2 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
-          <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+          <ShoppingBag3D rattling={rattling} />
         </div>
       </button>
       {isLoaded && (
@@ -771,14 +771,16 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
         /* Force Clerk social buttons to have visible outline */
         .cl-socialButtonsBlockButton {
           background: #13151c !important;
-          border: 1.5px solid rgba(255,255,255,0.22) !important;
+          border: 2px solid rgba(255,255,255,0.38) !important;
           border-radius: 10px !important;
           height: 44px !important;
-          transition: border-color 0.2s ease, background 0.2s ease !important;
+          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease !important;
+          box-shadow: 0 0 0 1px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05) !important;
         }
         .cl-socialButtonsBlockButton:hover {
-          border-color: rgba(245,158,11,0.55) !important;
+          border-color: rgba(245,158,11,0.7) !important;
           background: #1b1d26 !important;
+          box-shadow: 0 0 0 1px rgba(245,158,11,0.15), 0 0 12px rgba(245,158,11,0.1) !important;
         }
         .cl-socialButtonsBlockButtonText {
           color: #f3f4f6 !important;

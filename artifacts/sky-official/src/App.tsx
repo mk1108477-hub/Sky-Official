@@ -194,18 +194,21 @@ function Navbar() {
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes glitch {
-          0%,86%,100% { text-shadow: none; transform: none; clip-path: none; }
-          87% { text-shadow: -2px 0 #f43f5e, 2px 0 #38bdf8; transform: translateX(-1.5px) skewX(-4deg); }
-          88% { text-shadow: 2px 0 #f43f5e, -2px 0 #a78bfa; transform: translateX(1.5px) skewX(3deg); }
-          89% { text-shadow: none; transform: translateX(-1px); }
-          90% { text-shadow: -1px 0 #38bdf8, 1px 0 #f59e0b; transform: translateX(1px) skewX(-2deg); }
-          91% { text-shadow: none; transform: none; }
-          92% { text-shadow: 2px 0 #f43f5e, -1px 0 #38bdf8; transform: translateX(-0.5px); }
-          93%,100% { text-shadow: none; transform: none; }
+          0%,83%,100% { text-shadow: none; filter: none; }
+          84% { text-shadow: -5px 0 #f43f5e, 5px 0 #38bdf8; filter: brightness(1.5); }
+          85% { text-shadow: 5px 0 #f43f5e, -5px 0 #a78bfa; filter: brightness(0.7) hue-rotate(20deg); }
+          86% { text-shadow: -6px 0 #38bdf8, 4px 0 #f43f5e; filter: brightness(1.8); }
+          87% { text-shadow: none; filter: brightness(0.6); }
+          88% { text-shadow: 4px 0 #a78bfa, -4px 0 #f43f5e; filter: brightness(1.6) hue-rotate(-15deg); }
+          89% { text-shadow: -3px 0 #38bdf8, 3px 0 #f59e0b; filter: brightness(1.3); }
+          90% { text-shadow: 6px 0 #f43f5e, -3px 0 #38bdf8; filter: none; }
+          91%,100% { text-shadow: none; filter: none; }
         }
         .sky-glitch {
           animation: glitch 6s ease-in-out infinite;
-          display: inline-block;
+          display: block;
+          position: relative;
+          will-change: filter;
         }
       `}</style>
       <button
@@ -219,7 +222,7 @@ function Navbar() {
         <div className="flex items-center gap-1.5">
           <div>
             <span className="sky-glitch font-bold leading-tight block" style={{ color: "#fff", fontSize: 12 }}>Sky Official</span>
-            <div style={{ fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 1.5, textAlign: "left" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+            <div style={{ fontSize: 8, lineHeight: 1, height: 9, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 1.5, textAlign: "left" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>
       </button>

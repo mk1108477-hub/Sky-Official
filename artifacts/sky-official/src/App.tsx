@@ -543,20 +543,8 @@ function PackagesPage() {
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
       <Navbar />
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 16px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4, paddingTop: 12 }}>
-          <button
-            onClick={() => setLocation("/")}
-            style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <h1 style={{ color: "#fff", fontWeight: 800, fontSize: 20, margin: 0 }}>Packages</h1>
-        </div>
-      </div>
-      <PackagesSection onPackageSelect={(_id) => {}} />
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "80px 16px 0" }} />
+      <PackagesSection onPackageSelect={(_id) => {}} onBack={() => setLocation("/")} />
     </div>
   );
 }

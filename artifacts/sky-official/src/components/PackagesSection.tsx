@@ -547,7 +547,7 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
 }
 
 // ── Main section ────────────────────────────────────────────────────────────
-export default function PackagesSection({ onPackageSelect: _p }: { onPackageSelect: (id: string) => void }) {
+export default function PackagesSection({ onPackageSelect: _p, onBack }: { onPackageSelect: (id: string) => void; onBack?: () => void }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -611,20 +611,22 @@ export default function PackagesSection({ onPackageSelect: _p }: { onPackageSele
           </p>
         </div>
 
-        {/* Back button */}
-        {activeCategory && (
-          <button onClick={() => setActiveCategory(null)} style={{
+        {/* Single back button — context-aware */}
+        <button
+          onClick={() => activeCategory ? setActiveCategory(null) : onBack?.()}
+          style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 999, padding: "7px 16px 7px 12px",
             color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600,
-            cursor: "pointer", marginBottom: 20 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            All Categories
-          </button>
-        )}
+            cursor: "pointer", marginBottom: 20,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {activeCategory ? "All Categories" : "Home"}
+        </button>
 
         {/* Category grid */}
         {!activeCategory && (

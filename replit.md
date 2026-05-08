@@ -16,6 +16,20 @@ A Mobile Legends: Bang Bang (MLBB) diamond top-up storefront where users can pur
 
 All other environment variables (DATABASE_URL, PGHOST, etc.) are auto-provisioned by Replit.
 
+## Optional Secrets (enable extra notification features)
+
+- `GREENAPI_INSTANCE_ID` — Green API instance ID for WhatsApp order notifications
+- `GREENAPI_TOKEN` — Green API token for WhatsApp order notifications
+- `NOTIFY_EMAIL` — Gmail address to send/receive order notification emails
+- `NOTIFY_EMAIL_APP_PASSWORD` — Gmail app password for the above email account
+
+These are all safe to omit — the app works fully without them; only order notifications via WhatsApp/email are disabled.
+
+## Pre-configured Env Vars (already set, do not change)
+
+- `VAPID_PUBLIC_KEY` — push notification public key (set as shared env var)
+- `VAPID_PRIVATE_KEY` — push notification private key (set as shared env var)
+
 ## Stack
 
 - pnpm workspaces, Node.js 20, TypeScript

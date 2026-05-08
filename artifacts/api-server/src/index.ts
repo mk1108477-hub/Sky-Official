@@ -7,8 +7,11 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS packages (
       id SERIAL PRIMARY KEY,
       diamonds INT NOT NULL,
+      bonus_diamonds INT NOT NULL DEFAULT 0,
       price NUMERIC(10,2) NOT NULL,
       label TEXT,
+      name TEXT,
+      category TEXT,
       is_popular BOOLEAN DEFAULT FALSE,
       sort_order INT DEFAULT 0,
       updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -47,13 +50,26 @@ async function initDb() {
   await pool.query(`
     DO $$
     BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name='orders' AND column_name='clerk_user_id'
-      ) THEN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='clerk_user_id') THEN
         ALTER TABLE orders ADD COLUMN clerk_user_id TEXT;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='bonus_diamonds') THEN
+        ALTER TABLE packages ADD COLUMN bonus_diamonds INT NOT NULL DEFAULT 0;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='name') THEN
+        ALTER TABLE packages ADD COLUMN name TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='category') THEN
+        ALTER TABLE packages ADD COLUMN category TEXT;
+      END IF;
     END$$;
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
 }
 

@@ -179,9 +179,9 @@ function Navbar() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-2.5"
+      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2"
       style={{
-        background: "rgba(7,8,10,0.92)",
+        background: "rgba(7,8,10,0.88)",
         backdropFilter: "blur(18px)",
         borderBottom: "1px solid rgba(245,158,11,0.1)",
         boxShadow: "0 1px 24px rgba(0,0,0,0.4)",
@@ -199,28 +199,28 @@ function Navbar() {
         className="flex items-center gap-2"
         style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
       >
-        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}>
+        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.5)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div className="flex items-center gap-1.5">
           <div>
-            <span className="font-bold text-sm leading-tight block" style={{ color: "#fff" }}>Sky Official</span>
-            <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 2 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+            <span className="font-bold leading-tight block" style={{ color: "#fff", fontSize: 12 }}>Sky Official</span>
+            <div style={{ fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 1.5 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>
       </button>
       {isLoaded && (
         user ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
-              <div className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
+              <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
                 <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
               </div>
             </button>
             <button
               onClick={() => signOut(() => setLocation("/"))}
-              className="px-3 py-1.5 rounded-full text-xs font-bold text-black"
-              style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
+              className="px-2.5 py-1 rounded-full font-bold text-black"
+              style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", fontSize: 11 }}
             >
               Sign Out
             </button>
@@ -228,8 +228,8 @@ function Navbar() {
         ) : (
           <button
             onClick={() => setLocation("/sign-in")}
-            className="px-5 py-2 rounded-full font-bold text-sm text-black"
-            style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 12px rgba(245,158,11,0.4)" }}
+            className="px-4 py-1.5 rounded-full font-bold text-black"
+            style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 12px rgba(245,158,11,0.4)", fontSize: 12 }}
           >
             Sign In
           </button>
@@ -335,7 +335,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: activeSlot === 0 ? 0.25 : 0, zIndex: 0, transition: "none" }}
+        style={{ opacity: activeSlot === 0 ? 0.32 : 0, zIndex: 0, transition: "none" }}
       >
         <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
       </video>
@@ -346,7 +346,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: activeSlot === 1 ? 0.25 : 0, zIndex: 0, transition: "none" }}
+        style={{ opacity: activeSlot === 1 ? 0.32 : 0, zIndex: 0, transition: "none" }}
       >
         <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
       </video>
@@ -361,28 +361,28 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         }}
       />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
-      <div className="relative z-10 flex flex-col gap-5 px-6 pt-10 pb-16 max-w-lg mx-auto w-full">
+      <div className="relative z-10 flex flex-col gap-3.5 px-5 pt-7 pb-12 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>
-          <span className="px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.18em" }}>MLBB Diamond Top Up</span>
+          <span className="px-4 py-1 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.16em", fontSize: 10 }}>MLBB Diamond Top Up</span>
         </div>
         <div className="text-center">
-          <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(2rem,9vw,2.8rem)" }}>
+          <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(1.65rem,7.5vw,2.3rem)" }}>
             <span className="text-white block" style={diag(0.13)}>Recharge Fast.</span>
             <span className="block" style={{ color: "#f59e0b", ...diag(0.26) }}>Dominate the</span>
             <span className="block" style={{ color: "#f59e0b", ...diag(0.39) }}>Game.</span>
           </h1>
         </div>
-        <p className="text-center text-gray-400 text-sm leading-relaxed px-2" style={{ maxWidth: 320, margin: "0 auto", ...diag(0.52) }}>
+        <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 300, margin: "0 auto", fontSize: 12.5, ...diag(0.52) }}>
           Instant delivery, secure payments, and the best prices for Mobile Legends Bang Bang. Shop smart, play hard.
         </p>
-        <div className="relative h-6 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
+        <div className="relative h-5 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
           {featureTexts.map((text, i) => (
-            <span key={i} className="absolute text-xs font-semibold text-center" style={{ color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
+            <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 11, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
           ))}
         </div>
-        <div className="flex justify-center mt-2" style={diag(0.78)}>
-          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-bold text-base text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 32px rgba(245,158,11,0.55), 0 4px 20px rgba(0,0,0,0.5)", fontSize: 17, border: "none", cursor: "pointer" }}>
-            View Packages <span style={{ fontSize: 18 }}>→</span>
+        <div className="flex justify-center mt-1" style={diag(0.78)}>
+          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 28px rgba(245,158,11,0.5), 0 4px 16px rgba(0,0,0,0.5)", fontSize: 15, border: "none", cursor: "pointer" }}>
+            View Packages <span style={{ fontSize: 16 }}>→</span>
           </button>
         </div>
       </div>
@@ -450,9 +450,9 @@ function HowItWorks() {
   return (
     <section className="py-12 px-6" style={{ background: "#0a0a0a" }}>
       <div className="max-w-lg mx-auto text-center">
-        <div className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-4" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>Simple Process</div>
-        <h2 className="text-white font-extrabold text-3xl mb-2">How It Works</h2>
-        <p className="text-gray-400 text-sm mb-8">Three simple steps to recharge your account</p>
+        <div className="inline-block px-3.5 py-1 rounded-full font-bold uppercase tracking-widest mb-3" style={{ fontSize: 10, background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>Simple Process</div>
+        <h2 className="text-white font-extrabold text-2xl mb-1.5">How It Works</h2>
+        <p className="text-gray-400 mb-7" style={{ fontSize: 12.5 }}>Three simple steps to recharge your account</p>
         <div className="flex flex-col items-center gap-0">
           {steps.map((s, i) => (
             <div key={i} className="flex flex-col items-center w-full">
@@ -464,7 +464,7 @@ function HowItWorks() {
             </div>
           ))}
         </div>
-        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-base text-black mt-10" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 30px rgba(245,158,11,0.5)", border: "none", cursor: "pointer" }}>
+        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-7 py-3 rounded-full font-bold text-black mt-8" style={{ fontSize: 14, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 24px rgba(245,158,11,0.45)", border: "none", cursor: "pointer" }}>
           Start Now <span>→</span>
         </button>
       </div>

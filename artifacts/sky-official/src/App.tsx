@@ -305,7 +305,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
     const onTimeUpdate = () => {
       if (!v.duration || isSwitchingRef.current) return;
       const remaining = v.duration - v.currentTime;
-      if (remaining <= 1.6) {
+      if (remaining <= 1.1) {
         isSwitchingRef.current = true;
         // Pause immediately so the last frame never flashes
         v.pause();
@@ -327,8 +327,8 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           setTimeout(() => {
             setCrossfade("none");
             isSwitchingRef.current = false;
-          }, 750);
-        }, 750);
+          }, 500);
+        }, 500);
       }
     };
 
@@ -372,7 +372,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           background: "#000",
           zIndex: 1,
           opacity: crossfade === "in" ? 0.7 : 0,
-          transition: crossfade === "none" ? "none" : "opacity 0.75s ease",
+          transition: crossfade === "none" ? "none" : "opacity 0.5s ease",
         }}
       />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />

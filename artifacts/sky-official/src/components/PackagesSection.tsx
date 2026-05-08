@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+// Note: useRef retained for potential future use
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
@@ -600,46 +601,9 @@ export default function PackagesSection({ onPackageSelect: _p, onBack }: { onPac
   }, []);
 
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const fadeRef  = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const vid = videoRef.current;
-    const fade = fadeRef.current;
-    if (!vid || !fade) return;
-    const FADE = 0.8;
-    const onTime = () => {
-      const { currentTime: t, duration: d } = vid;
-      if (!d) return;
-      let opacity = 0;
-      if (t < FADE)          opacity = 1 - t / FADE;
-      else if (t > d - FADE) opacity = (t - (d - FADE)) / FADE;
-      fade.style.opacity = String(Math.min(1, Math.max(0, opacity)));
-    };
-    vid.addEventListener("timeupdate", onTime);
-    return () => vid.removeEventListener("timeupdate", onTime);
-  }, []);
 
   return (
     <section style={{ position: "relative", background: "#0a0a0a", minHeight: "60vh", paddingBottom: 48, overflow: "hidden" }}>
-      {/* ── Video background (category grid only) ── */}
-      <div style={{
-        position: "absolute", inset: 0, zIndex: 0,
-        opacity: activeCategory ? 0 : 1,
-        transition: "opacity 0.6s ease",
-        pointerEvents: "none",
-      }}>
-        <video
-          ref={videoRef}
-          src="/bg-video.mp4"
-          autoPlay muted loop playsInline
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
-        {/* Dim overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.62)" }} />
-        {/* Crossfade overlay (opacity driven by JS) */}
-        <div ref={fadeRef} style={{ position: "absolute", inset: 0, background: "#000", opacity: 1, transition: "none" }} />
-      </div>
       <style>{`
         @keyframes pkg-diagIn  { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes sp-bob1     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }

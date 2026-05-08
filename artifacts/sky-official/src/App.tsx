@@ -124,7 +124,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
       </video>
       <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.32)" }} />
       <div className="relative flex flex-col items-center gap-3 z-10">
-        <AnimatedDiamonds size={48} />
+        <AnimatedDiamonds size={72} />
         <div className="flex flex-col items-center gap-1">
           <h1 className="text-white font-bold uppercase" style={{ fontSize: 16, letterSpacing: "0.3em" }}>SKY OFFICIAL</h1>
           <p className="uppercase font-bold" style={{ fontSize: 9, letterSpacing: "0.38em", background: "linear-gradient(90deg, transparent 0%, #f59e0b 20%, #fcd34d 50%, #f59e0b 80%, transparent 100%)", backgroundSize: "200% 100%", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "shimmerLR 2.8s ease-in-out infinite" }}>
@@ -224,53 +224,86 @@ function Navbar() {
 }
 
 // ── Hero ───────────────────────────────────────────────────────────────────
+const HERO_VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
+
 function HeroSection({ animate = false }: { animate?: boolean }) {
   const [, setLocation] = useLocation();
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [loopFading, setLoopFading] = useState(false);
-  const nearEndRef = useRef(false);
+
+  // Randomly pick play order once per mount (50/50)
+  const orderRef = useRef<[number, number]>(
+    Math.random() < 0.5 ? [0, 1] : [1, 0]
+  );
+
+  const video0Ref = useRef<HTMLVideoElement>(null);
+  const video1Ref = useRef<HTMLVideoElement>(null);
+  const [activeSlot, setActiveSlot] = useState(0);
+  const activeSlotRef = useRef(0);
+  const [crossfade, setCrossfade] = useState<"none" | "in" | "out">("none");
+  const isSwitchingRef = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
     return () => clearInterval(interval);
   }, []);
 
+  // Initial autoplay of slot 0
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = true;
-    const tryPlay = () => video.play().catch(() => setTimeout(tryPlay, 300));
+    const v = video0Ref.current;
+    if (!v) return;
+    v.muted = true;
+    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 300));
     tryPlay();
+  }, []);
+
+  // After intro animation, ensure active video is playing
+  useEffect(() => {
+    if (!animate) return;
+    const v = activeSlotRef.current === 0 ? video0Ref.current : video1Ref.current;
+    if (!v) return;
+    v.muted = true;
+    v.play().catch(() => {});
+  }, [animate]);
+
+  // Watch the active video and handle crossfade switch when near end
+  useEffect(() => {
+    activeSlotRef.current = activeSlot;
+    const v = activeSlot === 0 ? video0Ref.current : video1Ref.current;
+    if (!v) return;
 
     const onTimeUpdate = () => {
-      if (!video.duration) return;
-      const remaining = video.duration - video.currentTime;
-      // Start fading to black 0.6s before end
-      if (remaining <= 0.6 && !nearEndRef.current) {
-        nearEndRef.current = true;
-        setLoopFading(true);
-      }
-      // Detect restart: currentTime jumped back to near 0
-      if (video.currentTime < 0.25 && nearEndRef.current) {
-        nearEndRef.current = false;
-        // Brief pause at black, then fade back in
-        setTimeout(() => setLoopFading(false), 250);
+      if (!v.duration || isSwitchingRef.current) return;
+      const remaining = v.duration - v.currentTime;
+      if (remaining <= 0.7) {
+        isSwitchingRef.current = true;
+        // Fade overlay in to 0.7
+        setCrossfade("in");
+        setTimeout(() => {
+          // Switch to the other slot under the overlay
+          const nextSlot = 1 - activeSlotRef.current;
+          const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
+          if (nextV) {
+            nextV.muted = true;
+            nextV.currentTime = 0;
+            nextV.play().catch(() => {});
+          }
+          v.pause();
+          setActiveSlot(nextSlot);
+          activeSlotRef.current = nextSlot;
+          // Fade overlay back out
+          setCrossfade("out");
+          setTimeout(() => {
+            setCrossfade("none");
+            isSwitchingRef.current = false;
+          }, 500);
+        }, 450);
       }
     };
 
-    video.addEventListener("timeupdate", onTimeUpdate);
-    return () => video.removeEventListener("timeupdate", onTimeUpdate);
-  }, []);
-
-  useEffect(() => {
-    if (!animate) return;
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = true;
-    video.play().catch(() => {});
-  }, [animate]);
+    v.addEventListener("timeupdate", onTimeUpdate);
+    return () => v.removeEventListener("timeupdate", onTimeUpdate);
+  }, [activeSlot]);
 
   const diag = (delay: number): React.CSSProperties =>
     animate
@@ -279,19 +312,38 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
+      {/* Video slot 0 */}
       <video
-        ref={videoRef}
+        ref={video0Ref}
         muted
-        loop
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.25, zIndex: 0 }}
+        style={{ opacity: activeSlot === 0 ? 0.25 : 0, zIndex: 0, transition: "none" }}
       >
-        <source src="/hero.mp4" type="video/mp4" />
+        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
       </video>
-      {/* Black crossfade overlay at loop point */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "#000", zIndex: 1, opacity: loopFading ? 1 : 0, transition: loopFading ? "opacity 0.5s ease" : "opacity 0.5s ease 0.1s" }} />
+      {/* Video slot 1 */}
+      <video
+        ref={video1Ref}
+        muted
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ opacity: activeSlot === 1 ? 0.25 : 0, zIndex: 0, transition: "none" }}
+      >
+        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
+      </video>
+      {/* Black crossfade overlay — max opacity 0.7 */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "#000",
+          zIndex: 1,
+          opacity: crossfade === "in" ? 0.7 : 0,
+          transition: crossfade === "none" ? "none" : "opacity 0.45s ease",
+        }}
+      />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-5 px-6 pt-10 pb-16 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>

@@ -193,6 +193,20 @@ function Navbar() {
           from { opacity: 0; transform: translateY(-100%); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes glitch {
+          0%,86%,100% { text-shadow: none; transform: none; clip-path: none; }
+          87% { text-shadow: -2px 0 #f43f5e, 2px 0 #38bdf8; transform: translateX(-1.5px) skewX(-4deg); }
+          88% { text-shadow: 2px 0 #f43f5e, -2px 0 #a78bfa; transform: translateX(1.5px) skewX(3deg); }
+          89% { text-shadow: none; transform: translateX(-1px); }
+          90% { text-shadow: -1px 0 #38bdf8, 1px 0 #f59e0b; transform: translateX(1px) skewX(-2deg); }
+          91% { text-shadow: none; transform: none; }
+          92% { text-shadow: 2px 0 #f43f5e, -1px 0 #38bdf8; transform: translateX(-0.5px); }
+          93%,100% { text-shadow: none; transform: none; }
+        }
+        .sky-glitch {
+          animation: glitch 6s ease-in-out infinite;
+          display: inline-block;
+        }
       `}</style>
       <button
         onClick={() => setLocation("/")}
@@ -204,8 +218,8 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-1.5">
           <div>
-            <span className="font-bold leading-tight block" style={{ color: "#fff", fontSize: 12 }}>Sky Official</span>
-            <div style={{ fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 1.5 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+            <span className="sky-glitch font-bold leading-tight block" style={{ color: "#fff", fontSize: 12 }}>Sky Official</span>
+            <div style={{ fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 1.5, textAlign: "left" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>
       </button>
@@ -361,28 +375,28 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         }}
       />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
-      <div className="relative z-10 flex flex-col gap-3.5 px-5 pt-7 pb-12 max-w-lg mx-auto w-full">
+      <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>
-          <span className="px-4 py-1 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.16em", fontSize: 10 }}>MLBB Diamond Top Up</span>
+          <span className="px-3 py-0.5 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.14em", fontSize: 8 }}>MLBB Diamond Top Up</span>
         </div>
         <div className="text-center">
-          <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(1.65rem,7.5vw,2.3rem)" }}>
+          <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(1.15rem,5.5vw,1.65rem)" }}>
             <span className="text-white block" style={diag(0.13)}>Recharge Fast.</span>
             <span className="block" style={{ color: "#f59e0b", ...diag(0.26) }}>Dominate the</span>
             <span className="block" style={{ color: "#f59e0b", ...diag(0.39) }}>Game.</span>
           </h1>
         </div>
-        <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 300, margin: "0 auto", fontSize: 12.5, ...diag(0.52) }}>
+        <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 260, margin: "0 auto", fontSize: 11, ...diag(0.52) }}>
           Instant delivery, secure payments, and the best prices for Mobile Legends Bang Bang. Shop smart, play hard.
         </p>
-        <div className="relative h-5 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
+        <div className="relative h-4 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
           {featureTexts.map((text, i) => (
-            <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 11, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
+            <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 9.5, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
           ))}
         </div>
         <div className="flex justify-center mt-1" style={diag(0.78)}>
-          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-8 py-3 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 28px rgba(245,158,11,0.5), 0 4px 16px rgba(0,0,0,0.5)", fontSize: 15, border: "none", cursor: "pointer" }}>
-            View Packages <span style={{ fontSize: 16 }}>→</span>
+          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 22px rgba(245,158,11,0.5), 0 3px 12px rgba(0,0,0,0.5)", fontSize: 12, border: "none", cursor: "pointer" }}>
+            View Packages <span style={{ fontSize: 13 }}>→</span>
           </button>
         </div>
       </div>
@@ -399,18 +413,18 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
 // ── Features ───────────────────────────────────────────────────────────────
 function FeaturesSection() {
   const features = [
-    { icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#6366f1" /></svg>, bg: "#ede9fe", title: "Instant Delivery", sub: "Within minutes" },
-    { icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>, bg: "#dcfce7", title: "100% Secure", sub: "Safe payments" },
-    { icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#f59e0b" strokeWidth="2" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" /></svg>, bg: "#fef9c3", title: "Verified Seller", sub: "Trusted by gamers" },
-    { icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1" fill="#a855f7" /><rect x="13" y="3" width="8" height="8" rx="1" fill="#a855f7" /><rect x="3" y="13" width="8" height="8" rx="1" fill="#a855f7" /><rect x="13" y="13" width="8" height="8" rx="1" fill="#a855f7" /></svg>, bg: "#f3e8ff", title: "5 Categories", sub: "All pack types" },
+    { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#6366f1" /></svg>, bg: "#ede9fe", title: "Instant Delivery", sub: "Within minutes" },
+    { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>, bg: "#dcfce7", title: "100% Secure", sub: "Safe payments" },
+    { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#f59e0b" strokeWidth="2" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" /></svg>, bg: "#fef9c3", title: "Verified Seller", sub: "Trusted by gamers" },
+    { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1" fill="#a855f7" /><rect x="13" y="3" width="8" height="8" rx="1" fill="#a855f7" /><rect x="3" y="13" width="8" height="8" rx="1" fill="#a855f7" /><rect x="13" y="13" width="8" height="8" rx="1" fill="#a855f7" /></svg>, bg: "#f3e8ff", title: "5 Categories", sub: "All pack types" },
   ];
   return (
-    <section className="py-10 px-4" style={{ background: "#f5f5f5" }} id="packages">
-      <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
+    <section className="py-6 px-3" style={{ background: "#f5f5f5" }} id="packages">
+      <div className="grid grid-cols-2 gap-2 max-w-lg mx-auto">
         {features.map((f, i) => (
-          <div key={i} className="rounded-2xl p-4 flex flex-row items-start gap-3" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-            <div className="rounded-xl p-2 flex-shrink-0" style={{ background: f.bg }}>{f.icon}</div>
-            <div><div className="font-bold text-sm text-gray-900 leading-tight">{f.title}</div><div className="text-xs text-gray-400 mt-0.5">{f.sub}</div></div>
+          <div key={i} className="rounded-xl p-2.5 flex flex-row items-start gap-2" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
+            <div className="rounded-lg p-1.5 flex-shrink-0" style={{ background: f.bg }}>{f.icon}</div>
+            <div><div className="font-bold text-gray-900 leading-tight" style={{ fontSize: 11 }}>{f.title}</div><div className="text-gray-400 mt-0.5" style={{ fontSize: 9.5 }}>{f.sub}</div></div>
           </div>
         ))}
       </div>
@@ -426,12 +440,12 @@ function StatsSection() {
     { value: "833+", label: "Happy Gamers", color: "#111", icon: "★" },
   ];
   return (
-    <section className="py-6 px-4" style={{ background: "#f5f5f5" }}>
-      <div className="flex flex-col gap-3 max-w-lg mx-auto">
+    <section className="py-4 px-3" style={{ background: "#f5f5f5" }}>
+      <div className="flex flex-col gap-2 max-w-lg mx-auto">
         {stats.map((s, i) => (
-          <div key={i} className="rounded-2xl p-5 text-center" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-            <div className="font-extrabold text-4xl" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-sm text-gray-400 mt-1">{s.icon && <span style={{ color: s.color }} className="mr-1">{s.icon}</span>}{s.label}</div>
+          <div key={i} className="rounded-xl p-3.5 text-center" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
+            <div className="font-extrabold" style={{ fontSize: 26, color: s.color }}>{s.value}</div>
+            <div className="text-gray-400 mt-0.5" style={{ fontSize: 11 }}>{s.icon && <span style={{ color: s.color }} className="mr-1">{s.icon}</span>}{s.label}</div>
           </div>
         ))}
       </div>
@@ -448,23 +462,23 @@ function HowItWorks() {
     { num: "3", title: "Get Diamonds", desc: "Diamonds are credited instantly to your account." },
   ];
   return (
-    <section className="py-12 px-6" style={{ background: "#0a0a0a" }}>
+    <section className="py-8 px-5" style={{ background: "#0a0a0a" }}>
       <div className="max-w-lg mx-auto text-center">
-        <div className="inline-block px-3.5 py-1 rounded-full font-bold uppercase tracking-widest mb-3" style={{ fontSize: 10, background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>Simple Process</div>
-        <h2 className="text-white font-extrabold text-2xl mb-1.5">How It Works</h2>
-        <p className="text-gray-400 mb-7" style={{ fontSize: 12.5 }}>Three simple steps to recharge your account</p>
+        <div className="inline-block px-3 py-0.5 rounded-full font-bold uppercase tracking-widest mb-2.5" style={{ fontSize: 8, background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>Simple Process</div>
+        <h2 className="text-white font-extrabold text-xl mb-1">How It Works</h2>
+        <p className="text-gray-400 mb-5" style={{ fontSize: 11 }}>Three simple steps to recharge your account</p>
         <div className="flex flex-col items-center gap-0">
           {steps.map((s, i) => (
             <div key={i} className="flex flex-col items-center w-full">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-2xl" style={{ background: "linear-gradient(135deg,#1e2d4a,#0f1a2e)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)", boxShadow: "0 4px 20px rgba(0,0,0,0.4)" }}>{s.num}</div>
-                <div className="text-center"><div className="text-white font-bold text-base">{s.title}</div><div className="text-gray-400 text-sm mt-1 max-w-xs">{s.desc}</div></div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-lg" style={{ background: "linear-gradient(135deg,#1e2d4a,#0f1a2e)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)", boxShadow: "0 3px 14px rgba(0,0,0,0.4)" }}>{s.num}</div>
+                <div className="text-center"><div className="text-white font-bold text-sm">{s.title}</div><div className="text-gray-400 mt-0.5 max-w-xs" style={{ fontSize: 11 }}>{s.desc}</div></div>
               </div>
-              {i < steps.length - 1 && <div className="w-0.5 h-8 my-2" style={{ background: "rgba(245,158,11,0.25)" }} />}
+              {i < steps.length - 1 && <div className="w-0.5 h-6 my-1.5" style={{ background: "rgba(245,158,11,0.25)" }} />}
             </div>
           ))}
         </div>
-        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-2 px-7 py-3 rounded-full font-bold text-black mt-8" style={{ fontSize: 14, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 24px rgba(245,158,11,0.45)", border: "none", cursor: "pointer" }}>
+        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full font-bold text-black mt-6" style={{ fontSize: 12, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 18px rgba(245,158,11,0.4)", border: "none", cursor: "pointer" }}>
           Start Now <span>→</span>
         </button>
       </div>
@@ -477,15 +491,15 @@ function LiveTicker() {
   const purchases = ["Hunter99 bought 514 Diamonds", "Shadow_X bought 1,048 Diamonds", "RajaGaming bought 257 Diamonds", "NightWolf bought 2,000 Diamonds", "StarPlayer bought 514 Diamonds", "GoldRush99 bought 1,048 Diamonds"];
   const doubled = [...purchases, ...purchases];
   return (
-    <div className="py-3 overflow-hidden" style={{ background: "#fff", borderTop: "1px solid #eee", borderBottom: "1px solid #eee" }}>
+    <div className="py-2 overflow-hidden" style={{ background: "#fff", borderTop: "1px solid #eee", borderBottom: "1px solid #eee" }}>
       <div className="flex items-center gap-0">
-        <div className="flex-shrink-0 px-3 py-1 flex items-center gap-1 text-xs font-bold" style={{ color: "#f59e0b" }}>⚡ Live Purchases</div>
+        <div className="flex-shrink-0 px-2 py-0.5 flex items-center gap-1 font-bold" style={{ color: "#f59e0b", fontSize: 10 }}>⚡ Live Purchases</div>
         <div className="flex overflow-hidden">
-          <div className="flex gap-8 whitespace-nowrap" style={{ animation: "scrollTicker 20s linear infinite", willChange: "transform" }}>
+          <div className="flex gap-6 whitespace-nowrap" style={{ animation: "scrollTicker 20s linear infinite", willChange: "transform" }}>
             {doubled.map((p, i) => (
-              <span key={i} className="text-xs text-gray-700 flex-shrink-0">
+              <span key={i} className="text-gray-700 flex-shrink-0" style={{ fontSize: 10 }}>
                 <span className="font-bold text-amber-600">{p.split(" bought ")[0]}</span>{" bought "}<span className="font-bold">{p.split(" bought ")[1]}</span>
-                <span className="ml-6 text-gray-300">|</span>
+                <span className="ml-5 text-gray-300">|</span>
               </span>
             ))}
           </div>
@@ -498,15 +512,15 @@ function LiveTicker() {
 // ── WhatsApp Section ───────────────────────────────────────────────────────
 function WhatsAppSection() {
   return (
-    <section className="py-14 px-6 text-center" style={{ background: "#1a5c38" }}>
-      <div className="max-w-sm mx-auto flex flex-col items-center gap-4">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.15)" }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
+    <section className="py-9 px-5 text-center" style={{ background: "#1a5c38" }}>
+      <div className="max-w-sm mx-auto flex flex-col items-center gap-3">
+        <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.15)" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
         </div>
-        <h2 className="text-white font-extrabold text-2xl leading-tight">Join Our WhatsApp Store</h2>
-        <p className="text-green-100 text-sm leading-relaxed">Get exclusive offers, faster support, and be the first to know about new packs and discounts — all on WhatsApp.</p>
-        <a href={WHATSAPP_GROUP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm text-white mt-2" style={{ background: "#25d366", boxShadow: "0 4px 16px rgba(0,0,0,0.25)", textDecoration: "none" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+        <h2 className="text-white font-extrabold text-lg leading-tight">Join Our WhatsApp Store</h2>
+        <p className="text-green-100 leading-relaxed" style={{ fontSize: 12 }}>Get exclusive offers, faster support, and be the first to know about new packs and discounts — all on WhatsApp.</p>
+        <a href={WHATSAPP_GROUP} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-5 py-2.5 rounded-full font-bold text-white mt-1" style={{ fontSize: 12, background: "#25d366", boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textDecoration: "none" }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
           Join Our WhatsApp Group
         </a>
       </div>
@@ -531,23 +545,23 @@ function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
   };
 
   return (
-    <footer className="py-10 px-6 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
-      <div className="flex flex-col items-center gap-3 max-w-sm mx-auto">
-        <div className="w-14 h-14 rounded-full overflow-hidden" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.45)" }}>
+    <footer className="py-7 px-5 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
+      <div className="flex flex-col items-center gap-2.5 max-w-sm mx-auto">
+        <div className="w-10 h-10 rounded-full overflow-hidden" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.4)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
-          <div className="font-bold text-gray-900 text-base">Sky Official</div>
-          <p className="text-gray-400 text-xs mt-1 leading-relaxed max-w-xs">The trusted diamond top-up shop for Mobile Legends Bang Bang. Fast, safe, and secure.</p>
+          <div className="font-bold text-gray-900 text-sm">Sky Official</div>
+          <p className="text-gray-400 mt-0.5 leading-relaxed max-w-xs" style={{ fontSize: 10 }}>The trusted diamond top-up shop for Mobile Legends Bang Bang. Fast, safe, and secure.</p>
         </div>
-        <div className="flex items-center gap-6 mt-2">
+        <div className="flex items-center gap-4 mt-1">
           {["Packages", "How It Works", "Contact"].map((link) => (
-            <a key={link} href="#" className="text-gray-400 text-sm hover:text-gray-700 transition-colors" style={{ textDecoration: "none" }}>{link}</a>
+            <a key={link} href="#" className="text-gray-400 hover:text-gray-700 transition-colors" style={{ textDecoration: "none", fontSize: 11 }}>{link}</a>
           ))}
         </div>
         <p
-          className="text-gray-300 text-xs mt-3 select-none"
-          style={{ cursor: "default" }}
+          className="text-gray-300 mt-2 select-none"
+          style={{ fontSize: 9.5, cursor: "default" }}
           onClick={handleCopyrightTap}
         >
           © 2026 Sky Official. All rights reserved.
@@ -560,8 +574,8 @@ function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
 // ── WhatsApp FAB ───────────────────────────────────────────────────────────
 function WhatsAppFAB() {
   return (
-    <a href={WHATSAPP_NUMBER} target="_blank" rel="noopener noreferrer" className="fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg" style={{ background: "#25d366", boxShadow: "0 4px 20px rgba(37,211,102,0.5)", textDecoration: "none" }}>
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+    <a href={WHATSAPP_NUMBER} target="_blank" rel="noopener noreferrer" className="fixed bottom-5 right-3.5 z-50 w-11 h-11 rounded-full flex items-center justify-center shadow-lg" style={{ background: "#25d366", boxShadow: "0 3px 16px rgba(37,211,102,0.5)", textDecoration: "none" }}>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
     </a>
   );
 }

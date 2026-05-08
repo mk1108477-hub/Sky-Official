@@ -161,66 +161,13 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ── 3-D Shopping Bag + Navbar ──────────────────────────────────────────────
-function ShoppingBag3D({ rattling }: { rattling: boolean }) {
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      transformOrigin: "50% 10%",
-      animation: rattling
-        ? "bagRattle 0.7s cubic-bezier(0.36,0.07,0.19,0.97) both"
-        : "bagIdle 2.8s ease-in-out infinite",
-      filter: rattling
-        ? "drop-shadow(0 0 14px rgba(245,158,11,1)) drop-shadow(0 0 28px rgba(245,158,11,0.6))"
-        : "drop-shadow(0 0 4px rgba(245,158,11,0.45))",
-      transition: "filter 0.2s ease",
-    }}>
-      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* side face for 3-D depth */}
-        <path d="M22.5 11.5l3 1.5-1.8 14-3-1.5z" fill="#92400e" opacity="0.7"/>
-        {/* handle */}
-        <path d="M10.5 11.5V9.5a5.5 5.5 0 0111 0v2" stroke="#fcd34d" strokeWidth="2" strokeLinecap="round"/>
-        {/* bag body */}
-        <path d="M4.5 11.5h18l-2 15H6.5z" fill="url(#bagG2)" stroke="#f59e0b" strokeWidth="1.3"/>
-        {/* top highlight edge */}
-        <path d="M4.5 11.5h18" stroke="#fef08a" strokeWidth="2" strokeLinecap="round"/>
-        {/* centre crease */}
-        <path d="M13 15v8" stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeLinecap="round"/>
-        {/* shine streak */}
-        <path d="M8 16c0 0 2-1.2 3.5 0" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" strokeLinecap="round"/>
-        {/* diamond icon on bag */}
-        <path d="M13.5 20l2-2.5 2 2.5-2 2.5z" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7"/>
-        <defs>
-          <linearGradient id="bagG2" x1="4" y1="11" x2="23" y2="28" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#fde68a"/>
-            <stop offset="55%" stopColor="#f59e0b"/>
-            <stop offset="100%" stopColor="#92400e"/>
-          </linearGradient>
-        </defs>
-      </svg>
-    </span>
-  );
-}
-
+// ── Navbar ─────────────────────────────────────────────────────────────────
 function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
-  const [rattling, setRattling] = useState(false);
   const [, setLocation] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-
-  useEffect(() => {
-    // Rattle on first mount after a short delay, then every 5 s
-    const trigger = () => {
-      setRattling(true);
-      setTimeout(() => setRattling(false), 750);
-    };
-    const t = setTimeout(() => { trigger(); }, 1200);
-    const iv = setInterval(trigger, 5000);
-    return () => { clearTimeout(t); clearInterval(iv); };
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -246,27 +193,6 @@ function Navbar() {
           from { opacity: 0; transform: translateY(-100%); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes bagIdle {
-          0%,100% { transform: rotate(-4deg) scale(1); }
-          50%      { transform: rotate(4deg) scale(1.06); }
-        }
-        @keyframes bagRattle {
-          0%   { transform: rotate(0deg) scale(1); }
-          10%  { transform: rotate(-22deg) scale(1.18); }
-          20%  { transform: rotate(22deg) scale(1.18); }
-          30%  { transform: rotate(-16deg) scale(1.12); }
-          40%  { transform: rotate(16deg) scale(1.12); }
-          50%  { transform: rotate(-10deg) scale(1.07); }
-          60%  { transform: rotate(10deg) scale(1.07); }
-          70%  { transform: rotate(-5deg) scale(1.03); }
-          80%  { transform: rotate(5deg) scale(1.03); }
-          90%  { transform: rotate(-2deg) scale(1.01); }
-          100% { transform: rotate(0deg) scale(1); }
-        }
-        @keyframes navBrandPulse {
-          0%,100% { text-shadow: none; }
-          50% { text-shadow: 0 0 12px rgba(245,158,11,0.7), 0 0 24px rgba(245,158,11,0.3); }
-        }
       `}</style>
       <button
         onClick={() => setLocation("/")}
@@ -278,28 +204,14 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-1.5">
           <div>
-            <span
-              className="font-bold text-sm leading-tight block"
-              style={{
-                color: "#fff",
-                animation: rattling ? "navBrandPulse 0.7s ease both" : "none",
-              }}
-            >Sky Official</span>
+            <span className="font-bold text-sm leading-tight block" style={{ color: "#fff" }}>Sky Official</span>
             <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", marginTop: 2 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
-          <ShoppingBag3D rattling={rattling} />
         </div>
       </button>
       {isLoaded && (
         user ? (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLocation("/orders")}
-              className="px-3 py-1.5 rounded-full text-xs font-bold"
-              style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}
-            >
-              My Orders
-            </button>
             <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
               <div className="w-8 h-8 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
                 <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />

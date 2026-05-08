@@ -66,9 +66,9 @@ const clerkAppearance = {
     headerTitle: "hidden",
     headerSubtitle: "hidden",
     header: "hidden",
-    socialButtonsBlockButtonText: "!text-gray-900 !font-semibold !text-sm",
     socialButtonsBlockButtonArrow: "hidden",
-    socialButtonsBlockButton: "!bg-white !border !border-gray-200 hover:!bg-gray-50 !transition-all !rounded-lg !h-11 !shadow-none",
+    socialButtonsBlockButton: "!bg-[#1a1c22] !border !border-white/20 hover:!border-amber-500/40 hover:!bg-[#22242c] !transition-all !rounded-lg !h-11 !shadow-none",
+    socialButtonsBlockButtonText: "!text-white !font-medium !text-sm",
     formFieldLabel: "!text-gray-400 !font-medium !text-xs !uppercase !tracking-wide",
     footerActionLink: "!text-amber-400 !font-semibold hover:!text-amber-300",
     footerActionText: "!text-gray-600 !text-sm",
@@ -161,7 +161,41 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
-// ── Navbar ─────────────────────────────────────────────────────────────────
+// ── 3-D Shopping Bag + Navbar ──────────────────────────────────────────────
+function ShoppingBag3D() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", animation: "bagFloat 3s ease-in-out infinite" }}>
+      <style>{`
+        @keyframes bagFloat {
+          0%,100% { transform: translateY(0) rotate(-3deg); filter: drop-shadow(0 0 4px rgba(245,158,11,0.5)); }
+          50%      { transform: translateY(-4px) rotate(3deg); filter: drop-shadow(0 0 9px rgba(245,158,11,0.85)); }
+        }
+        @keyframes navSlideDown {
+          from { opacity: 0; transform: translateY(-100%); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* handle */}
+        <path d="M9.5 10V8.5a4.5 4.5 0 019 0V10" stroke="#fbbf24" strokeWidth="1.8" strokeLinecap="round"/>
+        {/* bag body — front face */}
+        <path d="M5.5 10h17l-1.6 13H7.1L5.5 10z" fill="url(#bagGrad)" stroke="#f59e0b" strokeWidth="1.2"/>
+        {/* bag body — top edge highlight (3-D feel) */}
+        <path d="M5.5 10h17" stroke="#fcd34d" strokeWidth="1.5" strokeLinecap="round"/>
+        {/* shine */}
+        <path d="M9 14.5c0 0 1.5-1 3 0" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeLinecap="round"/>
+        <defs>
+          <linearGradient id="bagGrad" x1="5" y1="10" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#fcd34d"/>
+            <stop offset="60%" stopColor="#f59e0b"/>
+            <stop offset="100%" stopColor="#b45309"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </span>
+  );
+}
+
 function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -178,16 +212,32 @@ function Navbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-2.5" style={{ background: "rgba(10,10,10,0.93)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      <div className="flex items-center gap-2.5">
-        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}>
+    <nav
+      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-2.5"
+      style={{
+        background: "rgba(7,8,10,0.92)",
+        backdropFilter: "blur(18px)",
+        borderBottom: "1px solid rgba(245,158,11,0.1)",
+        boxShadow: "0 1px 24px rgba(0,0,0,0.4)",
+        animation: "navSlideDown 0.5s cubic-bezier(0.22,1,0.36,1) both",
+      }}
+    >
+      <button
+        onClick={() => setLocation("/")}
+        className="flex items-center gap-2"
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
-          <div className="text-white font-bold text-sm leading-tight">Sky Official</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-white font-bold text-sm leading-tight">Sky Official</span>
+            <ShoppingBag3D />
+          </div>
           <div style={{ fontSize: 9, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
         </div>
-      </div>
+      </button>
       {isLoaded && (
         user ? (
           <div className="flex items-center gap-2">
@@ -730,7 +780,7 @@ function SignInPage() {
   return (
     <AuthPageShell
       title="Welcome back"
-      subtitle="Sign in to your Sky Official account."
+      subtitle="Log in to your Sky Official account."
     >
       <SignIn
         routing="path"

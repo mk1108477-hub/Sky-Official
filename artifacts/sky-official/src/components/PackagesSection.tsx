@@ -306,13 +306,13 @@ const PANEL_ANIMS: Record<CategoryId, React.ReactNode> = {
 
 // ── Image helpers ────────────────────────────────────────────────────────────
 function getPackImage(diamonds: number): string {
-  if (diamonds <= 10) return "/pack1.jpg";
-  if (diamonds <= 49) return "/pack2.jpg";
-  if (diamonds <= 99) return "/pack3.jpg";
-  if (diamonds <= 499) return "/pack4.jpg";
-  if (diamonds <= 999) return "/pack5.jpg";
-  if (diamonds <= 1500) return "/pack6.jpg";
-  return "/pack7.jpg";
+  if (diamonds <= 10) return "/pack1.png";
+  if (diamonds <= 49) return "/pack2.png";
+  if (diamonds <= 99) return "/pack3.png";
+  if (diamonds <= 499) return "/pack4.png";
+  if (diamonds <= 999) return "/pack5.png";
+  if (diamonds <= 1500) return "/pack6.png";
+  return "/pack7.png";
 }
 
 const PASS_IMAGES: Record<string, string> = {
@@ -328,8 +328,20 @@ function getPassImage(name: string | null): string {
 
 function ImagePane({ src }: { src: string }) {
   return (
-    <div style={{ position: "relative", height: 100, overflow: "hidden", flexShrink: 0 }}>
-      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 45%", display: "block" }} />
+    <div style={{ position: "relative", height: 130, overflow: "hidden", flexShrink: 0, background: "#0a0a0a" }}>
+      <img
+        src={src}
+        alt=""
+        style={{
+          width: "100%", height: "100%",
+          objectFit: "cover", objectPosition: "center 45%",
+          display: "block",
+          imageRendering: "high-quality" as React.CSSProperties["imageRendering"],
+          transform: "translateZ(0)",
+          filter: "contrast(1.08) saturate(1.18) brightness(1.04)",
+          WebkitBackfaceVisibility: "hidden",
+        }}
+      />
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 18,
         background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.5) 60%, transparent 100%)",
         zIndex: 1, pointerEvents: "none" }} />

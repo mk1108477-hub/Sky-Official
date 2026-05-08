@@ -47,45 +47,47 @@ const clerkAppearance = {
   },
   variables: {
     colorPrimary: "#f59e0b",
-    colorForeground: "#ffffff",
-    colorMutedForeground: "#9ca3af",
+    colorForeground: "#f9fafb",
+    colorMutedForeground: "#6b7280",
     colorDanger: "#ef4444",
-    colorBackground: "#111827",
-    colorInput: "#1f2937",
-    colorInputForeground: "#ffffff",
+    colorBackground: "#07080a",
+    colorInput: "#111318",
+    colorInputForeground: "#f9fafb",
     colorNeutral: "#374151",
     fontFamily: "Inter, sans-serif",
-    borderRadius: "0.75rem",
+    borderRadius: "0.65rem",
+    fontSize: "0.9rem",
   },
   elements: {
     rootBox: "w-full",
-    cardBox: "w-full shadow-none",
+    cardBox: "w-full !shadow-none !bg-transparent",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none !p-0",
-    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "!shadow-none !border-0 !bg-transparent !rounded-none !pt-4",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
     header: "hidden",
-    socialButtonsBlockButtonText: "text-gray-800 font-semibold text-sm",
+    socialButtonsBlockButtonText: "!text-gray-900 !font-semibold !text-sm",
     socialButtonsBlockButtonArrow: "hidden",
-    socialButtonsBlockButton: "!bg-white !border !border-gray-200 hover:!bg-gray-50 !transition-all !rounded-xl !h-12 !shadow-sm",
-    formFieldLabel: "text-gray-300 font-medium text-sm",
-    footerActionLink: "text-amber-400 font-semibold hover:text-amber-300",
-    footerActionText: "text-gray-400 text-sm",
-    dividerText: "text-gray-500 text-xs",
-    identityPreviewEditButton: "text-amber-400",
-    formFieldSuccessText: "text-green-400",
-    alertText: "text-red-300 text-sm",
-    socialButtonsBlockButtonIconBox: "mr-2",
-    formButtonPrimary: "!bg-amber-500 hover:!bg-amber-400 !text-black !font-bold !transition-colors !rounded-xl !h-12",
-    formFieldInput: "!bg-gray-800 !border-gray-700 !text-white focus:!border-amber-500 !rounded-xl !h-12",
-    footerAction: "border-t border-gray-800",
-    dividerLine: "bg-gray-700",
-    alert: "border border-red-800 bg-red-900/20 rounded-xl",
-    otpCodeFieldInput: "!bg-gray-800 !border-gray-700 !text-white",
-    formFieldRow: "gap-2",
-    main: "gap-4",
-    socialButtons: "gap-3",
+    socialButtonsBlockButton: "!bg-white !border !border-gray-200 hover:!bg-gray-50 !transition-all !rounded-lg !h-11 !shadow-none",
+    formFieldLabel: "!text-gray-400 !font-medium !text-xs !uppercase !tracking-wide",
+    footerActionLink: "!text-amber-400 !font-semibold hover:!text-amber-300",
+    footerActionText: "!text-gray-600 !text-sm",
+    dividerText: "!text-gray-600 !text-xs",
+    identityPreviewEditButton: "!text-amber-400",
+    formFieldSuccessText: "!text-green-400",
+    alertText: "!text-red-400 !text-sm",
+    socialButtonsBlockButtonIconBox: "!mr-2",
+    formButtonPrimary: "!bg-amber-500 hover:!bg-amber-400 !text-black !font-bold !transition-colors !rounded-lg !h-11 !shadow-none",
+    formFieldInput: "!bg-[#111318] !border-[#1f2937] !text-white focus:!border-amber-500/60 !rounded-lg !h-11 !text-sm",
+    footerAction: "!border-t !border-white/5 !mt-5",
+    dividerLine: "!bg-white/8",
+    alert: "!border !border-red-900/50 !bg-red-950/30 !rounded-lg",
+    otpCodeFieldInput: "!bg-[#111318] !border-[#1f2937] !text-white",
+    formFieldRow: "gap-3",
+    main: "gap-5",
+    socialButtons: "gap-2.5",
     formHeader: "hidden",
+    internal__clerk_components_inner: "gap-5",
   },
 };
 
@@ -652,68 +654,71 @@ function PackagesPage() {
 // ── Auth Page Shell ─────────────────────────────────────────────────────────
 function AuthPageShell({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle: string }) {
   const [, setLocation] = useLocation();
-  return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
-      {/* Ambient glow */}
-      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(245,158,11,0.12) 0%, transparent 60%)" }} />
 
-      {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between px-5 py-4">
+  const diag = (delay: number): React.CSSProperties => ({
+    animation: `authFadeIn 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
+  });
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: "#07080a" }}>
+      <style>{`
+        @keyframes authFadeIn {
+          from { opacity: 0; transform: translate(-18px, -18px); }
+          to   { opacity: 1; transform: translate(0, 0); }
+        }
+      `}</style>
+
+      {/* Subtle background grain / gradient */}
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: "linear-gradient(135deg, rgba(245,158,11,0.05) 0%, transparent 50%, rgba(245,158,11,0.03) 100%)",
+      }} />
+      <div className="fixed top-0 left-0 w-96 h-96 pointer-events-none" style={{
+        background: "radial-gradient(ellipse at top left, rgba(245,158,11,0.08) 0%, transparent 70%)",
+      }} />
+
+      {/* Back link */}
+      <div className="relative z-10 px-6 pt-6" style={diag(0)}>
         <button
           onClick={() => setLocation("/")}
-          className="flex items-center gap-2.5"
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          className="flex items-center gap-1.5 text-sm font-medium"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#6b7280" }}
         >
-          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.4)" }}>
-            <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
-          </div>
-          <span className="text-white font-bold text-sm">Sky Official</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+          Back to store
         </button>
-        <div className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}>
-          🔒 Secure Login
-        </div>
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-6">
-        <div className="w-full max-w-sm">
+      {/* Centered content */}
+      <div className="relative z-10 flex flex-1 flex-col justify-center px-6 py-8">
+        <div className="w-full max-w-[380px] mx-auto">
 
-          {/* Brand header */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="mb-4" style={{ position: "relative" }}>
-              <div className="w-20 h-20 rounded-2xl overflow-hidden" style={{ border: "2.5px solid #f59e0b", boxShadow: "0 0 24px 6px rgba(245,158,11,0.35)" }}>
-                <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
-              </div>
-              <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-xs" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 8px rgba(245,158,11,0.5)" }}>♦</div>
+          {/* Logo + wordmark */}
+          <div className="flex items-center gap-3 mb-8" style={diag(0.07)}>
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ border: "1.5px solid rgba(245,158,11,0.5)" }}>
+              <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-white font-extrabold text-2xl text-center">{title}</h1>
-            <p className="text-gray-400 text-sm text-center mt-1.5 leading-relaxed">{subtitle}</p>
+            <div>
+              <div className="text-white font-bold text-base leading-tight">Sky Official</div>
+              <div className="text-xs" style={{ color: "#f59e0b", letterSpacing: "0.12em", fontSize: 9, fontWeight: 600, textTransform: "uppercase" }}>Diamond Top‑Up Store</div>
+            </div>
           </div>
 
-          {/* Benefits strip */}
-          <div className="flex items-center justify-center gap-4 mb-7">
-            {[
-              { icon: "📦", label: "Track Orders" },
-              { icon: "💎", label: "Instant Top-Up" },
-              { icon: "🔐", label: "Secure Payments" },
-            ].map((b) => (
-              <div key={b.label} className="flex flex-col items-center gap-1">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>{b.icon}</div>
-                <span className="text-gray-500 text-xs font-medium">{b.label}</span>
-              </div>
-            ))}
+          {/* Title */}
+          <div style={diag(0.14)}>
+            <h1 className="font-bold text-white leading-tight" style={{ fontSize: "clamp(1.5rem,6vw,1.85rem)", letterSpacing: "-0.02em" }}>{title}</h1>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: "#6b7280" }}>{subtitle}</p>
           </div>
 
-          {/* Clerk card */}
-          <div className="rounded-2xl overflow-hidden p-6" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+          {/* Divider */}
+          <div className="mt-7 mb-6" style={{ height: 1, background: "linear-gradient(90deg, rgba(245,158,11,0.25) 0%, rgba(255,255,255,0.05) 100%)", ...diag(0.21) }} />
+
+          {/* Clerk form */}
+          <div style={diag(0.28)}>
             {children}
           </div>
 
-          {/* Trust note */}
-          <p className="text-center text-gray-600 text-xs mt-5 leading-relaxed">
-            By continuing you agree to Sky Official's Terms &amp; Privacy Policy.
-            <br />Your data is never shared with third parties.
-          </p>
         </div>
       </div>
     </div>
@@ -724,8 +729,8 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
 function SignInPage() {
   return (
     <AuthPageShell
-      title="Sign in to Sky Official"
-      subtitle="Welcome back! Sign in to track orders and top up instantly."
+      title="Welcome back"
+      subtitle="Sign in to your Sky Official account."
     >
       <SignIn
         routing="path"
@@ -742,8 +747,8 @@ function SignInPage() {
 function SignUpPage() {
   return (
     <AuthPageShell
-      title="Join Sky Official"
-      subtitle="Create your account to start topping up MLBB diamonds instantly."
+      title="Create an account"
+      subtitle="Join Sky Official and start topping up in seconds."
     >
       <SignUp
         routing="path"

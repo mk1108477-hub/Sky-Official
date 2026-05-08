@@ -5,6 +5,7 @@ import ordersRouter from "./orders";
 import walletRouter from "./wallet";
 import profileRouter from "./profile";
 import verifyRouter from "./verify";
+import pushRouter from "./push";
 import pool from "../lib/db";
 
 const router: IRouter = Router();
@@ -15,6 +16,7 @@ router.use("/orders", ordersRouter);
 router.use("/wallet", walletRouter);
 router.use("/profile", profileRouter);
 router.use("/verify", verifyRouter);
+router.use("/push", pushRouter);
 
 router.get("/settings/category_popular", async (_req, res) => {
   try {

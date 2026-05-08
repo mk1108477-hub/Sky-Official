@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../lib/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import { sendPushToAll } from "./push";
 
 const router = Router();
 
@@ -53,6 +54,13 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
        RETURNING id`,
       [clerkUserId, pkg.id, pkg.diamonds, pkg.price, mlbbId, `UPI Ref: ${String(txnId).trim()}`]
     );
+
+    sendPushToAll({
+      title: "💎 New Order!",
+      body: `${Number(pkg.diamonds).toLocaleString()} diamonds · ₹${parseFloat(pkg.price).toFixed(0)}${mlbbId ? ` · ID: ${mlbbId}` : ""}`,
+      tag: "new-order",
+      url: "/admin",
+    });
 
     res.json({ ok: true, id: inserted[0].id });
   } catch {

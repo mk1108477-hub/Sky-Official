@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
@@ -43,6 +43,19 @@ interface WalletRequest {
 }
 
 type Tab = "packages" | "orders" | "wallet" | "featured";
+type NotifState = "unknown" | "loading" | "subscribed" | "denied" | "unsupported";
+
+async function registerSW(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+  return navigator.serviceWorker.register("/sw.js");
+}
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("admin_token"));
@@ -63,9 +76,76 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
   const [featuredSaving, setFeaturedSaving] = useState(false);
 
-  const token = sessionStorage.getItem("admin_token") || "";
+  // Push notifications
+  const [notifState, setNotifState] = useState<NotifState>("unknown");
+  const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
 
+  const token = sessionStorage.getItem("admin_token") || "";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  // Check current notification status on mount
+  useEffect(() => {
+    if (!authed) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setNotifState("unsupported");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      setNotifState("denied");
+      return;
+    }
+    // Check if already subscribed
+    navigator.serviceWorker.ready.then(async (reg) => {
+      swRegRef.current = reg;
+      const existing = await reg.pushManager.getSubscription();
+      setNotifState(existing ? "subscribed" : "unknown");
+    });
+  }, [authed]);
+
+  const enableNotifications = async () => {
+    setNotifState("loading");
+    try {
+      const reg = await registerSW();
+      if (!reg) { setNotifState("unsupported"); return; }
+      swRegRef.current = reg;
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") { setNotifState("denied"); return; }
+
+      const keyRes = await fetch(`${API}/push/vapid-public-key`);
+      const { publicKey } = await keyRes.json();
+      if (!publicKey) { setNotifState("unknown"); return; }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+
+      await fetch(`${API}/push/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(sub.toJSON()),
+      });
+
+      setNotifState("subscribed");
+    } catch {
+      setNotifState("unknown");
+    }
+  };
+
+  const disableNotifications = async () => {
+    const reg = swRegRef.current || await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await fetch(`${API}/push/unsubscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      await sub.unsubscribe();
+    }
+    setNotifState("unknown");
+  };
 
   const fetchPackages = useCallback(async () => {
     const res = await fetch(`${API}/admin/packages`, { headers });
@@ -201,6 +281,34 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
+  const notifButton = () => {
+    if (notifState === "unsupported") return null;
+    if (notifState === "denied") return (
+      <span className="text-xs text-red-400 font-semibold">Notifications blocked in browser</span>
+    );
+    if (notifState === "loading") return (
+      <span className="text-xs text-amber-400 animate-pulse">Enabling…</span>
+    );
+    if (notifState === "subscribed") return (
+      <button
+        onClick={disableNotifications}
+        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
+        style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}
+      >
+        <span>🔔</span> Notifs ON
+      </button>
+    );
+    return (
+      <button
+        onClick={enableNotifications}
+        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition-all"
+        style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}
+      >
+        <span>🔕</span> Enable Notifs
+      </button>
+    );
+  };
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -219,6 +327,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
             <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
           </div>
           <div className="flex items-center gap-3">
+            {authed && notifButton()}
             {authed && (
               <button onClick={logout} className="text-xs text-gray-400 hover:text-red-400 transition-colors">Sign out</button>
             )}
@@ -483,6 +592,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               )}
+
               {/* ── FEATURED TAB ── */}
               {tab === "featured" && (
                 <div className="flex flex-col gap-4">

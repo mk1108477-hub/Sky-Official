@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 
@@ -20,27 +20,47 @@ let _selectedPackage: SelectedPackage | null = null;
 export function setSelectedPackage(pkg: SelectedPackage | null) { _selectedPackage = pkg; }
 export function getSelectedPackage() { return _selectedPackage; }
 
-function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function InfoRow({ label, value, mono, accent, action }: { label: string; value: string; mono?: boolean; accent?: boolean; action?: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>{label}</span>
-      <span style={{ color: accent ? "#f59e0b" : "#fff", fontWeight: 700, fontSize: 13 }}>{value}</span>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 8 }}>
+      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, flexShrink: 0 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <span style={{ color: accent ? "#f59e0b" : "#fff", fontWeight: mono ? 600 : 700, fontSize: 13, fontFamily: mono ? "'Courier New', monospace" : undefined, textAlign: "right", wordBreak: "break-all" }}>{value}</span>
+        {action}
+      </div>
     </div>
+  );
+}
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <button onClick={copy} style={{ background: copied ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.12)", border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(245,158,11,0.3)"}`, borderRadius: 6, padding: "3px 10px", color: copied ? "#22c55e" : "#f59e0b", fontWeight: 700, fontSize: 11, cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}>
+      {copied ? "✓" : "Copy"}
+    </button>
   );
 }
 
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
-  const [txnInput, setTxnInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
-  const qrRef = useRef<HTMLImageElement>(null);
+  const [upiOpened, setUpiOpened] = useState(false);
 
   const pkg = _selectedPackage;
+
+  // Generate stable reference ID for this payment session
+  const refId = useMemo(() => `${Date.now()}`, []);
+  const remark = useMemo(() => `SKY-${refId.slice(-8)}`, [refId]);
 
   if (!pkg) {
     setTimeout(() => setLocation("/packages"), 0);
@@ -48,14 +68,7 @@ export default function PaymentPage() {
   }
 
   const amount = Number(pkg.price);
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`MLBB ${pkg.diamonds} Diamonds - Sky Official`)}`;
-
-  function copyUpiId() {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
+  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
 
   function downloadQR() {
     const a = document.createElement("a");
@@ -64,11 +77,12 @@ export default function PaymentPage() {
     a.click();
   }
 
-  async function submitOrder() {
-    if (!txnInput.trim()) {
-      setError("Please enter your UPI Transaction ID / UTR number before submitting.");
-      return;
-    }
+  function handlePayUPI() {
+    setUpiOpened(true);
+    window.location.href = upiLink;
+  }
+
+  async function confirmOrder() {
     setSubmitting(true);
     setError("");
     try {
@@ -80,7 +94,7 @@ export default function PaymentPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
-        body: JSON.stringify({ packageId: pkg.id, txnId: txnInput.trim() }),
+        body: JSON.stringify({ packageId: pkg.id, refId, remark }),
       });
       const data = await r.json();
       if (data.ok || data.id) {
@@ -109,14 +123,14 @@ export default function PaymentPage() {
           <div style={{ textAlign: "center" }}>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, marginBottom: 8 }}>Order Placed!</div>
             <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, lineHeight: 1.6 }}>
-              Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg.diamonds.toLocaleString()} Diamonds</strong> has been submitted.
-              We'll deliver to your MLBB account within minutes after payment is confirmed.
+              Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg.diamonds.toLocaleString()} Diamonds</strong> has been submitted and the store has been notified. Diamonds will be delivered once payment is confirmed.
             </div>
           </div>
-          <div style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-            {orderId && <Row label="Order ID" value={`#${orderId}`} />}
-            <Row label="Diamonds" value={`♦ ${pkg.diamonds.toLocaleString()}`} accent />
-            <Row label="Amount Paid" value={`₹${amount.toLocaleString("en-IN")}`} accent />
+          <div style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "4px 20px" }}>
+            {orderId && <InfoRow label="Order ID" value={`#${orderId}`} />}
+            <InfoRow label="Reference" value={remark} mono />
+            <InfoRow label="Diamonds" value={`♦ ${pkg.diamonds.toLocaleString()}`} accent />
+            <InfoRow label="Amount" value={`₹${amount.toLocaleString("en-IN")}`} accent />
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 11 }}>
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Status</span>
               <span style={{ color: "#fbbf24", fontWeight: 700, fontSize: 13 }}>Pending Verification</span>
@@ -139,7 +153,8 @@ export default function PaymentPage() {
     <div style={{ background: "#0a0a0a", minHeight: "100vh", paddingBottom: 60 }}>
       <style>{`
         @keyframes payIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes qrGlow { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} 50%{box-shadow:0 0 0 6px rgba(245,158,11,0.12)} }
+        @keyframes qrPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} 50%{box-shadow:0 0 0 8px rgba(245,158,11,0.1)} }
+        @keyframes confirmBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
       `}</style>
 
       {/* Header */}
@@ -168,10 +183,11 @@ export default function PaymentPage() {
         <div style={{ background: "linear-gradient(135deg,#1a1300,#120e00)", border: "1.5px solid rgba(245,158,11,0.28)", borderRadius: 20, padding: "20px 20px 18px", animation: "payIn 0.4s ease both" }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Amount to be paid</div>
-            <div style={{ color: "#f59e0b", fontWeight: 900, fontSize: 42, letterSpacing: "-1px", lineHeight: 1 }}>₹{amount.toLocaleString("en-IN")}</div>
-            {pkg.bonus_diamonds > 0 && (
-              <div style={{ color: "#4ade80", fontSize: 12, fontWeight: 600, marginTop: 6 }}>+{pkg.bonus_diamonds.toLocaleString()} bonus diamonds included</div>
-            )}
+            <div style={{ color: "#f59e0b", fontWeight: 900, fontSize: 46, letterSpacing: "-1px", lineHeight: 1 }}>₹{amount.toLocaleString("en-IN")}</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 8 }}>
+              ♦ {pkg.diamonds.toLocaleString()} Diamonds
+              {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}> +{pkg.bonus_diamonds.toLocaleString()} bonus</span>}
+            </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 20, padding: "4px 14px" }}>
               <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b" }} />
               <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>Status: Pending</span>
@@ -181,17 +197,9 @@ export default function PaymentPage() {
 
         {/* ── Order Details Card ── */}
         <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "4px 20px 4px", animation: "payIn 0.4s ease 0.06s both" }}>
-          <Row label="Diamonds" value={`♦ ${pkg.diamonds.toLocaleString()}`} accent />
-          <Row label="Package" value={pkg.name || `${pkg.diamonds.toLocaleString()} Diamonds`} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0" }}>
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Payee UPI</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>{UPI_ID}</span>
-              <button onClick={copyUpiId} style={{ background: copied ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.12)", border: `1px solid ${copied ? "rgba(34,197,94,0.4)" : "rgba(245,158,11,0.3)"}`, borderRadius: 6, padding: "3px 10px", color: copied ? "#22c55e" : "#f59e0b", fontWeight: 700, fontSize: 11, cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}>
-                {copied ? "✓" : "Copy"}
-              </button>
-            </div>
-          </div>
+          <InfoRow label="Order ID" value={refId} mono />
+          <InfoRow label="Remark" value={remark} mono action={<CopyBtn text={remark} />} />
+          <InfoRow label="Payee UPI" value={UPI_ID} mono action={<CopyBtn text={UPI_ID} />} />
         </div>
 
         {/* ── QR Card ── */}
@@ -202,17 +210,20 @@ export default function PaymentPage() {
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>PhonePe · GPay · Paytm · BHIM · Any UPI app</div>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
-              {["P", "G", "B"].map((l, i) => (
-                <div key={i} style={{ width: 26, height: 26, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 10, background: i === 0 ? "#5f259f" : i === 1 ? "#1a73e8" : "#00b9f1", color: "#fff" }}>{l}</div>
+              {[
+                { l: "P", bg: "#5f259f" },
+                { l: "G", bg: "#1a73e8" },
+                { l: "B", bg: "#00b9f1" },
+              ].map(({ l, bg }) => (
+                <div key={l} style={{ width: 26, height: 26, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 10, background: bg, color: "#fff" }}>{l}</div>
               ))}
             </div>
           </div>
 
           {/* QR Image */}
           <div style={{ display: "flex", justifyContent: "center", padding: "20px 24px 16px" }}>
-            <div style={{ background: "#fff", borderRadius: 16, padding: 14, animation: "qrGlow 3s ease-in-out infinite" }}>
+            <div style={{ background: "#fff", borderRadius: 16, padding: 14, animation: "qrPulse 3s ease-in-out infinite" }}>
               <img
-                ref={qrRef}
                 src={QR_PATH}
                 alt="UPI QR Code"
                 style={{ width: 200, height: 200, display: "block", borderRadius: 6, objectFit: "contain" }}
@@ -220,59 +231,59 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* QR action buttons */}
+          {/* Action buttons */}
           <div style={{ display: "flex", gap: 10, padding: "0 20px 20px" }}>
             <button
               onClick={downloadQR}
-              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, transition: "all 0.2s" }}
+              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v14m-7-7l7 7 7-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="19" width="18" height="2" rx="1" fill="#fff"/></svg>
               Download QR
             </button>
-            <a
-              href={upiLink}
-              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 18px rgba(245,158,11,0.35)", transition: "all 0.2s" }}
+            <button
+              onClick={handlePayUPI}
+              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 18px rgba(245,158,11,0.35)" }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 22V12m0 0l-4 4m4-4l4 4" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 16.7A9 9 0 1 0 3.5 10" stroke="#000" strokeWidth="2" strokeLinecap="round"/></svg>
               Pay with UPI
-            </a>
+            </button>
           </div>
         </div>
 
-        {/* ── After Paying ── */}
-        <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "18px 20px", animation: "payIn 0.4s ease 0.18s both" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="1.8"/></svg>
-            </div>
-            <div>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>After Paying</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1 }}>Enter your UPI Transaction ID or UTR number</div>
-            </div>
-          </div>
-
-          <label style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>UPI Transaction ID / UTR</label>
-          <input
-            type="text"
-            placeholder="e.g. T2506081234567890"
-            value={txnInput}
-            onChange={e => { setTxnInput(e.target.value); setError(""); }}
-            style={{ width: "100%", background: "#0a0a0a", border: `1px solid ${txnInput ? "rgba(245,158,11,0.4)" : "rgba(255,255,255,0.1)"}`, borderRadius: 12, padding: "13px 16px", color: "#fff", fontSize: 15, fontWeight: 600, boxSizing: "border-box", outline: "none", transition: "border-color 0.2s" }}
-          />
-
-          {error && (
-            <div style={{ marginTop: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, padding: "9px 13px", color: "#ef4444", fontSize: 13 }}>
-              {error}
+        {/* ── Confirm Order ── */}
+        <div style={{ background: upiOpened ? "linear-gradient(135deg,#0d1a00,#0a1200)" : "#111", border: `1.5px solid ${upiOpened ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius: 20, padding: "18px 20px", animation: "payIn 0.4s ease 0.18s both", transition: "all 0.4s ease" }}>
+          {upiOpened ? (
+            <>
+              <div style={{ display: "flex", items: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Payment done?</div>
+                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1 }}>Tap below to confirm your order — no UTR needed</div>
+                  </div>
+                </div>
+              </div>
+              {error && (
+                <div style={{ marginBottom: 12, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, padding: "9px 13px", color: "#ef4444", fontSize: 13 }}>
+                  {error}
+                </div>
+              )}
+              <button
+                onClick={confirmOrder}
+                disabled={submitting}
+                style={{ width: "100%", padding: "15px 0", borderRadius: 14, background: submitting ? "rgba(34,197,94,0.2)" : "linear-gradient(135deg,#4ade80,#22c55e)", color: submitting ? "rgba(0,0,0,0.4)" : "#000", fontWeight: 800, fontSize: 16, border: "none", cursor: submitting ? "default" : "pointer", transition: "all 0.2s", boxShadow: submitting ? "none" : "0 4px 20px rgba(34,197,94,0.35)", animation: submitting ? "none" : "confirmBounce 2s ease-in-out infinite" }}
+              >
+                {submitting ? "Confirming…" : "✓ I've Paid — Confirm Order"}
+              </button>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13, padding: "4px 0" }}>
+              <span style={{ fontSize: 18 }}>👆</span>
+              <div style={{ marginTop: 6 }}>Pay with UPI first, then confirm your order here</div>
             </div>
           )}
-
-          <button
-            onClick={submitOrder}
-            disabled={submitting}
-            style={{ width: "100%", padding: "14px 0", borderRadius: 12, marginTop: 14, background: submitting ? "rgba(245,158,11,0.25)" : "linear-gradient(135deg,#fcd34d,#f59e0b)", color: submitting ? "rgba(0,0,0,0.4)" : "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: submitting ? "default" : "pointer", transition: "all 0.2s", boxShadow: submitting ? "none" : "0 4px 20px rgba(245,158,11,0.3)" }}
-          >
-            {submitting ? "Submitting…" : "I Have Paid — Submit Order →"}
-          </button>
         </div>
 
         {/* ── Safety Note ── */}
@@ -281,7 +292,7 @@ export default function PaymentPage() {
             <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-            Only pay to UPI ID <strong style={{ color: "rgba(255,255,255,0.65)" }}>{UPI_ID}</strong>. Do not pay to any other account. Always verify the QR code before paying.
+            Only pay to UPI ID <strong style={{ color: "rgba(255,255,255,0.65)" }}>{UPI_ID}</strong>. Always verify before paying.
           </p>
         </div>
 

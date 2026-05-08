@@ -5,6 +5,17 @@ import { sendPushToAll } from "./push";
 
 const router = Router();
 
+const ADMIN_WHATSAPP = "919362003788";
+
+async function sendWhatsApp(message: string) {
+  const apiKey = process.env.CALLMEBOT_API_KEY;
+  if (!apiKey) return;
+  try {
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${ADMIN_WHATSAPP}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
+    await fetch(url);
+  } catch {}
+}
+
 router.get("/my", requireAuth, async (req: any, res): Promise<void> => {
   const userId = req.clerkUserId as string;
   try {
@@ -20,14 +31,10 @@ router.get("/my", requireAuth, async (req: any, res): Promise<void> => {
 
 router.post("/", requireAuth, async (req: any, res): Promise<void> => {
   const clerkUserId = req.clerkUserId as string;
-  const { packageId, txnId } = req.body;
+  const { packageId, refId, remark } = req.body;
 
   if (!packageId) {
     res.status(400).json({ ok: false, error: "packageId is required." });
-    return;
-  }
-  if (!txnId || !String(txnId).trim()) {
-    res.status(400).json({ ok: false, error: "UPI Transaction ID is required." });
     return;
   }
 
@@ -48,21 +55,43 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
     );
     const mlbbId = accounts.length > 0 ? accounts[0].mlbb_user_id : null;
 
+    const note = remark ? `Ref: ${remark}` : (refId ? `Ref: ${refId}` : null);
+
     const { rows: inserted } = await pool.query(
       `INSERT INTO orders (clerk_user_id, package_id, diamonds, price, mlbb_id, status, note)
        VALUES ($1, $2, $3, $4, $5, 'pending', $6)
        RETURNING id`,
-      [clerkUserId, pkg.id, pkg.diamonds, pkg.price, mlbbId, `UPI Ref: ${String(txnId).trim()}`]
+      [clerkUserId, pkg.id, pkg.diamonds, pkg.price, mlbbId, note]
     );
 
+    const orderId = inserted[0].id;
+    const diamonds = Number(pkg.diamonds).toLocaleString("en-IN");
+    const price = parseFloat(pkg.price).toFixed(0);
+
+    // Push notification to admin browser
     sendPushToAll({
       title: "💎 New Order!",
-      body: `${Number(pkg.diamonds).toLocaleString()} diamonds · ₹${parseFloat(pkg.price).toFixed(0)}${mlbbId ? ` · ID: ${mlbbId}` : ""}`,
+      body: `${diamonds} diamonds · ₹${price}${mlbbId ? ` · ID: ${mlbbId}` : ""}`,
       tag: "new-order",
       url: "/admin",
     });
 
-    res.json({ ok: true, id: inserted[0].id });
+    // WhatsApp notification to admin
+    const waMsg = [
+      "🛒 *New Order — Sky Official*",
+      "",
+      `📦 *Package:* ${diamonds} Diamonds`,
+      `💰 *Amount:* ₹${price}`,
+      mlbbId ? `🎮 *MLBB ID:* ${mlbbId}` : null,
+      remark ? `🔑 *Remark:* ${remark}` : null,
+      `🆔 *Order #:* ${orderId}`,
+      "",
+      "Check admin panel to fulfill.",
+    ].filter(Boolean).join("\n");
+
+    sendWhatsApp(waMsg);
+
+    res.json({ ok: true, id: orderId });
   } catch {
     res.status(500).json({ ok: false, error: "DB error. Please try again." });
   }

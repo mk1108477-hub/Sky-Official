@@ -157,7 +157,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           91%,100% { text-shadow: none; filter: none; }
         }
         .intro-glitch {
-          animation: introGlitch 6s ease-in-out infinite;
+          animation: introGlitch 4.5s ease-in-out infinite;
           display: block;
           will-change: filter;
         }
@@ -221,7 +221,7 @@ function Navbar() {
           91%,100% { text-shadow: none; filter: none; }
         }
         .sky-glitch {
-          animation: glitch 6s ease-in-out infinite;
+          animation: glitch 4.5s ease-in-out infinite;
           display: block;
           position: relative;
           will-change: filter;

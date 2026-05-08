@@ -39,7 +39,7 @@ interface WalletRequest {
   created_at: string;
 }
 
-type Tab = "packages" | "orders" | "wallet";
+type Tab = "packages" | "orders" | "wallet" | "featured";
 
 export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("admin_token"));
@@ -57,6 +57,8 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [showAddOrder, setShowAddOrder] = useState(false);
   const [walletRequests, setWalletRequests] = useState<WalletRequest[]>([]);
   const [walletLoading, setWalletLoading] = useState<number | null>(null);
+  const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
+  const [featuredSaving, setFeaturedSaving] = useState(false);
 
   const token = sessionStorage.getItem("admin_token") || "";
 
@@ -81,11 +83,27 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     if (res.ok) setWalletRequests(await res.json());
   }, [token]);
 
+  const fetchCategoryPopular = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/category_popular`, { headers });
+    if (res.ok) setCategoryPopular(await res.json());
+  }, [token]);
+
+  const saveCategoryPopular = async (updated: Record<string, boolean>) => {
+    setFeaturedSaving(true);
+    await fetch(`${API}/admin/settings/category_popular`, {
+      method: "PUT", headers,
+      body: JSON.stringify(updated),
+    });
+    setCategoryPopular(updated);
+    setFeaturedSaving(false);
+  };
+
   useEffect(() => {
     if (!authed) return;
     fetchPackages();
     fetchOrders();
     fetchWalletRequests();
+    fetchCategoryPopular();
   }, [authed]);
 
   const approveWallet = async (id: number) => {
@@ -238,7 +256,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <>
             {/* Tabs */}
             <div className="flex gap-1 px-4 pt-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              {(["packages", "orders", "wallet"] as Tab[]).map((t) => {
+              {(["packages", "orders", "wallet", "featured"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
@@ -426,6 +444,67 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                   ))}
                 </div>
               )}
+              {/* ── FEATURED TAB ── */}
+              {tab === "featured" && (
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Popular Now — Panel Badges</div>
+                    <div className="text-gray-400 text-xs">Toggle which category panels show a "Popular Now" badge on the store front. Changes save instantly.</div>
+                  </div>
+
+                  {[
+                    { id: "small",     label: "Small Pack",       icon: "♦",  color: "#38bdf8" },
+                    { id: "normal",    label: "Normal Pack",       icon: "♦♦", color: "#f59e0b" },
+                    { id: "double",    label: "Double Diamond",    icon: "×2", color: "#00e5ff" },
+                    { id: "passes",    label: "Passes & Bundles",  icon: "🎫", color: "#a855f7" },
+                    { id: "starlight", label: "Starlight Cards",   icon: "★",  color: "#f5c842" },
+                    { id: "rank",      label: "Rank Boosting",     icon: "🛡", color: "#ec4899" },
+                  ].map(cat => {
+                    const isOn = !!categoryPopular[cat.id];
+                    return (
+                      <div key={cat.id} className="rounded-xl p-4 flex items-center justify-between gap-4"
+                        style={{ background: "#1a1a1a", border: `1px solid ${isOn ? cat.color + "40" : "rgba(255,255,255,0.07)"}` }}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
+                            style={{ background: cat.color + "18", color: cat.color, border: `1px solid ${cat.color}30` }}>
+                            {cat.icon}
+                          </div>
+                          <div>
+                            <div className="text-white font-semibold text-sm">{cat.label}</div>
+                            {isOn && (
+                              <div className="text-xs font-bold mt-0.5" style={{ color: cat.color }}>Popular Now badge showing</div>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          disabled={featuredSaving}
+                          onClick={() => saveCategoryPopular({ ...categoryPopular, [cat.id]: !isOn })}
+                          className="relative flex-shrink-0 transition-all"
+                          style={{ width: 44, height: 24, borderRadius: 999,
+                            background: isOn ? cat.color : "rgba(255,255,255,0.1)",
+                            border: `1px solid ${isOn ? cat.color : "rgba(255,255,255,0.15)"}`,
+                            cursor: featuredSaving ? "not-allowed" : "pointer",
+                            opacity: featuredSaving ? 0.6 : 1,
+                          }}
+                        >
+                          <span style={{
+                            position: "absolute", top: 2, left: isOn ? 22 : 2,
+                            width: 18, height: 18, borderRadius: "50%",
+                            background: "#fff",
+                            transition: "left 0.18s ease",
+                            display: "block",
+                          }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {featuredSaving && (
+                    <div className="text-center text-xs text-amber-400 py-1">Saving…</div>
+                  )}
+                </div>
+              )}
+
               {/* ── WALLET TAB ── */}
               {tab === "wallet" && (
                 <div className="flex flex-col gap-4">

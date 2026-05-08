@@ -129,6 +129,24 @@ router.delete("/orders/:id", requireAdmin, async (req, res) => {
   }
 });
 
+router.get("/settings/category_popular", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='category_popular'");
+    res.json(JSON.parse(rows[0]?.value || "{}"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/category_popular", requireAdmin, async (req, res) => {
+  try {
+    await pool.query(
+      `INSERT INTO settings (key, value) VALUES ('category_popular', $1)
+       ON CONFLICT (key) DO UPDATE SET value=$1`,
+      [JSON.stringify(req.body)]
+    );
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/wallet-requests", requireAdmin, async (_req, res) => {
   try {
     const { rows } = await pool.query(

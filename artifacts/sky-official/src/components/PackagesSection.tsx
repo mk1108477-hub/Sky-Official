@@ -29,7 +29,7 @@ interface Category {
 const CATEGORIES: Category[] = [
   { id: "small",     title: "Small Pack",       subtitle: "Quick top-ups for daily players",        color: "#38bdf8", glow: "rgba(56,189,248,0.30)",   available: true },
   { id: "normal",    title: "Normal Pack",       subtitle: "Best value with bonus diamonds",         color: "#f59e0b", glow: "rgba(245,158,11,0.30)",   available: true, badge: "Most Popular" },
-  { id: "double",    title: "Double Diamond",    subtitle: "2× bonus diamonds every purchase",       color: "#00e5ff", glow: "rgba(0,229,255,0.22)",    available: true },
+  { id: "double",    title: "Double Diamond",    subtitle: "2× diamonds on your 1st recharge (resets yearly)",  color: "#00e5ff", glow: "rgba(0,229,255,0.22)",    available: true },
   { id: "passes",    title: "Passes & Bundles",  subtitle: "Weekly & monthly passes with perks",     color: "#a855f7", glow: "rgba(168,85,247,0.25)",   available: true },
   { id: "starlight", title: "Starlight Cards",   subtitle: "Exclusive skins & limited rewards",      color: "#f5c842", glow: "rgba(245,200,66,0.25)",   available: false },
   { id: "rank",      title: "Rank Boosting",     subtitle: "Rise to Mythical Glory with experts",    color: "#ec4899", glow: "rgba(236,72,153,0.25)",   available: false },
@@ -341,7 +341,7 @@ function ImagePane({ src }: { src: string }) {
 }
 
 // ── Category card ───────────────────────────────────────────────────────────
-function CategoryCard({ cat, onClick, index }: { cat: Category; onClick: () => void; index: number }) {
+function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; onClick: () => void; index: number; isPopularNow?: boolean }) {
   const delay = ((index % 2) + Math.floor(index / 2)) * 0.1;
   return (
     <div
@@ -369,6 +369,15 @@ function CategoryCard({ cat, onClick, index }: { cat: Category; onClick: () => v
         el.style.boxShadow = cat.available ? `0 0 20px ${cat.glow}` : "none";
       }}
     >
+      {/* Popular Now badge from admin setting */}
+      {isPopularNow && cat.available && (
+        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 3,
+          background: "linear-gradient(135deg,#ef4444,#dc2626)",
+          color: "#fff", fontSize: 8, fontWeight: 800, letterSpacing: "0.08em",
+          padding: "3px 7px", borderRadius: 999, textTransform: "uppercase" }}>
+          🔥 Popular Now
+        </div>
+      )}
       {cat.badge && cat.available && (
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3,
           background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
@@ -542,12 +551,17 @@ export default function PackagesSection({ onPackageSelect: _p }: { onPackageSele
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch(`${API}/packages`)
       .then(r => r.json())
       .then(data => { setPackages(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch(`${API}/settings/category_popular`)
+      .then(r => r.json())
+      .then(data => setCategoryPopular(data || {}))
+      .catch(() => {});
   }, []);
 
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
@@ -616,7 +630,7 @@ export default function PackagesSection({ onPackageSelect: _p }: { onPackageSele
         {!activeCategory && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {CATEGORIES.map((cat, i) => (
-              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => setActiveCategory(cat)} />
+              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => setActiveCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} />
             ))}
           </div>
         )}

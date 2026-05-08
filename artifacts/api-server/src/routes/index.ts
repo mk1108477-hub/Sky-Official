@@ -14,6 +14,13 @@ router.use("/orders", ordersRouter);
 router.use("/wallet", walletRouter);
 router.use("/profile", profileRouter);
 
+router.get("/settings/category_popular", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='category_popular'");
+    res.json(JSON.parse(rows[0]?.value || "{}"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/packages", async (_req, res) => {
   try {
     const { rows } = await pool.query(

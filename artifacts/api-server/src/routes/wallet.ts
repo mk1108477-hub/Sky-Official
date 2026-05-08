@@ -24,15 +24,17 @@ router.get("/balance", requireAuth, async (req: any, res) => {
   }
 });
 
-router.post("/topup", requireAuth, async (req: any, res) => {
+router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
   const userId = req.clerkUserId as string;
   const { amount, upi_ref } = req.body;
 
   if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-    return res.status(400).json({ error: "Invalid amount" });
+    res.status(400).json({ error: "Invalid amount" });
+    return;
   }
   if (!upi_ref || String(upi_ref).trim() === "") {
-    return res.status(400).json({ error: "UPI reference is required" });
+    res.status(400).json({ error: "UPI reference is required" });
+    return;
   }
 
   try {

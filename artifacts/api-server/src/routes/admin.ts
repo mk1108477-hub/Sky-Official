@@ -46,7 +46,7 @@ router.post("/packages", requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/packages/:id", requireAdmin, async (req, res) => {
+router.put("/packages/:id", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category } = req.body;
   try {
@@ -55,7 +55,7 @@ router.put("/packages/:id", requireAdmin, async (req, res) => {
        WHERE id=$9 RETURNING *`,
       [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null, id]
     );
-    if (!rows[0]) return res.status(404).json({ error: "Not found" });
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: "DB error" });
@@ -104,7 +104,7 @@ router.post("/orders", requireAdmin, async (req, res) => {
   }
 });
 
-router.put("/orders/:id", requireAdmin, async (req, res) => {
+router.put("/orders/:id", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const { status, note } = req.body;
   try {
@@ -112,7 +112,7 @@ router.put("/orders/:id", requireAdmin, async (req, res) => {
       `UPDATE orders SET status=$1, note=$2 WHERE id=$3 RETURNING *`,
       [status, note || null, id]
     );
-    if (!rows[0]) return res.status(404).json({ error: "Not found" });
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
   } catch (err) {
     res.status(500).json({ error: "DB error" });
@@ -158,14 +158,14 @@ router.get("/wallet-requests", requireAdmin, async (_req, res) => {
   }
 });
 
-router.post("/wallet-requests/:id/approve", requireAdmin, async (req, res) => {
+router.post("/wallet-requests/:id/approve", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   try {
     const txRes = await pool.query(
       "SELECT * FROM wallet_transactions WHERE id=$1 AND status='pending'",
       [id]
     );
-    if (!txRes.rows[0]) return res.status(404).json({ error: "Not found or already processed" });
+    if (!txRes.rows[0]) { res.status(404).json({ error: "Not found or already processed" }); return; }
     const tx = txRes.rows[0];
 
     await pool.query(
@@ -187,14 +187,14 @@ router.post("/wallet-requests/:id/approve", requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/wallet-requests/:id/reject", requireAdmin, async (req, res) => {
+router.post("/wallet-requests/:id/reject", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   try {
     const { rowCount } = await pool.query(
       "UPDATE wallet_transactions SET status='rejected' WHERE id=$1 AND status='pending'",
       [id]
     );
-    if (!rowCount) return res.status(404).json({ error: "Not found or already processed" });
+    if (!rowCount) { res.status(404).json({ error: "Not found or already processed" }); return; }
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "DB error" });

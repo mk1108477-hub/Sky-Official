@@ -220,8 +220,8 @@ function Navbar() {
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div className="flex items-center gap-1.5">
-          <div style={{ position: "relative", height: 23, minWidth: 72 }}>
-            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 12, position: "absolute", top: 0, left: 0, whiteSpace: "nowrap" }}>Sky Official</span>
+          <div style={{ position: "relative", height: 25, minWidth: 80 }}>
+            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 15, position: "absolute", top: 0, left: 0, whiteSpace: "nowrap" }}>Sky Official</span>
             <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", textAlign: "left", whiteSpace: "nowrap" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>

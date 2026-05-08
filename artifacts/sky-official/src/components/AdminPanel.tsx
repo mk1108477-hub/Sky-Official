@@ -4,11 +4,14 @@ const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") 
 
 interface Package {
   id: number;
+  name: string | null;
   diamonds: number;
+  bonus_diamonds: number;
   price: string;
   label: string | null;
   is_popular: boolean;
   sort_order: number;
+  category: string | null;
 }
 
 interface Order {
@@ -50,7 +53,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [editingPkg, setEditingPkg] = useState<Package | null>(null);
-  const [newPkg, setNewPkg] = useState({ diamonds: "", price: "", label: "", is_popular: false });
+  const [newPkg, setNewPkg] = useState({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small" });
   const [loading, setLoading] = useState(false);
   const [showAddPkg, setShowAddPkg] = useState(false);
   const [newOrder, setNewOrder] = useState({ diamonds: "", price: "", mlbb_id: "", status: "completed", note: "" });
@@ -159,7 +162,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
       method: "POST", headers,
       body: JSON.stringify({ ...newPkg, sort_order: packages.length + 1 }),
     });
-    setNewPkg({ diamonds: "", price: "", label: "", is_popular: false });
+    setNewPkg({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small" });
     setShowAddPkg(false);
     await fetchPackages();
     setLoading(false);
@@ -296,9 +299,19 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                     <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.2)" }}>
                       <div className="text-amber-400 text-sm font-bold">New Package</div>
                       <div className="grid grid-cols-2 gap-2">
+                        <select value={newPkg.category} onChange={(e) => setNewPkg(p => ({ ...p, category: e.target.value }))} className="col-span-2 px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.35)" }}>
+                          <option value="small">Small Pack</option>
+                          <option value="normal">Normal Pack</option>
+                          <option value="double">Double Diamond</option>
+                          <option value="passes">Passes &amp; Bundles</option>
+                          <option value="starlight">Starlight Cards</option>
+                          <option value="rank">Rank Boosting</option>
+                        </select>
+                        <input placeholder='Name (e.g. "Starter Pack")' value={newPkg.name} onChange={(e) => setNewPkg(p => ({ ...p, name: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none col-span-2" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                         <input placeholder="Diamonds" type="number" value={newPkg.diamonds} onChange={(e) => setNewPkg(p => ({ ...p, diamonds: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="Bonus Diamonds" type="number" value={newPkg.bonus_diamonds} onChange={(e) => setNewPkg(p => ({ ...p, bonus_diamonds: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                         <input placeholder="Price (₹)" type="number" value={newPkg.price} onChange={(e) => setNewPkg(p => ({ ...p, price: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
-                        <input placeholder='Label (e.g. "Popular")' value={newPkg.label} onChange={(e) => setNewPkg(p => ({ ...p, label: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none col-span-2" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder='Label (e.g. "Best Value")' value={newPkg.label} onChange={(e) => setNewPkg(p => ({ ...p, label: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       </div>
                       <label className="flex items-center gap-2 text-gray-300 text-sm cursor-pointer">
                         <input type="checkbox" checked={newPkg.is_popular} onChange={(e) => setNewPkg(p => ({ ...p, is_popular: e.target.checked }))} />
@@ -316,9 +329,28 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                       {editingPkg?.id === pkg.id ? (
                         <div className="flex flex-col gap-3">
                           <div className="grid grid-cols-2 gap-2">
+                            <div className="col-span-2">
+                              <div className="text-xs text-gray-400 mb-1">Category</div>
+                              <select value={editingPkg.category || "small"} onChange={(e) => setEditingPkg(p => p ? { ...p, category: e.target.value } : p)} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.35)" }}>
+                                <option value="small">Small Pack</option>
+                                <option value="normal">Normal Pack</option>
+                                <option value="double">Double Diamond</option>
+                                <option value="passes">Passes &amp; Bundles</option>
+                                <option value="starlight">Starlight Cards</option>
+                                <option value="rank">Rank Boosting</option>
+                              </select>
+                            </div>
+                            <div className="col-span-2">
+                              <div className="text-xs text-gray-400 mb-1">Name</div>
+                              <input placeholder='e.g. "Starter Pack"' value={editingPkg.name || ""} onChange={(e) => setEditingPkg(p => p ? { ...p, name: e.target.value } : p)} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.3)" }} />
+                            </div>
                             <div>
                               <div className="text-xs text-gray-400 mb-1">Diamonds</div>
                               <input type="number" value={editingPkg.diamonds} onChange={(e) => setEditingPkg(p => p ? { ...p, diamonds: +e.target.value } : p)} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.3)" }} />
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1">Bonus Diamonds</div>
+                              <input type="number" value={editingPkg.bonus_diamonds} onChange={(e) => setEditingPkg(p => p ? { ...p, bonus_diamonds: +e.target.value } : p)} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.3)" }} />
                             </div>
                             <div>
                               <div className="text-xs text-gray-400 mb-1">Price (₹)</div>
@@ -347,8 +379,15 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>♦</div>
                             <div>
-                              <div className="text-white font-bold text-sm">{pkg.diamonds.toLocaleString()} Diamonds</div>
-                              <div className="text-amber-400 text-xs font-semibold">₹{parseFloat(pkg.price).toFixed(0)} {pkg.label ? <span className="text-gray-400 font-normal">· {pkg.label}</span> : null}</div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-white font-bold text-sm">{pkg.name || `${pkg.diamonds.toLocaleString()} Diamonds`}</span>
+                                {pkg.category && <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(255,255,255,0.08)", color: "#9ca3af" }}>{pkg.category}</span>}
+                              </div>
+                              <div className="text-amber-400 text-xs font-semibold mt-0.5">
+                                ♦ {pkg.diamonds.toLocaleString()}{pkg.bonus_diamonds > 0 ? <span className="text-green-400"> +{pkg.bonus_diamonds.toLocaleString()} bonus</span> : null}
+                                <span className="text-gray-500 mx-1">·</span>₹{parseFloat(pkg.price).toFixed(0)}
+                                {pkg.label ? <span className="text-gray-400 font-normal"> · {pkg.label}</span> : null}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

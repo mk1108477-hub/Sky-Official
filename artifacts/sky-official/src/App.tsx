@@ -3,6 +3,7 @@ import AdminPanel from "./components/AdminPanel";
 import PackagesSection from "./components/PackagesSection";
 import OrderHistoryPage from "./components/OrderHistoryPage";
 import ProfilePage from "./components/ProfilePage";
+import MLBBVerifyPage from "./components/MLBBVerifyPage";
 import {
   ClerkProvider,
   SignIn,
@@ -661,6 +662,7 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={MainSite} />
         <Route path="/packages" component={PackagesPage} />
+        <Route path="/verify" component={MLBBVerifyPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/sign-in/*?" component={SignInPage} />
         <Route path="/sign-up/*?" component={SignUpPage} />

@@ -50,48 +50,49 @@ const clerkAppearance = {
   baseTheme: dark,
   cssLayerName: "clerk",
   options: {
-    logoPlacement: "inside" as const,
-    logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.jpg`,
+    logoPlacement: "none" as const,
   },
   variables: {
     colorPrimary: "#f59e0b",
     colorForeground: "#ffffff",
     colorMutedForeground: "#9ca3af",
     colorDanger: "#ef4444",
-    colorBackground: "#111111",
-    colorInput: "#1f1f1f",
+    colorBackground: "#111827",
+    colorInput: "#1f2937",
     colorInputForeground: "#ffffff",
     colorNeutral: "#374151",
     fontFamily: "Inter, sans-serif",
     borderRadius: "0.75rem",
   },
   elements: {
-    rootBox: "w-full flex justify-center",
-    cardBox: "rounded-2xl w-[400px] max-w-full overflow-hidden shadow-2xl",
-    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    rootBox: "w-full",
+    cardBox: "w-full shadow-none",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none !p-0",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
-    headerTitle: "text-white font-bold",
-    headerSubtitle: "text-gray-400",
-    socialButtonsBlockButtonText: "text-black font-medium",
-    formFieldLabel: "text-gray-300 font-medium",
+    headerTitle: "hidden",
+    headerSubtitle: "hidden",
+    header: "hidden",
+    socialButtonsBlockButtonText: "text-gray-800 font-semibold text-sm",
+    socialButtonsBlockButtonArrow: "hidden",
+    socialButtonsBlockButton: "!bg-white !border !border-gray-200 hover:!bg-gray-50 !transition-all !rounded-xl !h-12 !shadow-sm",
+    formFieldLabel: "text-gray-300 font-medium text-sm",
     footerActionLink: "text-amber-400 font-semibold hover:text-amber-300",
-    footerActionText: "text-gray-400",
-    dividerText: "text-gray-500",
+    footerActionText: "text-gray-400 text-sm",
+    dividerText: "text-gray-500 text-xs",
     identityPreviewEditButton: "text-amber-400",
     formFieldSuccessText: "text-green-400",
-    alertText: "text-red-300",
-    logoBox: "flex justify-center mb-2",
-    logoImage: "w-12 h-12 rounded-full object-cover",
-    socialButtonsBlockButton: "!bg-white border border-gray-200 hover:!bg-gray-50 transition-colors",
-    formButtonPrimary: "bg-amber-500 hover:bg-amber-400 text-black font-bold transition-colors",
-    formFieldInput: "bg-gray-800 border-gray-700 text-white focus:border-amber-500 focus:ring-amber-500",
+    alertText: "text-red-300 text-sm",
+    socialButtonsBlockButtonIconBox: "mr-2",
+    formButtonPrimary: "!bg-amber-500 hover:!bg-amber-400 !text-black !font-bold !transition-colors !rounded-xl !h-12",
+    formFieldInput: "!bg-gray-800 !border-gray-700 !text-white focus:!border-amber-500 !rounded-xl !h-12",
     footerAction: "border-t border-gray-800",
     dividerLine: "bg-gray-700",
-    alert: "border border-red-800 bg-red-900/20",
-    otpCodeFieldInput: "bg-gray-800 border-gray-700 text-white",
+    alert: "border border-red-800 bg-red-900/20 rounded-xl",
+    otpCodeFieldInput: "!bg-gray-800 !border-gray-700 !text-white",
     formFieldRow: "gap-2",
     main: "gap-4",
+    socialButtons: "gap-3",
+    formHeader: "hidden",
   },
 };
 
@@ -655,10 +656,84 @@ function PackagesPage() {
   );
 }
 
+// ── Auth Page Shell ─────────────────────────────────────────────────────────
+function AuthPageShell({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle: string }) {
+  const [, setLocation] = useLocation();
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: "#0a0a0a" }}>
+      {/* Ambient glow */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(245,158,11,0.12) 0%, transparent 60%)" }} />
+
+      {/* Top bar */}
+      <div className="relative z-10 flex items-center justify-between px-5 py-4">
+        <button
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-2.5"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        >
+          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0" style={{ border: "2px solid #f59e0b", boxShadow: "0 0 10px 2px rgba(245,158,11,0.4)" }}>
+            <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-white font-bold text-sm">Sky Official</span>
+        </button>
+        <div className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.25)" }}>
+          🔒 Secure Login
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-6">
+        <div className="w-full max-w-sm">
+
+          {/* Brand header */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="mb-4" style={{ position: "relative" }}>
+              <div className="w-20 h-20 rounded-2xl overflow-hidden" style={{ border: "2.5px solid #f59e0b", boxShadow: "0 0 24px 6px rgba(245,158,11,0.35)" }}>
+                <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-xs" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 8px rgba(245,158,11,0.5)" }}>♦</div>
+            </div>
+            <h1 className="text-white font-extrabold text-2xl text-center">{title}</h1>
+            <p className="text-gray-400 text-sm text-center mt-1.5 leading-relaxed">{subtitle}</p>
+          </div>
+
+          {/* Benefits strip */}
+          <div className="flex items-center justify-center gap-4 mb-7">
+            {[
+              { icon: "📦", label: "Track Orders" },
+              { icon: "💎", label: "Instant Top-Up" },
+              { icon: "🔐", label: "Secure Payments" },
+            ].map((b) => (
+              <div key={b.label} className="flex flex-col items-center gap-1">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.2)" }}>{b.icon}</div>
+                <span className="text-gray-500 text-xs font-medium">{b.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Clerk card */}
+          <div className="rounded-2xl overflow-hidden p-6" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}>
+            {children}
+          </div>
+
+          {/* Trust note */}
+          <p className="text-center text-gray-600 text-xs mt-5 leading-relaxed">
+            By continuing you agree to Sky Official's Terms &amp; Privacy Policy.
+            <br />Your data is never shared with third parties.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Sign In Page ───────────────────────────────────────────────────────────
 function SignInPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ background: "#0a0a0a", backgroundImage: "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(100,60,0,0.3) 0%, transparent 70%)" }}>
+    <AuthPageShell
+      title="Sign in to Sky Official"
+      subtitle="Welcome back! Sign in to track orders and top up instantly."
+    >
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
@@ -666,14 +741,17 @@ function SignInPage() {
         fallbackRedirectUrl={basePath || "/"}
         appearance={clerkAppearance}
       />
-    </div>
+    </AuthPageShell>
   );
 }
 
 // ── Sign Up Page ───────────────────────────────────────────────────────────
 function SignUpPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ background: "#0a0a0a", backgroundImage: "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(100,60,0,0.3) 0%, transparent 70%)" }}>
+    <AuthPageShell
+      title="Join Sky Official"
+      subtitle="Create your account to start topping up MLBB diamonds instantly."
+    >
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
@@ -681,7 +759,7 @@ function SignUpPage() {
         fallbackRedirectUrl={basePath || "/"}
         appearance={clerkAppearance}
       />
-    </div>
+    </AuthPageShell>
   );
 }
 

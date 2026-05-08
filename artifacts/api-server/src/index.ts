@@ -70,6 +70,14 @@ async function initDb() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS mlbb_accounts (
+      clerk_user_id TEXT PRIMARY KEY,
+      mlbb_user_id TEXT NOT NULL,
+      mlbb_server_id TEXT NOT NULL,
+      mlbb_ign TEXT NOT NULL,
+      verified_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 }
 

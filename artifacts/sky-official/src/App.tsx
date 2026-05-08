@@ -14,6 +14,7 @@ import {
 } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
+import { Clerk } from "@clerk/clerk-js";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 
 const WHATSAPP_GROUP = "https://chat.whatsapp.com/DB3FwXqNUi649KT18VjVu9";
@@ -660,8 +661,7 @@ function AppRoutes() {
   return (
     <ClerkProvider
       publishableKey={clerkPubKey!}
-      proxyUrl={clerkProxyUrl}
-      clerkJSUrl="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+      Clerk={Clerk}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       routerPush={(to) => setLocation(stripBase(to))}

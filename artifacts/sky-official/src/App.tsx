@@ -305,12 +305,14 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
     const onTimeUpdate = () => {
       if (!v.duration || isSwitchingRef.current) return;
       const remaining = v.duration - v.currentTime;
-      if (remaining <= 0.7) {
+      if (remaining <= 1.6) {
         isSwitchingRef.current = true;
-        // Fade overlay in to 0.7
+        // Pause immediately so the last frame never flashes
+        v.pause();
+        // Fade overlay in
         setCrossfade("in");
         setTimeout(() => {
-          // Switch to the other slot under the overlay
+          // Switch to the other slot under the fully-darkened overlay
           const nextSlot = 1 - activeSlotRef.current;
           const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
           if (nextV) {
@@ -318,7 +320,6 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
             nextV.currentTime = 0;
             nextV.play().catch(() => {});
           }
-          v.pause();
           setActiveSlot(nextSlot);
           activeSlotRef.current = nextSlot;
           // Fade overlay back out
@@ -326,8 +327,8 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           setTimeout(() => {
             setCrossfade("none");
             isSwitchingRef.current = false;
-          }, 500);
-        }, 450);
+          }, 750);
+        }, 750);
       }
     };
 
@@ -371,7 +372,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           background: "#000",
           zIndex: 1,
           opacity: crossfade === "in" ? 0.7 : 0,
-          transition: crossfade === "none" ? "none" : "opacity 0.45s ease",
+          transition: crossfade === "none" ? "none" : "opacity 0.75s ease",
         }}
       />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />

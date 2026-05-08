@@ -1,9 +1,36 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 
-const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
-
 type Step = "input" | "verifying" | "confirmed" | "error";
+
+async function lookupMlbbIGN(userId: string, serverId: string): Promise<string | null> {
+  const endpoints = [
+    () => fetch(`https://api.isan.eu.org/nickname/ml?id=${userId}&server_id=${serverId}`, { headers: { "Accept": "application/json" } }),
+    () => fetch(`https://oploverz.pro/api/check-id/ml?userId=${userId}&zoneId=${serverId}`, { headers: { "Accept": "application/json" } }),
+  ];
+
+  for (const call of endpoints) {
+    try {
+      const r = await Promise.race([
+        call(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 7000)),
+      ]) as Response;
+      if (!r.ok) continue;
+      const data = await r.json();
+      const name =
+        data?.name ||
+        data?.nickname ||
+        data?.username ||
+        data?.data?.name ||
+        data?.data?.username ||
+        null;
+      if (name && typeof name === "string" && name.trim()) return name.trim();
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 export default function MLBBVerifyPage() {
   const [, setLocation] = useLocation();
@@ -23,21 +50,16 @@ export default function MLBBVerifyPage() {
     setStep("verifying");
     setErrorMsg("");
     try {
-      const r = await fetch(`${API}/verify/mlbb`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId.trim(), serverId: serverId.trim() }),
-      });
-      const data = await r.json();
-      if (data.ok && data.username) {
-        setUsername(data.username);
+      const name = await lookupMlbbIGN(userId.trim(), serverId.trim());
+      if (name) {
+        setUsername(name);
         setStep("confirmed");
       } else {
-        setErrorMsg(data.error ?? "Could not verify. Check your IDs and try again.");
+        setErrorMsg("Could not find account. Please double-check your User ID and Server ID.");
         setStep("error");
       }
     } catch {
-      setErrorMsg("Network error. Please check your connection and try again.");
+      setErrorMsg("Could not reach the verification service. Please check your connection and try again.");
       setStep("error");
     }
   }

@@ -15,9 +15,7 @@ import {
   useClerk,
   useAuth,
 } from "@clerk/react";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
-import { Clerk } from "@clerk/clerk-js";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 
 const WHATSAPP_GROUP = "https://chat.whatsapp.com/DB3FwXqNUi649KT18VjVu9";
@@ -33,12 +31,7 @@ const NAV_SUBTITLES = [
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL || undefined;
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
@@ -768,8 +761,7 @@ function AppRoutes() {
   const [, setLocation] = useLocation();
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey!}
-      Clerk={Clerk}
+      publishableKey={clerkPubKey}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       routerPush={(to) => setLocation(stripBase(to))}

@@ -1,45 +1,59 @@
-# [Project name]
+# Sky Official
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Mobile Legends: Bang Bang (MLBB) diamond top-up storefront where users can purchase diamonds, passes, and boosting services with account verification and order tracking.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Frontend runs on port 24534 (proxied to 3000 externally)
+- API server runs on port 8080
+- Both start automatically — no manual setup needed on new devices
+
+## Required Secrets (only things needed on a new device)
+
+- `ADMIN_PASSWORD` — password to access the admin panel at `/admin`
+- `CLERK_PUBLISHABLE_KEY` — from your Clerk dashboard → API Keys
+- `CLERK_SECRET_KEY` — from your Clerk dashboard → API Keys
+
+All other environment variables (DATABASE_URL, PGHOST, etc.) are auto-provisioned by Replit.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- pnpm workspaces, Node.js 20, TypeScript
+- Frontend: React 19 + Vite + Tailwind CSS v4 + Wouter routing
+- API: Express 5 + pg (raw SQL) on port 8080
+- Auth: Clerk (frontend + backend)
+- DB: Replit PostgreSQL — tables auto-created on first server start via `initDb()` in `artifacts/api-server/src/index.ts`
+- Build: esbuild (ESM bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/sky-official/src/App.tsx` — entire frontend app + routing
+- `artifacts/sky-official/src/components/` — page components (AdminPanel, PackagesSection, PaymentPage, etc.)
+- `artifacts/api-server/src/index.ts` — DB table bootstrap (`initDb`)
+- `artifacts/api-server/src/routes/` — API routes (admin, orders, wallet, profile, verify)
+- `artifacts/api-server/src/app.ts` — Express app + Clerk middleware
+- `lib/db/` — Drizzle ORM setup (schema not yet populated; tables managed via raw SQL in initDb)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- DB tables are created with raw SQL via `initDb()` on server startup (not Drizzle migrations), so no manual `db push` is needed
+- Clerk auth is proxied through the backend at `/api/__clerk` so it works on `.replit.app` domains without custom DNS
+- Admin routes use a simple `ADMIN_PASSWORD` bearer token (not Clerk) so the admin panel is accessible independently of user auth
+- Frontend proxies `/api` to `localhost:8080` via Vite dev server config
 
-## Product
+## Self-Bootstrapping
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+When this project is opened on any new device or account:
+1. `pnpm install` runs automatically if `node_modules` is missing (built into each `dev` script)
+2. Database tables are created automatically on first API server start
+3. The only manual step is adding the three secrets above
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep secrets out of code and `.replit` — use Replit's secret store only
+- The project must be fully self-bootstrapping on new devices
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Do NOT add `pnpm --filter db push` to post-merge — the Drizzle schema in `lib/db` is empty; tables are managed by raw SQL in `initDb()`
+- `pnpm -w install` in dev scripts uses `-w` (workspace root flag) so it installs from the root `pnpm-lock.yaml`

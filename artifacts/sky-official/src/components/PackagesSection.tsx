@@ -460,7 +460,7 @@ function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; on
 }
 
 // ── Individual pack card (small / normal / double) ──────────────────────────
-function PackCard({ pack, isDouble }: { pack: Package; isDouble?: boolean }) {
+function PackCard({ pack, isDouble, onBuy }: { pack: Package; isDouble?: boolean; onBuy?: (pkg: Package) => void }) {
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
 
@@ -516,7 +516,7 @@ function PackCard({ pack, isDouble }: { pack: Package; isDouble?: boolean }) {
         )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
           <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
-          <div style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer" }}>Buy</div>
+          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer", border: "none" }}>Buy</button>
         </div>
       </div>
     </div>
@@ -524,7 +524,7 @@ function PackCard({ pack, isDouble }: { pack: Package; isDouble?: boolean }) {
 }
 
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
-function PassCard({ pack }: { pack: Package }) {
+function PassCard({ pack, onBuy }: { pack: Package; onBuy?: (pkg: Package) => void }) {
   return (
     <div
       style={{
@@ -553,7 +553,7 @@ function PassCard({ pack }: { pack: Package }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
           <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
-          <div style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer" }}>Buy</div>
+          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer", border: "none" }}>Buy</button>
         </div>
       </div>
     </div>
@@ -583,7 +583,7 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
 }
 
 // ── Main section ────────────────────────────────────────────────────────────
-export default function PackagesSection({ onPackageSelect: _p, onBack }: { onPackageSelect: (id: string) => void; onBack?: () => void }) {
+export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -690,8 +690,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack }: { onPac
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {activePacks.map(pack =>
                   activeCategory?.id === "passes"
-                    ? <PassCard key={pack.id} pack={pack} />
-                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} />
+                    ? <PassCard key={pack.id} pack={pack} onBuy={onBuy} />
+                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} onBuy={onBuy} />
                 )}
               </div>
             )}

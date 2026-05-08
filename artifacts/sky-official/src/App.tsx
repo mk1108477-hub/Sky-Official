@@ -146,15 +146,15 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
           100% { background-position: -150% 0; }
         }
         @keyframes introGlitch {
-          0%,83%,100% { text-shadow: none; filter: none; }
-          84% { text-shadow: -5px 0 #f43f5e, 5px 0 #38bdf8; filter: brightness(1.5); }
-          85% { text-shadow: 5px 0 #f43f5e, -5px 0 #a78bfa; filter: brightness(0.7) hue-rotate(20deg); }
-          86% { text-shadow: -6px 0 #38bdf8, 4px 0 #f43f5e; filter: brightness(1.8); }
+          0%,77%,100% { text-shadow: none; filter: none; }
+          78% { text-shadow: -5px 0 #f43f5e, 5px 0 #38bdf8; filter: brightness(1.5); }
+          81% { text-shadow: 5px 0 #f43f5e, -5px 0 #a78bfa; filter: brightness(0.7) hue-rotate(20deg); }
+          84% { text-shadow: -6px 0 #38bdf8, 4px 0 #f43f5e; filter: brightness(1.8); }
           87% { text-shadow: none; filter: brightness(0.6); }
-          88% { text-shadow: 4px 0 #a78bfa, -4px 0 #f43f5e; filter: brightness(1.6) hue-rotate(-15deg); }
-          89% { text-shadow: -3px 0 #38bdf8, 3px 0 #f59e0b; filter: brightness(1.3); }
-          90% { text-shadow: 6px 0 #f43f5e, -3px 0 #38bdf8; filter: none; }
-          91%,100% { text-shadow: none; filter: none; }
+          90% { text-shadow: 4px 0 #a78bfa, -4px 0 #f43f5e; filter: brightness(1.6) hue-rotate(-15deg); }
+          93% { text-shadow: -3px 0 #38bdf8, 3px 0 #f59e0b; filter: brightness(1.3); }
+          96% { text-shadow: 6px 0 #f43f5e, -3px 0 #38bdf8; filter: none; }
+          99%,100% { text-shadow: none; filter: none; }
         }
         .intro-glitch {
           animation: introGlitch 4.5s ease-in-out infinite;
@@ -237,7 +237,7 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-1.5">
           <div style={{ position: "relative", height: 25, minWidth: 80 }}>
-            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 12.75, position: "absolute", top: -5, left: 0, whiteSpace: "nowrap" }}>Sky Official</span>
+            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 12.75, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap" }}>Sky Official</span>
             <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", textAlign: "left", whiteSpace: "nowrap" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>

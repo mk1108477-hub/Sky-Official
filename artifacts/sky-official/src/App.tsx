@@ -394,7 +394,7 @@ function PersistentVideoBg() {
 // ── Hero ───────────────────────────────────────────────────────────────────
 
 function HeroSection({ animate = false }: { animate?: boolean }) {
-  const { navigateTo } = usePageNav();
+  const { navigateTo, exiting } = usePageNav();
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
 
@@ -403,34 +403,35 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
     return () => clearInterval(interval);
   }, []);
 
-  const diag = (delay: number): React.CSSProperties =>
-    animate
-      ? { animation: `fadeInDiag 0.75s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}s both` }
-      : { opacity: 0 };
+  const el = (enterDelay: number, exitDelay: number): React.CSSProperties => {
+    if (exiting) return { animation: `fadeOutDiag 0.28s ease ${exitDelay}s both` };
+    if (animate) return { animation: `fadeInDiag 0.75s cubic-bezier(0.25,0.46,0.45,0.94) ${enterDelay}s both` };
+    return { opacity: 0 };
+  };
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
-        <div className="flex justify-center" style={diag(0)}>
+        <div className="flex justify-center" style={el(0, 0)}>
           <span className="px-3 py-0.5 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.14em", fontSize: 8 }}>MLBB Diamond Top Up</span>
         </div>
         <div className="text-center">
           <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(1.15rem,5.5vw,1.65rem)" }}>
-            <span className="text-white block" style={diag(0.13)}>Recharge Fast.</span>
-            <span className="block" style={{ color: "#f59e0b", ...diag(0.26) }}>Dominate the</span>
-            <span className="block" style={{ color: "#f59e0b", ...diag(0.39) }}>Game.</span>
+            <span className="text-white block" style={el(0.13, 0.04)}>Recharge Fast.</span>
+            <span className="block" style={{ color: "#f59e0b", ...el(0.26, 0.08) }}>Dominate the</span>
+            <span className="block" style={{ color: "#f59e0b", ...el(0.39, 0.11) }}>Game.</span>
           </h1>
         </div>
-        <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 260, margin: "0 auto", fontSize: 11, ...diag(0.52) }}>
+        <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 260, margin: "0 auto", fontSize: 11, ...el(0.52, 0.14) }}>
           Instant delivery, secure payments, and the best prices for Mobile Legends Bang Bang. Shop smart, play hard.
         </p>
-        <div className="relative h-4 flex items-center justify-center overflow-hidden" style={diag(0.65)}>
+        <div className="relative h-4 flex items-center justify-center overflow-hidden" style={el(0.65, 0.17)}>
           {featureTexts.map((text, i) => (
             <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 9.5, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
           ))}
         </div>
-        <div className="flex justify-center mt-1" style={diag(0.78)}>
+        <div className="flex justify-center mt-1" style={el(0.78, 0.20)}>
           <button onClick={() => navigateTo("/packages", "forward")} className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 22px rgba(245,158,11,0.5), 0 3px 12px rgba(0,0,0,0.5)", fontSize: 12, border: "none", cursor: "pointer" }}>
             View Packages <span style={{ fontSize: 13 }}>→</span>
           </button>
@@ -440,6 +441,10 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         @keyframes fadeInDiag {
           from { opacity: 0; transform: translate(-24px, -24px); }
           to   { opacity: 1; transform: translate(0, 0); }
+        }
+        @keyframes fadeOutDiag {
+          from { opacity: 1; transform: translate(0, 0); }
+          to   { opacity: 0; transform: translate(-24px, -24px); }
         }
       `}</style>
     </section>
@@ -635,7 +640,6 @@ function MainSite() {
     <>
       {/* Main content always rendered so video starts immediately */}
       <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
-        <Navbar />
         <AnimatedPage>
           <HeroSection animate={introDone} />
           <StatsSection />
@@ -659,7 +663,7 @@ function MainSite() {
 
 // ── Packages Page ──────────────────────────────────────────────────────────
 function PackagesPage() {
-  const { navigateTo } = usePageNav();
+  const { navigateTo, exiting } = usePageNav();
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
   const [mlbbVerified, setMlbbVerified] = useState<boolean | null>(null);
@@ -700,38 +704,46 @@ function PackagesPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden" }}>
-      <Navbar />
-      <AnimatedPage>
-        {mlbbVerified === false && (
-          <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
-            <div
-              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)" }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
-              </div>
-              <button
-                onClick={() => setLocation("/verify")}
-                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
-              >
-                Verify →
-              </button>
+    <div style={{
+      minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden",
+      opacity: exiting ? 0 : 1,
+      transform: exiting ? "translateX(-50px)" : "translateX(0)",
+      transition: exiting ? "opacity 0.35s ease, transform 0.35s cubic-bezier(0.4,0,1,1)" : "none",
+    }}>
+      <style>{`
+        @keyframes pkgSlideLeft {
+          from { opacity: 0; transform: translateX(-28px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+      {mlbbVerified === false && (
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
+          <div
+            style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.06s both" }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
+              </svg>
             </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
+            </div>
+            <button
+              onClick={() => setLocation("/verify")}
+              style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+            >
+              Verify →
+            </button>
           </div>
-        )}
-        {mlbbVerified === true && <div style={{ paddingTop: 72 }} />}
-        <div style={{ background: "rgba(10,10,10,0.78)", minHeight: "calc(100vh - 56px)" }}>
-          <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
         </div>
-      </AnimatedPage>
+      )}
+      {mlbbVerified !== false && <div style={{ paddingTop: 72 }} />}
+      <div style={{ background: "rgba(10,10,10,0.78)", minHeight: "calc(100vh - 56px)" }}>
+        <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
+      </div>
     </div>
   );
 }
@@ -870,6 +882,13 @@ function SignUpPage() {
   );
 }
 
+// ── Persistent Navbar (outside page transitions so it never moves) ───────────
+function PersistentNavbar() {
+  const [location] = useLocation();
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) return null;
+  return <Navbar />;
+}
+
 // ── Router ─────────────────────────────────────────────────────────────────
 function AppRoutes() {
   const [, setLocation] = useLocation();
@@ -898,6 +917,7 @@ function AppRoutes() {
     >
       <TransitionProvider>
         <PersistentVideoBg />
+        <PersistentNavbar />
         <Switch>
           <Route path="/" component={MainSite} />
           <Route path="/packages" component={PackagesPage} />

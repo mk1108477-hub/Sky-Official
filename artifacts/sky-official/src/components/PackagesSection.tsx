@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-// Note: useRef retained for potential future use
+import { useEffect, useState } from "react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
@@ -617,8 +616,6 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   useEffect(() => {
     fetch(`${API}/packages`)
       .then(r => r.json())
@@ -630,45 +627,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = true;
-    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
-    tryPlay();
-  }, []);
-
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
 
   return (
-    <section style={{ position: "relative", background: "#0a0a0a", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
-      {/* 9:16 video background — centered, portrait ratio */}
-      <div style={{
-        position: "fixed",
-        top: 0,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "min(100vw, calc(100dvh * 9 / 16))",
-        height: "100dvh",
-        zIndex: 0,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}>
-        <video
-          ref={videoRef}
-          muted loop playsInline preload="auto"
-          style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.28 }}
-        >
-          <source src="/hero.mp4" type="video/mp4" />
-          <source src="/bg-video.mp4" type="video/mp4" />
-        </video>
-        {/* Radial overlay — darker at edges, lighter centre so cards stay readable */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.72) 100%)",
-          pointerEvents: "none",
-        }} />
-      </div>
+    <section style={{ position: "relative", background: "transparent", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
       <style>{`
         @keyframes pkg-diagIn  { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }

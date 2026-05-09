@@ -308,7 +308,7 @@ function TransitionProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const navigateTo = useCallback((to: string, d: TransDir) => {
     setDir(d); setExiting(true); setHasNavigated(true);
-    setTimeout(() => { setExiting(false); setLocation(to); }, 430);
+    setTimeout(() => { setExiting(false); setLocation(to); }, 340);
   }, [setLocation]);
   return <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo }}>{children}</TransCtx.Provider>;
 }
@@ -318,17 +318,55 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   const { dir, exiting, hasNavigated } = usePageNav();
   if (!hasNavigated) return <>{children}</>;
   const anim = exiting
-    ? (dir === "forward" ? "pgSlideOutLeft 0.43s cubic-bezier(0.4,0,0.8,0.6) both" : "pgSlideOutRight 0.43s cubic-bezier(0.4,0,0.8,0.6) both")
-    : (dir === "forward" ? "pgSlideInRight 0.55s cubic-bezier(0.22,1,0.36,1) both" : "pgSlideInLeft 0.55s cubic-bezier(0.22,1,0.36,1) both");
+    ? (dir === "forward" ? "pgSwipeOutLeft 0.34s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.34s cubic-bezier(0.55,0,0.9,0.5) both")
+    : (dir === "forward" ? "pgSwipeInRight 0.42s cubic-bezier(0.16,1,0.3,1) both" : "pgSwipeInLeft 0.42s cubic-bezier(0.16,1,0.3,1) both");
   return (
-    <div style={{ animation: anim, willChange: "transform, opacity" }}>
+    <div style={{ animation: anim, willChange: "transform", position: "relative", zIndex: 1 }}>
       <style>{`
-        @keyframes pgSlideInRight  { from { opacity:0; transform:translateX(70px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
-        @keyframes pgSlideInLeft   { from { opacity:0; transform:translateX(-70px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
-        @keyframes pgSlideOutLeft  { from { opacity:1; transform:translateX(0) scale(1); } to { opacity:0; transform:translateX(-70px) scale(0.97); } }
-        @keyframes pgSlideOutRight { from { opacity:1; transform:translateX(0) scale(1); } to { opacity:0; transform:translateX(70px) scale(0.97); } }
+        @keyframes pgSwipeInRight  { from { transform:translateX(100%); } to { transform:translateX(0); } }
+        @keyframes pgSwipeInLeft   { from { transform:translateX(-100%); } to { transform:translateX(0); } }
+        @keyframes pgSwipeOutLeft  { from { transform:translateX(0); } to { transform:translateX(-100%); } }
+        @keyframes pgSwipeOutRight { from { transform:translateX(0); } to { transform:translateX(100%); } }
       `}</style>
       {children}
+    </div>
+  );
+}
+
+// ── Shared persistent video background (home + packages only) ────────────────
+function SharedVideoBg() {
+  const [location] = useLocation();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const active = location === "/" || location === "/packages";
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
+    tryPlay();
+  }, []);
+
+  return (
+    <div style={{
+      position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
+      width: "min(100vw, calc(100dvh * 9 / 16))",
+      height: "100dvh", zIndex: 0, overflow: "hidden", pointerEvents: "none",
+      opacity: active ? 1 : 0, transition: "opacity 0.5s ease",
+    }}>
+      <video
+        ref={videoRef}
+        muted loop playsInline preload="auto"
+        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.32 }}
+      >
+        <source src="/hero.mp4" type="video/mp4" />
+        <source src="/bg-video.mp4" type="video/mp4" />
+      </video>
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "radial-gradient(ellipse 80% 65% at 50% 45%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.7) 100%)",
+        pointerEvents: "none",
+      }} />
     </div>
   );
 }
@@ -340,26 +378,10 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   const { navigateTo, exiting } = usePageNav();
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
-  const [scrollY, setScrollY] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = true;
-    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
-    tryPlay();
   }, []);
 
   const el = (enterDelay: number, exitDelay: number): React.CSSProperties => {
@@ -369,31 +391,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0a0a0a" }}>
-      {/* Video with parallax — contained strictly within this section */}
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0, pointerEvents: "none" }}>
-        <video
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          preload="auto"
-          style={{
-            position: "absolute",
-            top: "-10%",
-            left: 0,
-            width: "100%",
-            height: "120%",
-            objectFit: "cover",
-            opacity: 0.35,
-            transform: `translateY(${scrollY * 0.35}px)`,
-            willChange: "transform",
-          }}
-        >
-          <source src="/hero.mp4" type="video/mp4" />
-          <source src="/bg-video.mp4" type="video/mp4" />
-        </video>
-      </div>
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={el(0, 0)}>
@@ -646,7 +644,7 @@ function MainSite() {
 
 // ── Packages Page ──────────────────────────────────────────────────────────
 function PackagesPage() {
-  const { navigateTo, exiting } = usePageNav();
+  const { navigateTo } = usePageNav();
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
   const [mlbbVerified, setMlbbVerified] = useState<boolean | null>(null);
@@ -687,47 +685,42 @@ function PackagesPage() {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden",
-      opacity: exiting ? 0 : 1,
-      transform: exiting ? "translateX(-50px)" : "translateX(0)",
-      transition: exiting ? "opacity 0.35s ease, transform 0.35s cubic-bezier(0.4,0,1,1)" : "none",
-    }}>
-      <style>{`
-        @keyframes pkgSlideLeft {
-          from { opacity: 0; transform: translateX(-28px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-      `}</style>
-      {mlbbVerified === false && (
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
-          <div
-            style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.06s both" }}
-          >
-            <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
-            </div>
-            <button
-              onClick={() => setLocation("/verify")}
-              style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+    <AnimatedPage>
+      <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden" }}>
+        <style>{`
+          @keyframes pkgSlideLeft {
+            from { opacity: 0; transform: translateX(-28px); }
+            to   { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
+        {mlbbVerified === false && (
+          <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
+            <div
+              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.06s both" }}
             >
-              Verify →
-            </button>
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
+              </div>
+              <button
+                onClick={() => setLocation("/verify")}
+                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+              >
+                Verify →
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-      {mlbbVerified !== false && <div style={{ paddingTop: 72 }} />}
-      <div style={{ background: "rgba(10,10,10,0.78)", minHeight: "calc(100vh - 56px)" }}>
+        )}
+        {mlbbVerified !== false && <div style={{ paddingTop: 72 }} />}
         <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
       </div>
-    </div>
+    </AnimatedPage>
   );
 }
 
@@ -900,6 +893,7 @@ function AppRoutes() {
     >
       <TransitionProvider>
         <PersistentNavbar />
+        <SharedVideoBg />
         <Switch>
           <Route path="/" component={MainSite} />
           <Route path="/packages" component={PackagesPage} />

@@ -414,7 +414,11 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                 WebkitOverflowScrolling: "touch",
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
+                touchAction: "pan-x",
+                overscrollBehavior: "contain",
               }}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
             >
               <style>{`.admin-tabs::-webkit-scrollbar { display: none; }`}</style>
               {(["packages", "orders", "wallet", "featured", "settings"] as Tab[]).map((t) => {

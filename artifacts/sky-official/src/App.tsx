@@ -438,54 +438,57 @@ const VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
 
 function SharedVideoBg() {
   const [location] = useLocation();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const active = location === "/" || location === "/packages";
 
-  // Pick a random starting video once per mount
+  // Random starting index, fixed for this mount
   const startIdx = useRef(Math.random() < 0.5 ? 0 : 1);
-  const currentIdx = useRef(startIdx.current);
-
-  // Black crossfade overlay opacity (0 = transparent, 1 = black)
-  const [fade, setFade] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(startIdx.current);
+  const [fadeBlack, setFadeBlack] = useState(false);
   const fadingRef = useRef(false);
 
+  const videoRef0 = useRef<HTMLVideoElement>(null);
+  const videoRef1 = useRef<HTMLVideoElement>(null);
+  const videoRefs = [videoRef0, videoRef1];
+
+  // Start the initial active video on mount
   useEffect(() => {
-    const v = videoRef.current;
+    const v = videoRefs[startIdx.current].current;
     if (!v) return;
-
-    // Set the initial source
-    v.src = VIDEOS[currentIdx.current];
     v.muted = true;
-    v.load();
-    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
-    tryPlay();
-
-    const handleEnded = () => {
-      if (fadingRef.current) return;
-      fadingRef.current = true;
-
-      // Fade to black
-      setFade(1);
-
-      setTimeout(() => {
-        // Swap to the other video
-        currentIdx.current = currentIdx.current === 0 ? 1 : 0;
-        v.src = VIDEOS[currentIdx.current];
-        v.muted = true;
-        v.load();
-        v.play().catch(() => {});
-
-        // Fade back in
-        setTimeout(() => {
-          setFade(0);
-          fadingRef.current = false;
-        }, 80);
-      }, 700);
-    };
-
-    v.addEventListener("ended", handleEnded);
-    return () => v.removeEventListener("ended", handleEnded);
+    v.currentTime = 0;
+    v.play().catch(() => {});
+    // Preload the other one silently
+    const other = videoRefs[startIdx.current === 0 ? 1 : 0].current;
+    if (other) { other.muted = true; other.load(); }
   }, []);
+
+  const handleEnded = (idx: number) => {
+    if (fadingRef.current) return;
+    fadingRef.current = true;
+
+    const nextIdx = idx === 0 ? 1 : 0;
+
+    // Fade to black
+    setFadeBlack(true);
+
+    setTimeout(() => {
+      // Prepare next video from start
+      const next = videoRefs[nextIdx].current;
+      if (next) { next.muted = true; next.currentTime = 0; next.play().catch(() => {}); }
+
+      // Pause the outgoing video
+      const prev = videoRefs[idx].current;
+      if (prev) { prev.pause(); }
+
+      setActiveIdx(nextIdx);
+
+      // Fade back in
+      setTimeout(() => {
+        setFadeBlack(false);
+        fadingRef.current = false;
+      }, 80);
+    }, 650);
+  };
 
   return (
     <div style={{
@@ -494,17 +497,27 @@ function SharedVideoBg() {
       height: "100dvh", zIndex: 0, overflow: "hidden", pointerEvents: "none",
       opacity: active ? 1 : 0, transition: "opacity 0.5s ease",
     }}>
-      <video
-        ref={videoRef}
-        muted playsInline preload="auto"
-        style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.32 }}
-      />
+      {VIDEOS.map((src, i) => (
+        <video
+          key={src}
+          ref={videoRefs[i]}
+          src={src}
+          muted playsInline preload="auto"
+          onEnded={() => handleEnded(i)}
+          style={{
+            position: "absolute", inset: 0,
+            width: "100%", height: "100%", objectFit: "cover",
+            opacity: activeIdx === i ? 0.32 : 0,
+            transition: "opacity 0s",
+          }}
+        />
+      ))}
       {/* Black crossfade overlay */}
       <div style={{
         position: "absolute", inset: 0,
         background: "#000",
-        opacity: fade,
-        transition: fade === 1 ? "opacity 0.65s ease" : "opacity 0.65s ease",
+        opacity: fadeBlack ? 1 : 0,
+        transition: fadeBlack ? "opacity 0.6s ease" : "opacity 0.6s ease",
         pointerEvents: "none",
       }} />
       <div style={{

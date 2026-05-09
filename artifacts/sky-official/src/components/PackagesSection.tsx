@@ -383,12 +383,13 @@ function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; on
     <div
       onClick={() => cat.available && onClick()}
       style={{
-        background: "#111", borderRadius: 18,
+        background: "rgba(14,14,14,0.82)", borderRadius: 18,
         border: `1px solid ${cat.available ? cat.color + "45" : "rgba(255,255,255,0.07)"}`,
         overflow: "hidden", display: "flex", flexDirection: "column",
         cursor: cat.available ? "pointer" : "default",
         boxShadow: cat.available ? `0 0 20px ${cat.glow}` : "none",
         opacity: cat.available ? 1 : 0.55,
+        backdropFilter: "blur(6px)",
         animation: `pkgSlideLeft 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
         position: "relative",
@@ -475,7 +476,8 @@ function PackCard({ pack, isDouble, onBuy, onAddToCart }: { pack: Package; isDou
   return (
     <div
       style={{
-        background: "#111", borderRadius: 18,
+        background: "rgba(14,14,14,0.82)", borderRadius: 18,
+        backdropFilter: "blur(6px)",
         border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.6)" : isDouble ? "1.5px solid rgba(0,229,255,0.35)" : "1px solid rgba(255,255,255,0.08)",
         overflow: "hidden", display: "flex", flexDirection: "column",
         boxShadow: pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)",
@@ -547,7 +549,8 @@ function PassCard({ pack, onBuy, onAddToCart }: { pack: Package; onBuy?: (pkg: P
   return (
     <div
       style={{
-        background: "#111", borderRadius: 18,
+        background: "rgba(14,14,14,0.82)", borderRadius: 18,
+        backdropFilter: "blur(6px)",
         border: "1.5px solid rgba(168,85,247,0.35)",
         overflow: "hidden", display: "flex", flexDirection: "column",
         boxShadow: "0 0 18px rgba(168,85,247,0.18)",
@@ -614,6 +617,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetch(`${API}/packages`)
@@ -626,10 +630,45 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
+    tryPlay();
+  }, []);
+
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
 
   return (
-    <section style={{ position: "relative", background: "#0a0a0a", minHeight: "60vh", paddingBottom: 48, overflow: "hidden" }}>
+    <section style={{ position: "relative", background: "#0a0a0a", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
+      {/* 9:16 video background — centered, portrait ratio */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "min(100vw, calc(100dvh * 9 / 16))",
+        height: "100dvh",
+        zIndex: 0,
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}>
+        <video
+          ref={videoRef}
+          muted loop playsInline preload="auto"
+          style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.28 }}
+        >
+          <source src="/hero.mp4" type="video/mp4" />
+          <source src="/bg-video.mp4" type="video/mp4" />
+        </video>
+        {/* Radial overlay — darker at edges, lighter centre so cards stay readable */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.72) 100%)",
+          pointerEvents: "none",
+        }} />
+      </div>
       <style>{`
         @keyframes pkg-diagIn  { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
@@ -657,7 +696,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         @keyframes rb-line     { 0%{opacity:0;transform:scaleY(0)} 40%{opacity:1} 100%{opacity:0;transform:scaleY(1) translateY(-30px)} }
       `}</style>
 
-      <div style={{ position: "relative", zIndex: 1, maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "min(560px, calc(100dvh * 9 / 16))", margin: "0 auto", padding: "0 16px" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999,

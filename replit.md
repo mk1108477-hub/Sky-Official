@@ -58,9 +58,11 @@ These are all safe to omit — the app works fully without them; only order noti
 ## Self-Bootstrapping
 
 When this project is opened on any new device or account:
-1. `pnpm install` runs automatically if `node_modules` is missing (built into each `dev` script)
-2. Database tables are created automatically on first API server start
-3. The only manual step is adding the three secrets above
+1. Both workflows (`artifacts/sky-official: web` and `artifacts/api-server: API Server`) start automatically
+2. Each dev script runs `pnpm -w install` every time — fast (~1s) when already up to date, full install on a fresh device
+3. Each dev script also kills any stale process occupying its port before starting, preventing EADDRINUSE errors
+4. Database tables are created automatically on first API server start
+5. The only manual step is adding the three secrets above (ADMIN_PASSWORD, CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY)
 
 ## User preferences
 

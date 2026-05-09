@@ -434,17 +434,57 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
 }
 
 // ── Shared persistent video background (home + packages only) ────────────────
+const VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
+
 function SharedVideoBg() {
   const [location] = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const active = location === "/" || location === "/packages";
 
+  // Pick a random starting video once per mount
+  const startIdx = useRef(Math.random() < 0.5 ? 0 : 1);
+  const currentIdx = useRef(startIdx.current);
+
+  // Black crossfade overlay opacity (0 = transparent, 1 = black)
+  const [fade, setFade] = useState(0);
+  const fadingRef = useRef(false);
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+
+    // Set the initial source
+    v.src = VIDEOS[currentIdx.current];
     v.muted = true;
+    v.load();
     const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
     tryPlay();
+
+    const handleEnded = () => {
+      if (fadingRef.current) return;
+      fadingRef.current = true;
+
+      // Fade to black
+      setFade(1);
+
+      setTimeout(() => {
+        // Swap to the other video
+        currentIdx.current = currentIdx.current === 0 ? 1 : 0;
+        v.src = VIDEOS[currentIdx.current];
+        v.muted = true;
+        v.load();
+        v.play().catch(() => {});
+
+        // Fade back in
+        setTimeout(() => {
+          setFade(0);
+          fadingRef.current = false;
+        }, 80);
+      }, 700);
+    };
+
+    v.addEventListener("ended", handleEnded);
+    return () => v.removeEventListener("ended", handleEnded);
   }, []);
 
   return (
@@ -456,12 +496,17 @@ function SharedVideoBg() {
     }}>
       <video
         ref={videoRef}
-        muted loop playsInline preload="auto"
+        muted playsInline preload="auto"
         style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.32 }}
-      >
-        <source src="/hero.mp4" type="video/mp4" />
-        <source src="/bg-video.mp4" type="video/mp4" />
-      </video>
+      />
+      {/* Black crossfade overlay */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: "#000",
+        opacity: fade,
+        transition: fade === 1 ? "opacity 0.65s ease" : "opacity 0.65s ease",
+        pointerEvents: "none",
+      }} />
       <div style={{
         position: "absolute", inset: 0,
         background: "radial-gradient(ellipse 80% 65% at 50% 45%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.7) 100%)",

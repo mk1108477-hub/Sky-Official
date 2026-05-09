@@ -406,7 +406,17 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
         ) : (
           <>
             {/* Tabs */}
-            <div className="flex gap-1 px-4 pt-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div
+              className="flex gap-1 px-4 pt-3"
+              style={{
+                borderBottom: "1px solid rgba(255,255,255,0.07)",
+                overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              <style>{`.admin-tabs::-webkit-scrollbar { display: none; }`}</style>
               {(["packages", "orders", "wallet", "featured", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
@@ -414,10 +424,12 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                     key={t}
                     onClick={() => setTab(t)}
                     className="px-5 py-2 text-sm font-semibold capitalize rounded-t-lg transition-colors flex items-center gap-1.5"
-                    style={tab === t
-                      ? { color: "#f59e0b", borderBottom: "2px solid #f59e0b", background: "rgba(245,158,11,0.07)" }
-                      : { color: "#9ca3af" }
-                    }
+                    style={{
+                      flexShrink: 0,
+                      ...(tab === t
+                        ? { color: "#f59e0b", borderBottom: "2px solid #f59e0b", background: "rgba(245,158,11,0.07)" }
+                        : { color: "#9ca3af" }),
+                    }}
                   >
                     {t}
                     {pendingCount > 0 && (

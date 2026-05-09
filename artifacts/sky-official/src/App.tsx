@@ -4,8 +4,11 @@ import PackagesSection from "./components/PackagesSection";
 import OrderHistoryPage from "./components/OrderHistoryPage";
 import ProfilePage from "./components/ProfilePage";
 import MLBBVerifyPage from "./components/MLBBVerifyPage";
+import MLBBTargetPage, { setAfterTargetPath } from "./components/MLBBTargetPage";
+import CartPage from "./components/CartPage";
 import PaymentPage, { setSelectedPackage } from "./components/PaymentPage";
 import type { SelectedPackage } from "./components/PaymentPage";
+import { CartProvider, useCart } from "./context/CartContext";
 import {
   ClerkProvider,
   SignIn,
@@ -177,6 +180,24 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   );
 }
 
+// ── Cart Nav Icon ───────────────────────────────────────────────────────────
+function CartNavIcon({ onClick }: { onClick: () => void }) {
+  const { totalItems } = useCart();
+  return (
+    <button
+      onClick={onClick}
+      style={{ position: "relative", width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(255,255,255,0.6)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      {totalItems > 0 && (
+        <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #0a0a0a" }}>
+          {totalItems > 9 ? "9+" : totalItems}
+        </span>
+      )}
+    </button>
+  );
+}
+
 // ── Navbar ─────────────────────────────────────────────────────────────────
 function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
@@ -242,32 +263,35 @@ function Navbar() {
           </div>
         </div>
       </button>
-      {isLoaded && (
-        user ? (
-          <div className="flex items-center gap-1.5">
-            <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
-              <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
-                <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
-              </div>
-            </button>
+      <div className="flex items-center gap-2">
+        <CartNavIcon onClick={() => setLocation("/cart")} />
+        {isLoaded && (
+          user ? (
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
+                <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
+                  <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
+                </div>
+              </button>
+              <button
+                onClick={() => signOut(() => setLocation("/"))}
+                className="px-2.5 py-1 rounded-full font-bold text-black"
+                style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", fontSize: 11 }}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => signOut(() => setLocation("/"))}
-              className="px-2.5 py-1 rounded-full font-bold text-black"
-              style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", fontSize: 11 }}
+              onClick={() => setLocation("/sign-in")}
+              className="px-4 py-1.5 rounded-full font-bold text-black"
+              style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 12px rgba(245,158,11,0.4)", fontSize: 12 }}
             >
-              Sign Out
+              Sign In
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setLocation("/sign-in")}
-            className="px-4 py-1.5 rounded-full font-bold text-black"
-            style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 2px 12px rgba(245,158,11,0.4)", fontSize: 12 }}
-          >
-            Sign In
-          </button>
-        )
-      )}
+          )
+        )}
+      </div>
     </nav>
   );
 }
@@ -661,9 +685,23 @@ function PackagesPage() {
     });
   }, [isSignedIn]);
 
+  const { addToCart } = useCart();
+
   function handleBuy(pkg: SelectedPackage) {
     setSelectedPackage(pkg);
-    setLocation("/pay");
+    setAfterTargetPath("/pay");
+    setLocation("/mlbb-target");
+  }
+
+  function handleAddToCart(pkg: SelectedPackage) {
+    addToCart({
+      id: pkg.id,
+      diamonds: pkg.diamonds,
+      bonus_diamonds: pkg.bonus_diamonds,
+      price: pkg.price,
+      name: pkg.name,
+      category: pkg.category,
+    });
   }
 
   return (
@@ -694,7 +732,7 @@ function PackagesPage() {
         </div>
       )}
       {mlbbVerified === true && <div style={{ paddingTop: 72 }} />}
-      <PackagesSection onPackageSelect={(_id) => {}} onBack={() => setLocation("/")} onBuy={handleBuy} />
+      <PackagesSection onPackageSelect={(_id) => {}} onBack={() => setLocation("/")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
     </div>
   );
 }
@@ -862,6 +900,8 @@ function AppRoutes() {
       <Switch>
         <Route path="/" component={MainSite} />
         <Route path="/packages" component={PackagesPage} />
+        <Route path="/mlbb-target" component={MLBBTargetPage} />
+        <Route path="/cart" component={CartPage} />
         <Route path="/pay" component={PaymentPage} />
         <Route path="/verify" component={MLBBVerifyPage} />
         <Route path="/profile" component={ProfilePage} />
@@ -877,7 +917,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <WouterRouter base={basePath}>
-      <AppRoutes />
+      <CartProvider>
+        <AppRoutes />
+      </CartProvider>
     </WouterRouter>
   );
 }

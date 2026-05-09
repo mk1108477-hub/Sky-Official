@@ -460,9 +460,17 @@ function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; on
 }
 
 // ── Individual pack card (small / normal / double) ──────────────────────────
-function PackCard({ pack, isDouble, onBuy }: { pack: Package; isDouble?: boolean; onBuy?: (pkg: Package) => void }) {
+function PackCard({ pack, isDouble, onBuy, onAddToCart }: { pack: Package; isDouble?: boolean; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
+  const [cartFlash, setCartFlash] = useState(false);
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.stopPropagation();
+    onAddToCart?.(pack);
+    setCartFlash(true);
+    setTimeout(() => setCartFlash(false), 900);
+  }
 
   return (
     <div
@@ -485,18 +493,11 @@ function PackCard({ pack, isDouble, onBuy }: { pack: Package; isDouble?: boolean
         el.style.boxShadow = pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)";
       }}
     >
-      {/* 2× badge for double diamond */}
       {isDouble && (
-        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 3,
-          background: "#dc2626", color: "#fff",
-          fontSize: 9, fontWeight: 900, letterSpacing: "0.05em",
-          padding: "3px 8px", borderRadius: 999 }}>2×</div>
+        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 3, background: "#dc2626", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: "0.05em", padding: "3px 8px", borderRadius: 999 }}>2×</div>
       )}
       {pack.is_popular && (
-        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3,
-          background: "linear-gradient(135deg,#fbbf24,#f59e0b)",
-          color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em",
-          padding: "3px 8px", borderRadius: 999, textTransform: "uppercase" }}>Popular</div>
+        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", padding: "3px 8px", borderRadius: 999, textTransform: "uppercase" }}>Popular</div>
       )}
       <ImagePane src={getPackImage(pack.diamonds)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
@@ -514,9 +515,18 @@ function PackCard({ pack, isDouble, onBuy }: { pack: Package; isDouble?: boolean
         ) : (
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>No bonus</div>
         )}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
-          <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
-          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer", border: "none" }}>Buy</button>
+        <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 3 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
+        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+          <button
+            onClick={handleAddToCart}
+            style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+          >
+            {cartFlash ? "✓" : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            )}
+            {cartFlash ? "Added!" : "Cart"}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
         </div>
       </div>
     </div>
@@ -524,7 +534,16 @@ function PackCard({ pack, isDouble, onBuy }: { pack: Package; isDouble?: boolean
 }
 
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
-function PassCard({ pack, onBuy }: { pack: Package; onBuy?: (pkg: Package) => void }) {
+function PassCard({ pack, onBuy, onAddToCart }: { pack: Package; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
+  const [cartFlash, setCartFlash] = useState(false);
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.stopPropagation();
+    onAddToCart?.(pack);
+    setCartFlash(true);
+    setTimeout(() => setCartFlash(false), 900);
+  }
+
   return (
     <div
       style={{
@@ -548,12 +567,19 @@ function PassCard({ pack, onBuy }: { pack: Package; onBuy?: (pkg: Package) => vo
     >
       <ImagePane src={getPassImage(pack.name)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>
-          {pack.name}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-          <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
-          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "5px 14px", borderRadius: 999, cursor: "pointer", border: "none" }}>Buy</button>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{pack.name}</div>
+        <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
+        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+          <button
+            onClick={handleAddToCart}
+            style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+          >
+            {cartFlash ? "✓" : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            )}
+            {cartFlash ? "Added!" : "Cart"}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
         </div>
       </div>
     </div>
@@ -583,7 +609,7 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
 }
 
 // ── Main section ────────────────────────────────────────────────────────────
-export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void }) {
+export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, onAddToCart }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -690,8 +716,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy }: 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {activePacks.map(pack =>
                   activeCategory?.id === "passes"
-                    ? <PassCard key={pack.id} pack={pack} onBuy={onBuy} />
-                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} onBuy={onBuy} />
+                    ? <PassCard key={pack.id} pack={pack} onBuy={onBuy} onAddToCart={onAddToCart} />
+                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} />
                 )}
               </div>
             )}

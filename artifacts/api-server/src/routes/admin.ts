@@ -129,6 +129,25 @@ router.delete("/orders/:id", requireAdmin, async (req, res) => {
   }
 });
 
+router.get("/settings/qr", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='qr_code'");
+    res.json({ qr: rows[0]?.value || null });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/qr", requireAdmin, async (req, res) => {
+  const { qr } = req.body;
+  if (!qr) { res.status(400).json({ error: "qr is required" }); return; }
+  try {
+    await pool.query(
+      `INSERT INTO settings (key, value) VALUES ('qr_code', $1) ON CONFLICT (key) DO UPDATE SET value=$1`,
+      [qr]
+    );
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/settings/category_popular", requireAdmin, async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT value FROM settings WHERE key='category_popular'");

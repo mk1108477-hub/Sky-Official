@@ -1,11 +1,13 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
+import { getMLBBTarget } from "./MLBBTargetPage";
+import { useCart } from "../context/CartContext";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 const UPI_ID = "8974666701@ptyes";
 const UPI_NAME = "Mantoshkumar Sarangthem";
-const QR_PATH = "/upi-qr.jpg";
+const QR_FALLBACK = "/upi-qr.jpg";
 
 export interface SelectedPackage {
   id: number;
@@ -50,15 +52,26 @@ function CopyBtn({ text }: { text: string }) {
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
+  const { items: cartItems, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [orderIds, setOrderIds] = useState<number[]>([]);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [upiOpened, setUpiOpened] = useState(false);
+  const [qrSrc, setQrSrc] = useState<string>(QR_FALLBACK);
 
   const pkg = _selectedPackage;
+  const target = getMLBBTarget();
+  const isCartMode = pkg?.id === 0;
 
-  // Generate stable reference ID for this payment session
+  useEffect(() => {
+    fetch(`${API}/settings/qr`)
+      .then(r => r.json())
+      .then(data => { if (data.qr) setQrSrc(data.qr); })
+      .catch(() => {});
+  }, []);
+
   const refId = useMemo(() => `${Date.now()}`, []);
   const remark = useMemo(() => `SKY-${refId.slice(-8)}`, [refId]);
 
@@ -72,7 +85,7 @@ export default function PaymentPage() {
 
   function downloadQR() {
     const a = document.createElement("a");
-    a.href = QR_PATH;
+    a.href = qrSrc;
     a.download = "SkyOfficial-UPI-QR.jpg";
     a.click();
   }
@@ -87,21 +100,56 @@ export default function PaymentPage() {
     setError("");
     try {
       const token = isSignedIn ? await getToken() : null;
-      const r = await fetch(`${API}/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({ packageId: pkg.id, refId, remark }),
-      });
-      const data = await r.json();
-      if (data.ok || data.id) {
-        setOrderId(data.id ?? null);
-        setSubmitted(true);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const basePayload = {
+        refId,
+        remark,
+        mlbbUserId: target?.userId,
+        mlbbServerId: target?.serverId,
+        mlbbIgn: target?.ign,
+        isForFriend: target?.isForFriend,
+      };
+
+      if (isCartMode && cartItems.length > 0) {
+        const r = await fetch(`${API}/orders/cart`, {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({
+            ...basePayload,
+            items: cartItems.map(i => ({
+              packageId: i.pkg.id,
+              quantity: i.quantity,
+              diamonds: i.pkg.diamonds,
+              price: i.pkg.price,
+            })),
+          }),
+        });
+        const data = await r.json();
+        if (data.ok) {
+          setOrderIds(data.ids ?? []);
+          setSubmitted(true);
+          clearCart();
+          setSelectedPackage(null);
+        } else {
+          setError(data.error ?? "Could not submit order. Please try again.");
+        }
       } else {
-        setError(data.error ?? "Could not submit order. Please try again.");
+        const r = await fetch(`${API}/orders`, {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ packageId: pkg.id, ...basePayload }),
+        });
+        const data = await r.json();
+        if (data.ok || data.id) {
+          setOrderId(data.id ?? null);
+          setSubmitted(true);
+        } else {
+          setError(data.error ?? "Could not submit order. Please try again.");
+        }
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -123,14 +171,20 @@ export default function PaymentPage() {
           <div style={{ textAlign: "center" }}>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, marginBottom: 8 }}>Order Placed!</div>
             <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, lineHeight: 1.6 }}>
-              Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg.diamonds.toLocaleString()} Diamonds</strong> has been submitted and the store has been notified. Diamonds will be delivered once payment is confirmed.
+              {isCartMode
+                ? `Your cart order (${orderIds.length} order${orderIds.length !== 1 ? "s" : ""}) has been submitted.`
+                : <>Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg.diamonds.toLocaleString()} Diamonds</strong> has been submitted.</>
+              } Diamonds will be delivered once payment is confirmed.
             </div>
           </div>
           <div style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "4px 20px" }}>
             {orderId && <InfoRow label="Order ID" value={`#${orderId}`} />}
+            {orderIds.length > 0 && <InfoRow label="Order IDs" value={orderIds.map(id => `#${id}`).join(", ")} />}
             <InfoRow label="Reference" value={remark} mono />
             <InfoRow label="Diamonds" value={`♦ ${pkg.diamonds.toLocaleString()}`} accent />
             <InfoRow label="Amount" value={`₹${amount.toLocaleString("en-IN")}`} accent />
+            {target && <InfoRow label="MLBB Account" value={`${target.ign} (${target.userId})`} />}
+            {target?.isForFriend && <InfoRow label="For" value="Friend / Relative" />}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 11 }}>
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 13 }}>Status</span>
               <span style={{ color: "#fbbf24", fontWeight: 700, fontSize: 13 }}>Pending Verification</span>
@@ -141,7 +195,7 @@ export default function PaymentPage() {
           </div>
           <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
             <button onClick={() => setLocation("/orders")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}>View My Orders</button>
-            <button onClick={() => { setSelectedPackage(null); setLocation("/packages"); }} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Buy More Diamonds</button>
+            <button onClick={() => setLocation("/packages")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Buy More Diamonds</button>
           </div>
         </div>
       </div>
@@ -155,11 +209,12 @@ export default function PaymentPage() {
         @keyframes payIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes qrPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} 50%{box-shadow:0 0 0 8px rgba(245,158,11,0.1)} }
         @keyframes confirmBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+        @keyframes np-ring { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
 
       {/* Header */}
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 40, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(245,158,11,0.12)", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px" }}>
-        <button onClick={() => setLocation("/packages")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+        <button onClick={() => setLocation(isCartMode ? "/cart" : "/packages")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
@@ -185,8 +240,10 @@ export default function PaymentPage() {
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Amount to be paid</div>
             <div style={{ color: "#f59e0b", fontWeight: 900, fontSize: 46, letterSpacing: "-1px", lineHeight: 1 }}>₹{amount.toLocaleString("en-IN")}</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 8 }}>
-              ♦ {pkg.diamonds.toLocaleString()} Diamonds
-              {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}> +{pkg.bonus_diamonds.toLocaleString()} bonus</span>}
+              {isCartMode
+                ? <>♦ {pkg.diamonds.toLocaleString()} Diamonds total · {cartItems.reduce((s, i) => s + i.quantity, 0)} packs</>
+                : <>♦ {pkg.diamonds.toLocaleString()} Diamonds {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}>+{pkg.bonus_diamonds.toLocaleString()} bonus</span>}</>
+              }
             </div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 20, padding: "4px 14px" }}>
               <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b" }} />
@@ -195,11 +252,32 @@ export default function PaymentPage() {
           </div>
         </div>
 
+        {/* ── Cart items breakdown (cart mode only) ── */}
+        {isCartMode && cartItems.length > 0 && (
+          <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "4px 20px", animation: "payIn 0.4s ease 0.04s both" }}>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "10px 0 4px" }}>Cart Summary</div>
+            {cartItems.map(item => (
+              <div key={item.pkg.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <span style={{ color: "#fff", fontSize: 13 }}>♦ {item.pkg.diamonds.toLocaleString()} × {item.quantity}</span>
+                <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 13 }}>₹{(parseFloat(item.pkg.price) * item.quantity).toLocaleString("en-IN")}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* ── Order Details Card ── */}
         <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "4px 20px 4px", animation: "payIn 0.4s ease 0.06s both" }}>
           <InfoRow label="Order ID" value={refId} mono />
           <InfoRow label="Remark" value={remark} mono action={<CopyBtn text={remark} />} />
           <InfoRow label="Payee UPI" value={UPI_ID} mono action={<CopyBtn text={UPI_ID} />} />
+          {target && (
+            <>
+              <InfoRow label="MLBB IGN" value={target.ign} />
+              <InfoRow label="MLBB ID" value={target.userId} mono />
+              <InfoRow label="Server ID" value={target.serverId} mono />
+              {target.isForFriend && <InfoRow label="Recharge For" value="Friend / Relative" accent />}
+            </>
+          )}
         </div>
 
         {/* ── QR Card ── */}
@@ -209,13 +287,16 @@ export default function PaymentPage() {
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Scan to Pay</div>
               <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>PhonePe · GPay · Paytm · BHIM · Any UPI app</div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
+            {/* Official payment app logos */}
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               {[
-                { l: "P", bg: "#5f259f" },
-                { l: "G", bg: "#1a73e8" },
-                { l: "B", bg: "#00b9f1" },
-              ].map(({ l, bg }) => (
-                <div key={l} style={{ width: 26, height: 26, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 10, background: bg, color: "#fff" }}>{l}</div>
+                { src: "/logo-paytm.png", alt: "Paytm" },
+                { src: "/logo-gpay.png",  alt: "GPay"  },
+                { src: "/logo-bhim.png",  alt: "BHIM"  },
+              ].map(({ src, alt }) => (
+                <div key={alt} style={{ width: 32, height: 32, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: 3 }}>
+                  <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                </div>
               ))}
             </div>
           </div>
@@ -224,26 +305,21 @@ export default function PaymentPage() {
           <div style={{ display: "flex", justifyContent: "center", padding: "20px 24px 16px" }}>
             <div style={{ background: "#fff", borderRadius: 16, padding: 14, animation: "qrPulse 3s ease-in-out infinite" }}>
               <img
-                src={QR_PATH}
+                src={qrSrc}
                 alt="UPI QR Code"
                 style={{ width: 200, height: 200, display: "block", borderRadius: 6, objectFit: "contain" }}
+                onError={() => setQrSrc(QR_FALLBACK)}
               />
             </div>
           </div>
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 10, padding: "0 20px 20px" }}>
-            <button
-              onClick={downloadQR}
-              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}
-            >
+            <button onClick={downloadQR} style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v14m-7-7l7 7 7-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="19" width="18" height="2" rx="1" fill="#fff"/></svg>
               Download QR
             </button>
-            <button
-              onClick={handlePayUPI}
-              style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 18px rgba(245,158,11,0.35)" }}
-            >
+            <button onClick={handlePayUPI} style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 18px rgba(245,158,11,0.35)" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 22V12m0 0l-4 4m4-4l4 4" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 16.7A9 9 0 1 0 3.5 10" stroke="#000" strokeWidth="2" strokeLinecap="round"/></svg>
               Pay with UPI
             </button>
@@ -254,15 +330,13 @@ export default function PaymentPage() {
         <div style={{ background: upiOpened ? "linear-gradient(135deg,#0d1a00,#0a1200)" : "#111", border: `1.5px solid ${upiOpened ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius: 20, padding: "18px 20px", animation: "payIn 0.4s ease 0.18s both", transition: "all 0.4s ease" }}>
           {upiOpened ? (
             <>
-              <div style={{ display: "flex", items: "center", gap: 10, marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                  <div>
-                    <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Payment done?</div>
-                    <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1 }}>Tap below to confirm your order — no UTR needed</div>
-                  </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Payment done?</div>
+                  <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 1 }}>Tap below to confirm your order — no UTR needed</div>
                 </div>
               </div>
               {error && (
@@ -270,11 +344,7 @@ export default function PaymentPage() {
                   {error}
                 </div>
               )}
-              <button
-                onClick={confirmOrder}
-                disabled={submitting}
-                style={{ width: "100%", padding: "15px 0", borderRadius: 14, background: submitting ? "rgba(34,197,94,0.2)" : "linear-gradient(135deg,#4ade80,#22c55e)", color: submitting ? "rgba(0,0,0,0.4)" : "#000", fontWeight: 800, fontSize: 16, border: "none", cursor: submitting ? "default" : "pointer", transition: "all 0.2s", boxShadow: submitting ? "none" : "0 4px 20px rgba(34,197,94,0.35)", animation: submitting ? "none" : "confirmBounce 2s ease-in-out infinite" }}
-              >
+              <button onClick={confirmOrder} disabled={submitting} style={{ width: "100%", padding: "15px 0", borderRadius: 14, background: submitting ? "rgba(34,197,94,0.2)" : "linear-gradient(135deg,#4ade80,#22c55e)", color: submitting ? "rgba(0,0,0,0.4)" : "#000", fontWeight: 800, fontSize: 16, border: "none", cursor: submitting ? "default" : "pointer", transition: "all 0.2s", boxShadow: submitting ? "none" : "0 4px 20px rgba(34,197,94,0.35)", animation: submitting ? "none" : "confirmBounce 2s ease-in-out infinite" }}>
                 {submitting ? "Confirming…" : "✓ I've Paid — Confirm Order"}
               </button>
             </>

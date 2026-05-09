@@ -25,6 +25,13 @@ router.get("/settings/category_popular", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+router.get("/settings/qr", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='qr_code'");
+    res.json({ qr: rows[0]?.value || null });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/packages", async (_req, res) => {
   try {
     const { rows } = await pool.query(

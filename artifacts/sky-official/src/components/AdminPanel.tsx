@@ -42,7 +42,7 @@ interface WalletRequest {
   created_at: string;
 }
 
-type Tab = "packages" | "orders" | "wallet" | "featured";
+type Tab = "packages" | "orders" | "wallet" | "featured" | "settings";
 type NotifState = "unknown" | "loading" | "subscribed" | "denied" | "unsupported";
 
 async function registerSW(): Promise<ServiceWorkerRegistration | null> {
@@ -75,6 +75,11 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [walletLoading, setWalletLoading] = useState<number | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
   const [featuredSaving, setFeaturedSaving] = useState(false);
+  const [qrCurrent, setQrCurrent] = useState<string | null>(null);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
+  const [qrSaving, setQrSaving] = useState(false);
+  const [qrSaved, setQrSaved] = useState(false);
+  const qrInputRef = useRef<HTMLInputElement>(null);
 
   // Push notifications
   const [notifState, setNotifState] = useState<NotifState>("unknown");
@@ -181,6 +186,36 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     setFeaturedSaving(false);
   };
 
+  const fetchQr = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/qr`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      setQrCurrent(data.qr || null);
+    }
+  }, [token]);
+
+  const saveQr = async () => {
+    if (!qrPreview) return;
+    setQrSaving(true);
+    await fetch(`${API}/admin/settings/qr`, {
+      method: "PUT", headers,
+      body: JSON.stringify({ qr: qrPreview }),
+    });
+    setQrCurrent(qrPreview);
+    setQrPreview(null);
+    setQrSaved(true);
+    setTimeout(() => setQrSaved(false), 3000);
+    setQrSaving(false);
+  };
+
+  function handleQrFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setQrPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
   useEffect(() => {
     if (!authed) return;
     fetchPackages();
@@ -188,6 +223,10 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
     fetchWalletRequests();
     fetchCategoryPopular();
   }, [authed]);
+
+  useEffect(() => {
+    if (authed && tab === "settings") fetchQr();
+  }, [authed, tab]);
 
   const approveWallet = async (id: number) => {
     setWalletLoading(id);
@@ -368,7 +407,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <>
             {/* Tabs */}
             <div className="flex gap-1 px-4 pt-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              {(["packages", "orders", "wallet", "featured"] as Tab[]).map((t) => {
+              {(["packages", "orders", "wallet", "featured", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
@@ -651,6 +690,82 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
                   {featuredSaving && (
                     <div className="text-center text-xs text-amber-400 py-1">Saving…</div>
                   )}
+                </div>
+              )}
+
+              {/* ── SETTINGS TAB ── */}
+              {tab === "settings" && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">QR Code Management</div>
+                    <div className="text-gray-400 text-xs">Upload a new UPI QR code. It will replace the one shown on the payment page instantly.</div>
+                  </div>
+
+                  {/* Current QR */}
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div className="text-amber-400 text-xs font-bold uppercase tracking-wider">Current QR Code</div>
+                    <div className="flex justify-center">
+                      <div style={{ background: "#fff", borderRadius: 12, padding: 12, display: "inline-flex" }}>
+                        <img
+                          src={qrCurrent || "/upi-qr.jpg"}
+                          alt="Current QR"
+                          style={{ width: 160, height: 160, objectFit: "contain", borderRadius: 6, display: "block" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Upload new QR */}
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.2)" }}>
+                    <div className="text-amber-400 text-xs font-bold uppercase tracking-wider">Upload New QR</div>
+                    <input
+                      ref={qrInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleQrFile}
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      onClick={() => qrInputRef.current?.click()}
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+                      style={{ background: "rgba(245,158,11,0.1)", border: "2px dashed rgba(245,158,11,0.35)", color: "#f59e0b" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      {qrPreview ? "Change Image" : "Choose QR Image"}
+                    </button>
+
+                    {qrPreview && (
+                      <>
+                        <div className="text-gray-400 text-xs text-center">Preview of new QR</div>
+                        <div className="flex justify-center">
+                          <div style={{ background: "#fff", borderRadius: 12, padding: 12, display: "inline-flex" }}>
+                            <img src={qrPreview} alt="New QR Preview" style={{ width: 160, height: 160, objectFit: "contain", borderRadius: 6, display: "block" }} />
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveQr}
+                            disabled={qrSaving}
+                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-black"
+                            style={{ background: qrSaving ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
+                          >
+                            {qrSaving ? "Saving…" : "Save New QR"}
+                          </button>
+                          <button
+                            onClick={() => { setQrPreview(null); if (qrInputRef.current) qrInputRef.current.value = ""; }}
+                            className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-400"
+                            style={{ background: "#222" }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {qrSaved && (
+                      <div className="text-center text-green-400 text-sm font-bold py-1">✓ QR updated successfully!</div>
+                    )}
+                  </div>
                 </div>
               )}
 

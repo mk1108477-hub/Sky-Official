@@ -62,6 +62,15 @@ async function initDb() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='category') THEN
         ALTER TABLE packages ADD COLUMN category TEXT;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_server_id') THEN
+        ALTER TABLE orders ADD COLUMN mlbb_server_id TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_ign') THEN
+        ALTER TABLE orders ADD COLUMN mlbb_ign TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='is_for_friend') THEN
+        ALTER TABLE orders ADD COLUMN is_for_friend BOOLEAN DEFAULT FALSE;
+      END IF;
     END$$;
   `);
 

@@ -57,7 +57,7 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
-export default function AdminPanel({ onClose }: { onClose: () => void }) {
+export default function AdminPanel({ onClose, fullPage = false }: { onClose: () => void; fullPage?: boolean }) {
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("admin_token"));
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -350,33 +350,55 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className={fullPage
+        ? "fixed inset-0 z-[100] flex flex-col"
+        : "fixed inset-0 z-[100] flex items-center justify-center p-4"}
+      style={fullPage
+        ? { background: "#0a0a0a" }
+        : { background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+      onClick={!fullPage ? (e: React.MouseEvent<HTMLDivElement>) => { if (e.target === e.currentTarget) onClose(); } : undefined}
     >
       <div
-        className="w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl"
-        style={{ background: "#111", border: "1px solid rgba(245,158,11,0.3)", boxShadow: "0 0 60px rgba(245,158,11,0.15)" }}
+        className={fullPage
+          ? "flex flex-col flex-1 overflow-hidden"
+          : "w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl"}
+        style={fullPage
+          ? {}
+          : { background: "#111", border: "1px solid rgba(245,158,11,0.3)", boxShadow: "0 0 60px rgba(245,158,11,0.15)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="flex items-center gap-2">
-            <span style={{ color: "#f59e0b", fontSize: 18 }}>🔑</span>
-            <span className="font-bold text-white text-base">Admin Panel</span>
-            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ background: "#111", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          {fullPage ? (
+            <button onClick={onClose} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-semibold">
+              <span style={{ fontSize: 20, lineHeight: 1 }}>←</span> Back
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span style={{ color: "#f59e0b", fontSize: 18 }}>🔑</span>
+              <span className="font-bold text-white text-base">Admin Panel</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
+            </div>
+          )}
+          {fullPage && (
+            <div className="flex items-center gap-2">
+              <span style={{ color: "#f59e0b", fontSize: 16 }}>🔑</span>
+              <span className="font-bold text-white text-sm">Admin Panel</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             {authed && notifButton()}
             {authed && (
               <button onClick={logout} className="text-xs text-gray-400 hover:text-red-400 transition-colors">Sign out</button>
             )}
-            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg leading-none">×</button>
+            {!fullPage && (
+              <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg leading-none">×</button>
+            )}
           </div>
         </div>
 
         {!authed ? (
-          /* Login */
-          <div className="flex flex-col items-center justify-center gap-5 p-10">
+          <div className="flex flex-col items-center justify-center flex-1 gap-5 p-10">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)" }}>🔐</div>
             <div className="text-center">
               <div className="text-white font-bold text-lg">Admin Access</div>
@@ -407,8 +429,9 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
           <>
             {/* Tabs */}
             <div
-              className="flex gap-1 px-4 pt-3"
+              className="flex gap-1 px-4 pt-3 flex-shrink-0"
               style={{
+                background: "#111",
                 borderBottom: "1px solid rgba(255,255,255,0.07)",
                 overflowX: "auto",
                 WebkitOverflowScrolling: "touch",
@@ -420,14 +443,13 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              <style>{`.admin-tabs::-webkit-scrollbar { display: none; }`}</style>
               {(["packages", "orders", "wallet", "featured", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
                     key={t}
                     onClick={() => setTab(t)}
-                    className="px-5 py-2 text-sm font-semibold capitalize rounded-t-lg transition-colors flex items-center gap-1.5"
+                    className="px-5 py-2.5 text-sm font-semibold capitalize rounded-t-lg transition-colors flex items-center gap-1.5"
                     style={{
                       flexShrink: 0,
                       ...(tab === t

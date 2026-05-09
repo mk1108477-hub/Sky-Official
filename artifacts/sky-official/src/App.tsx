@@ -709,7 +709,8 @@ function WhatsAppSection() {
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
-function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
+function Footer() {
+  const [, setLocation] = useLocation();
   const tapCount = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -718,7 +719,7 @@ function Footer({ onAdminOpen }: { onAdminOpen: () => void }) {
     if (tapTimer.current) clearTimeout(tapTimer.current);
     if (tapCount.current >= 3) {
       tapCount.current = 0;
-      onAdminOpen();
+      setLocation("/admin");
       return;
     }
     tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 2000);
@@ -767,7 +768,6 @@ let introPlayedThisSession = false;
 function MainSite() {
   const [introDone, setIntroDone] = useState(introPlayedThisSession);
   const [introMounted, setIntroMounted] = useState(!introPlayedThisSession);
-  const [showAdmin, setShowAdmin] = useState(false);
 
   const handleIntroDone = () => {
     introPlayedThisSession = true;
@@ -785,7 +785,7 @@ function MainSite() {
           <HowItWorks />
           <LiveTicker />
           <WhatsAppSection />
-          <Footer onAdminOpen={() => setShowAdmin(true)} />
+          <Footer />
         </AnimatedPage>
         <WhatsAppFAB />
       </div>
@@ -795,9 +795,14 @@ function MainSite() {
           <LoadingScreen onDone={handleIntroDone} />
         </div>
       )}
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </>
   );
+}
+
+// ── Admin Page ──────────────────────────────────────────────────────────────
+function AdminPage() {
+  const [, setLocation] = useLocation();
+  return <AdminPanel fullPage onClose={() => setLocation("/")} />;
 }
 
 // ── Packages Page ──────────────────────────────────────────────────────────
@@ -1019,7 +1024,7 @@ function SignUpPage() {
 // ── Persistent Navbar (outside page transitions so it never moves) ───────────
 function PersistentNavbar() {
   const [location] = useLocation();
-  if (location.startsWith("/sign-in") || location.startsWith("/sign-up")) return null;
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/admin")) return null;
   return <Navbar />;
 }
 
@@ -1054,6 +1059,7 @@ function AppRoutes() {
         <SharedVideoBg />
         <Switch>
           <Route path="/" component={MainSite} />
+          <Route path="/admin" component={AdminPage} />
           <Route path="/packages" component={PackagesPage} />
           <Route path="/mlbb-target" component={MLBBTargetPage} />
           <Route path="/cart" component={CartPage} />

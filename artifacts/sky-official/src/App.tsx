@@ -298,35 +298,157 @@ function Navbar() {
 
 // ── Page Transition System ─────────────────────────────────────────────────
 type TransDir = "forward" | "backward";
-interface TransCtxValue { dir: TransDir; exiting: boolean; hasNavigated: boolean; navigateTo: (to: string, dir: TransDir) => void; }
-const TransCtx = createContext<TransCtxValue>({ dir: "forward", exiting: false, hasNavigated: false, navigateTo: () => {} });
+interface TransCtxValue {
+  dir: TransDir; exiting: boolean; hasNavigated: boolean;
+  navigateTo: (to: string, dir: TransDir) => void;
+  dragX: number; isDragging: boolean; snapBack: boolean;
+}
+const TransCtx = createContext<TransCtxValue>({
+  dir: "forward", exiting: false, hasNavigated: false, navigateTo: () => {},
+  dragX: 0, isDragging: false, snapBack: false,
+});
 
 function TransitionProvider({ children }: { children: React.ReactNode }) {
   const [dir, setDir] = useState<TransDir>("forward");
   const [exiting, setExiting] = useState(false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const [, setLocation] = useLocation();
+  const [location] = useLocation();
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [snapBack, setSnapBack] = useState(false);
+
   const navigateTo = useCallback((to: string, d: TransDir) => {
+    setDragX(0); setIsDragging(false); setSnapBack(false);
     setDir(d); setExiting(true); setHasNavigated(true);
     setTimeout(() => { setExiting(false); setLocation(to); }, 340);
   }, [setLocation]);
-  return <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo }}>{children}</TransCtx.Provider>;
+
+  // Refs so touch handlers see current values without stale closures
+  const locRef   = useRef(location);
+  const navRef   = useRef(navigateTo);
+  const exitRef  = useRef(exiting);
+  const activeRef = useRef(false);
+  const dragXRef  = useRef(0);
+  const axisRef   = useRef<"h" | "v" | null>(null);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+
+  useEffect(() => { locRef.current  = location;   }, [location]);
+  useEffect(() => { navRef.current  = navigateTo; }, [navigateTo]);
+  useEffect(() => { exitRef.current = exiting;    }, [exiting]);
+
+  useEffect(() => {
+    const onStart = (e: TouchEvent) => {
+      startXRef.current = e.touches[0].clientX;
+      startYRef.current = e.touches[0].clientY;
+      axisRef.current   = null;
+      activeRef.current = false;
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (exitRef.current) return;
+      const dx = e.touches[0].clientX - startXRef.current;
+      const dy = e.touches[0].clientY - startYRef.current;
+
+      // Determine axis on first significant movement
+      if (axisRef.current === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        axisRef.current = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+      }
+      if (axisRef.current !== "h") return;
+
+      const loc = locRef.current;
+      const canForward  = loc === "/"         && dx < 0;
+      const canBackward = loc === "/packages" && dx > 0;
+      if (!canForward && !canBackward) return;
+
+      e.preventDefault();
+      activeRef.current = true;
+      // Apply rubber-band resistance beyond 40 % of screen width
+      const vw    = window.innerWidth;
+      const limit = vw * 0.55;
+      const raw   = Math.abs(dx);
+      const clamped = raw < limit ? raw : limit + (raw - limit) * 0.18;
+      const final = dx < 0 ? -clamped : clamped;
+      dragXRef.current = final;
+      setDragX(final);
+      setIsDragging(true);
+    };
+
+    const onEnd = () => {
+      if (!activeRef.current) return;
+      const dx = dragXRef.current;
+      activeRef.current  = false;
+      dragXRef.current   = 0;
+
+      const threshold = window.innerWidth * 0.28; // 28 % of screen
+      if (Math.abs(dx) >= threshold) {
+        // Commit navigation
+        setIsDragging(false);
+        setDragX(0);
+        navRef.current(dx < 0 ? "/packages" : "/", dx < 0 ? "forward" : "backward");
+      } else {
+        // Snap back
+        setIsDragging(false);
+        setSnapBack(true);
+        setDragX(0);
+        setTimeout(() => setSnapBack(false), 320);
+      }
+    };
+
+    document.addEventListener("touchstart",  onStart, { passive: true  });
+    document.addEventListener("touchmove",   onMove,  { passive: false });
+    document.addEventListener("touchend",    onEnd,   { passive: true  });
+    document.addEventListener("touchcancel", onEnd,   { passive: true  });
+    return () => {
+      document.removeEventListener("touchstart",  onStart);
+      document.removeEventListener("touchmove",   onMove);
+      document.removeEventListener("touchend",    onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+  }, []);
+
+  return (
+    <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo, dragX, isDragging, snapBack }}>
+      {children}
+    </TransCtx.Provider>
+  );
 }
 function usePageNav() { return useContext(TransCtx); }
 
 function AnimatedPage({ children }: { children: React.ReactNode }) {
-  const { dir, exiting, hasNavigated } = usePageNav();
+  const { dir, exiting, hasNavigated, dragX, isDragging, snapBack } = usePageNav();
+
+  // Live drag — content follows the finger with no transition
+  if (isDragging) {
+    return (
+      <div style={{ transform: `translateX(${dragX}px)`, willChange: "transform", position: "relative", zIndex: 1, transition: "none" }}>
+        {children}
+      </div>
+    );
+  }
+
+  // Snap back — spring back to rest position
+  if (snapBack) {
+    return (
+      <div style={{ transform: "translateX(0)", willChange: "transform", position: "relative", zIndex: 1, transition: "transform 0.32s cubic-bezier(0.4,0,0.2,1)" }}>
+        {children}
+      </div>
+    );
+  }
+
+  // Button / programmatic navigation — full-screen CSS swipe
   if (!hasNavigated) return <>{children}</>;
   const anim = exiting
     ? (dir === "forward" ? "pgSwipeOutLeft 0.34s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.34s cubic-bezier(0.55,0,0.9,0.5) both")
-    : (dir === "forward" ? "pgSwipeInRight 0.42s cubic-bezier(0.16,1,0.3,1) both" : "pgSwipeInLeft 0.42s cubic-bezier(0.16,1,0.3,1) both");
+    : (dir === "forward" ? "pgSwipeInRight 0.42s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.42s cubic-bezier(0.16,1,0.3,1) both");
   return (
     <div style={{ animation: anim, willChange: "transform", position: "relative", zIndex: 1 }}>
       <style>{`
-        @keyframes pgSwipeInRight  { from { transform:translateX(100%); } to { transform:translateX(0); } }
+        @keyframes pgSwipeInRight  { from { transform:translateX(100%);  } to { transform:translateX(0); } }
         @keyframes pgSwipeInLeft   { from { transform:translateX(-100%); } to { transform:translateX(0); } }
         @keyframes pgSwipeOutLeft  { from { transform:translateX(0); } to { transform:translateX(-100%); } }
-        @keyframes pgSwipeOutRight { from { transform:translateX(0); } to { transform:translateX(100%); } }
+        @keyframes pgSwipeOutRight { from { transform:translateX(0); } to { transform:translateX(100%);  } }
       `}</style>
       {children}
     </div>

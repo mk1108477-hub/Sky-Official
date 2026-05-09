@@ -96,6 +96,7 @@ export default function PaymentPage() {
   }
 
   async function confirmOrder() {
+    if (!pkg) return;
     setSubmitting(true);
     setError("");
     try {

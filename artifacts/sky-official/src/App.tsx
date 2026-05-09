@@ -333,28 +333,18 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Hero ───────────────────────────────────────────────────────────────────
+// ── Persistent Video Background ─────────────────────────────────────────────
 const HERO_VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
 
-function HeroSection({ animate = false }: { animate?: boolean }) {
-  const { navigateTo } = usePageNav();
-  const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  // Video cross-dissolve — contained inside hero section, scrolls with page
+function PersistentVideoBg() {
   const video0Ref = useRef<HTMLVideoElement>(null);
   const video1Ref = useRef<HTMLVideoElement>(null);
   const [activeSlot, setActiveSlot] = useState(0);
   const activeSlotRef = useRef(0);
+  const [crossfade, setCrossfade] = useState<"none"|"in"|"out">("none");
   const isSwitchingRef = useRef(false);
   const orderRef = useRef<[number,number]>(Math.random() < 0.5 ? [0,1] : [1,0]);
 
-  useEffect(() => {
-    const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto-start first video
   useEffect(() => {
     const v = video0Ref.current;
     if (!v) return;
@@ -363,7 +353,6 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
     tryPlay();
   }, []);
 
-  // Smooth cross-dissolve — CSS handles the fade, no black overlay needed
   useEffect(() => {
     activeSlotRef.current = activeSlot;
     const v = activeSlot === 0 ? video0Ref.current : video1Ref.current;
@@ -373,17 +362,46 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
       if (v.duration - v.currentTime <= 1.1) {
         isSwitchingRef.current = true;
         v.pause();
-        const nextSlot = 1 - activeSlotRef.current;
-        const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
-        if (nextV) { nextV.muted = true; nextV.currentTime = 0; nextV.play().catch(() => {}); }
-        setActiveSlot(nextSlot);
-        activeSlotRef.current = nextSlot;
-        setTimeout(() => { isSwitchingRef.current = false; }, 650);
+        setCrossfade("in");
+        setTimeout(() => {
+          const nextSlot = 1 - activeSlotRef.current;
+          const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
+          if (nextV) { nextV.muted = true; nextV.currentTime = 0; nextV.play().catch(() => {}); }
+          setActiveSlot(nextSlot);
+          activeSlotRef.current = nextSlot;
+          setCrossfade("out");
+          setTimeout(() => { setCrossfade("none"); isSwitchingRef.current = false; }, 500);
+        }, 500);
       }
     };
     v.addEventListener("timeupdate", onTimeUpdate);
     return () => v.removeEventListener("timeupdate", onTimeUpdate);
   }, [activeSlot]);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+      <video ref={video0Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 0 ? 0.32 : 0, transition: "none" }}>
+        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
+      </video>
+      <video ref={video1Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 1 ? 0.32 : 0, transition: "none" }}>
+        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
+      </video>
+      <div style={{ position: "absolute", inset: 0, background: "#000", opacity: crossfade === "in" ? 0.7 : 0, transition: crossfade === "none" ? "none" : "opacity 0.5s ease" }} />
+    </div>
+  );
+}
+
+// ── Hero ───────────────────────────────────────────────────────────────────
+
+function HeroSection({ animate = false }: { animate?: boolean }) {
+  const { navigateTo } = usePageNav();
+  const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
+    return () => clearInterval(interval);
+  }, []);
 
   const diag = (delay: number): React.CSSProperties =>
     animate
@@ -391,14 +409,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
       : { opacity: 0 };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
-      {/* Videos cross-dissolve via CSS opacity transition — no black overlay, text unaffected */}
-      <video ref={video0Ref} muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: activeSlot === 0 ? 0.38 : 0, zIndex: 0, transition: "opacity 0.55s ease" }}>
-        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
-      </video>
-      <video ref={video1Ref} muted playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: activeSlot === 1 ? 0.38 : 0, zIndex: 0, transition: "opacity 0.55s ease" }}>
-        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
-      </video>
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>
@@ -886,6 +897,7 @@ function AppRoutes() {
       }}
     >
       <TransitionProvider>
+        <PersistentVideoBg />
         <Switch>
           <Route path="/" component={MainSite} />
           <Route path="/packages" component={PackagesPage} />

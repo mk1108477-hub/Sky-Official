@@ -333,63 +333,6 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Persistent Video Background ─────────────────────────────────────────────
-const HERO_VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
-
-function PersistentVideoBg() {
-  const video0Ref = useRef<HTMLVideoElement>(null);
-  const video1Ref = useRef<HTMLVideoElement>(null);
-  const [activeSlot, setActiveSlot] = useState(0);
-  const activeSlotRef = useRef(0);
-  const [crossfade, setCrossfade] = useState<"none"|"in"|"out">("none");
-  const isSwitchingRef = useRef(false);
-  const orderRef = useRef<[number,number]>(Math.random() < 0.5 ? [0,1] : [1,0]);
-
-  useEffect(() => {
-    const v = video0Ref.current;
-    if (!v) return;
-    v.muted = true;
-    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 300));
-    tryPlay();
-  }, []);
-
-  useEffect(() => {
-    activeSlotRef.current = activeSlot;
-    const v = activeSlot === 0 ? video0Ref.current : video1Ref.current;
-    if (!v) return;
-    const onTimeUpdate = () => {
-      if (!v.duration || isSwitchingRef.current) return;
-      if (v.duration - v.currentTime <= 1.1) {
-        isSwitchingRef.current = true;
-        v.pause();
-        setCrossfade("in");
-        setTimeout(() => {
-          const nextSlot = 1 - activeSlotRef.current;
-          const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
-          if (nextV) { nextV.muted = true; nextV.currentTime = 0; nextV.play().catch(() => {}); }
-          setActiveSlot(nextSlot);
-          activeSlotRef.current = nextSlot;
-          setCrossfade("out");
-          setTimeout(() => { setCrossfade("none"); isSwitchingRef.current = false; }, 500);
-        }, 500);
-      }
-    };
-    v.addEventListener("timeupdate", onTimeUpdate);
-    return () => v.removeEventListener("timeupdate", onTimeUpdate);
-  }, [activeSlot]);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
-      <video ref={video0Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 0 ? 0.32 : 0, transition: "none" }}>
-        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
-      </video>
-      <video ref={video1Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 1 ? 0.32 : 0, transition: "none" }}>
-        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
-      </video>
-      <div style={{ position: "absolute", inset: 0, background: "#000", opacity: crossfade === "in" ? 0.7 : 0, transition: crossfade === "none" ? "none" : "opacity 0.5s ease" }} />
-    </div>
-  );
-}
 
 // ── Hero ───────────────────────────────────────────────────────────────────
 
@@ -397,10 +340,26 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   const { navigateTo, exiting } = usePageNav();
   const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
   const [activeFeature, setActiveFeature] = useState(0);
+  const [scrollY, setScrollY] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    const tryPlay = () => v.play().catch(() => setTimeout(tryPlay, 400));
+    tryPlay();
   }, []);
 
   const el = (enterDelay: number, exitDelay: number): React.CSSProperties => {
@@ -410,7 +369,31 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0a0a0a" }}>
+      {/* Video with parallax — contained strictly within this section */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 0, pointerEvents: "none" }}>
+        <video
+          ref={videoRef}
+          muted
+          loop
+          playsInline
+          preload="auto"
+          style={{
+            position: "absolute",
+            top: "-10%",
+            left: 0,
+            width: "100%",
+            height: "120%",
+            objectFit: "cover",
+            opacity: 0.35,
+            transform: `translateY(${scrollY * 0.35}px)`,
+            willChange: "transform",
+          }}
+        >
+          <source src="/hero.mp4" type="video/mp4" />
+          <source src="/bg-video.mp4" type="video/mp4" />
+        </video>
+      </div>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={el(0, 0)}>
@@ -916,7 +899,6 @@ function AppRoutes() {
       }}
     >
       <TransitionProvider>
-        <PersistentVideoBg />
         <PersistentNavbar />
         <Switch>
           <Route path="/" component={MainSite} />

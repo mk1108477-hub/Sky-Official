@@ -492,16 +492,16 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 45% at 50% 50%, rgba(251,191,36,0.10) 0%, rgba(245,158,11,0.04) 55%, transparent 75%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={el(0, 0)}>
           <span className="px-3 py-0.5 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.14em", fontSize: 8 }}>MLBB Diamond Top Up</span>
         </div>
         <div className="text-center">
           <h1 className="font-extrabold leading-tight" style={{ fontSize: "clamp(1.15rem,5.5vw,1.65rem)" }}>
-            <span className="text-white block" style={el(0.13, 0.04)}>Recharge Fast.</span>
-            <span className="block" style={{ color: "#f59e0b", ...el(0.26, 0.08) }}>Dominate the</span>
-            <span className="block" style={{ color: "#f59e0b", ...el(0.39, 0.11) }}>Game.</span>
+            <span className="text-white block" style={{ textShadow: "0 0 18px rgba(255,255,255,0.55), 0 0 40px rgba(255,255,255,0.18)", ...el(0.13, 0.04) }}>Recharge Fast.</span>
+            <span className="block" style={{ color: "#f59e0b", textShadow: "0 0 16px rgba(251,191,36,0.7), 0 0 40px rgba(245,158,11,0.35), 0 0 70px rgba(245,158,11,0.15)", ...el(0.26, 0.08) }}>Dominate the</span>
+            <span className="block" style={{ color: "#f59e0b", textShadow: "0 0 16px rgba(251,191,36,0.7), 0 0 40px rgba(245,158,11,0.35), 0 0 70px rgba(245,158,11,0.15)", ...el(0.39, 0.11) }}>Game.</span>
           </h1>
         </div>
         <p className="text-center text-gray-400 leading-relaxed px-2" style={{ maxWidth: 260, margin: "0 auto", fontSize: 11, ...el(0.52, 0.14) }}>

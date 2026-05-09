@@ -127,7 +127,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
       <video autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.45 }} onEnded={triggerDone} onError={triggerDone}>
         <source src="/intro.mp4" type="video/mp4" />
       </video>
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.32)" }} />
+      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.62)" }} />
       <div className="relative flex flex-col items-center gap-3 z-10">
         <AnimatedDiamonds size={72} />
         <div className="flex flex-col items-center gap-1">

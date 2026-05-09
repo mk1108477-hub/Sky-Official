@@ -291,9 +291,9 @@ export default function PaymentPage() {
             {/* Official payment app logos */}
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               {[
-                { src: "/logo-paytm.png", alt: "Paytm" },
-                { src: "/logo-gpay.png",  alt: "GPay"  },
-                { src: "/logo-bhim.png",  alt: "BHIM"  },
+                { src: "/phonepe.jpg", alt: "PhonePe" },
+                { src: "/gpay.jpg",    alt: "GPay"    },
+                { src: "/paytm.jpg",   alt: "Paytm"   },
               ].map(({ src, alt }) => (
                 <div key={alt} style={{ width: 32, height: 32, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: 3 }}>
                   <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "contain" }} />

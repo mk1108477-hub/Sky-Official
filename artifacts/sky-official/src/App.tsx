@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import AdminPanel from "./components/AdminPanel";
 import PackagesSection from "./components/PackagesSection";
 import OrderHistoryPage from "./components/OrderHistoryPage";
@@ -296,32 +296,55 @@ function Navbar() {
   );
 }
 
-// ── Hero ───────────────────────────────────────────────────────────────────
+// ── Page Transition System ─────────────────────────────────────────────────
+type TransDir = "forward" | "backward";
+interface TransCtxValue { dir: TransDir; exiting: boolean; hasNavigated: boolean; navigateTo: (to: string, dir: TransDir) => void; }
+const TransCtx = createContext<TransCtxValue>({ dir: "forward", exiting: false, hasNavigated: false, navigateTo: () => {} });
+
+function TransitionProvider({ children }: { children: React.ReactNode }) {
+  const [dir, setDir] = useState<TransDir>("forward");
+  const [exiting, setExiting] = useState(false);
+  const [hasNavigated, setHasNavigated] = useState(false);
+  const [, setLocation] = useLocation();
+  const navigateTo = useCallback((to: string, d: TransDir) => {
+    setDir(d); setExiting(true); setHasNavigated(true);
+    setTimeout(() => { setExiting(false); setLocation(to); }, 430);
+  }, [setLocation]);
+  return <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo }}>{children}</TransCtx.Provider>;
+}
+function usePageNav() { return useContext(TransCtx); }
+
+function AnimatedPage({ children }: { children: React.ReactNode }) {
+  const { dir, exiting, hasNavigated } = usePageNav();
+  if (!hasNavigated) return <>{children}</>;
+  const anim = exiting
+    ? (dir === "forward" ? "pgSlideOutLeft 0.43s cubic-bezier(0.4,0,0.8,0.6) both" : "pgSlideOutRight 0.43s cubic-bezier(0.4,0,0.8,0.6) both")
+    : (dir === "forward" ? "pgSlideInRight 0.55s cubic-bezier(0.22,1,0.36,1) both" : "pgSlideInLeft 0.55s cubic-bezier(0.22,1,0.36,1) both");
+  return (
+    <div style={{ animation: anim, willChange: "transform, opacity" }}>
+      <style>{`
+        @keyframes pgSlideInRight  { from { opacity:0; transform:translateX(70px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+        @keyframes pgSlideInLeft   { from { opacity:0; transform:translateX(-70px) scale(0.97); } to { opacity:1; transform:translateX(0) scale(1); } }
+        @keyframes pgSlideOutLeft  { from { opacity:1; transform:translateX(0) scale(1); } to { opacity:0; transform:translateX(-70px) scale(0.97); } }
+        @keyframes pgSlideOutRight { from { opacity:1; transform:translateX(0) scale(1); } to { opacity:0; transform:translateX(70px) scale(0.97); } }
+      `}</style>
+      {children}
+    </div>
+  );
+}
+
+// ── Persistent Video Background ─────────────────────────────────────────────
 const HERO_VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
 
-function HeroSection({ animate = false }: { animate?: boolean }) {
-  const [, setLocation] = useLocation();
-  const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  // Randomly pick play order once per mount (50/50)
-  const orderRef = useRef<[number, number]>(
-    Math.random() < 0.5 ? [0, 1] : [1, 0]
-  );
-
+function PersistentVideoBg() {
   const video0Ref = useRef<HTMLVideoElement>(null);
   const video1Ref = useRef<HTMLVideoElement>(null);
   const [activeSlot, setActiveSlot] = useState(0);
   const activeSlotRef = useRef(0);
-  const [crossfade, setCrossfade] = useState<"none" | "in" | "out">("none");
+  const [crossfade, setCrossfade] = useState<"none"|"in"|"out">("none");
   const isSwitchingRef = useRef(false);
+  const orderRef = useRef<[number,number]>(Math.random() < 0.5 ? [0,1] : [1,0]);
 
-  useEffect(() => {
-    const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Initial autoplay of slot 0
   useEffect(() => {
     const v = video0Ref.current;
     if (!v) return;
@@ -330,54 +353,55 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
     tryPlay();
   }, []);
 
-  // After intro animation, ensure active video is playing
-  useEffect(() => {
-    if (!animate) return;
-    const v = activeSlotRef.current === 0 ? video0Ref.current : video1Ref.current;
-    if (!v) return;
-    v.muted = true;
-    v.play().catch(() => {});
-  }, [animate]);
-
-  // Watch the active video and handle crossfade switch when near end
   useEffect(() => {
     activeSlotRef.current = activeSlot;
     const v = activeSlot === 0 ? video0Ref.current : video1Ref.current;
     if (!v) return;
-
     const onTimeUpdate = () => {
       if (!v.duration || isSwitchingRef.current) return;
-      const remaining = v.duration - v.currentTime;
-      if (remaining <= 1.1) {
+      if (v.duration - v.currentTime <= 1.1) {
         isSwitchingRef.current = true;
-        // Pause immediately so the last frame never flashes
         v.pause();
-        // Fade overlay in
         setCrossfade("in");
         setTimeout(() => {
-          // Switch to the other slot under the fully-darkened overlay
           const nextSlot = 1 - activeSlotRef.current;
           const nextV = nextSlot === 0 ? video0Ref.current : video1Ref.current;
-          if (nextV) {
-            nextV.muted = true;
-            nextV.currentTime = 0;
-            nextV.play().catch(() => {});
-          }
+          if (nextV) { nextV.muted = true; nextV.currentTime = 0; nextV.play().catch(() => {}); }
           setActiveSlot(nextSlot);
           activeSlotRef.current = nextSlot;
-          // Fade overlay back out
           setCrossfade("out");
-          setTimeout(() => {
-            setCrossfade("none");
-            isSwitchingRef.current = false;
-          }, 500);
+          setTimeout(() => { setCrossfade("none"); isSwitchingRef.current = false; }, 500);
         }, 500);
       }
     };
-
     v.addEventListener("timeupdate", onTimeUpdate);
     return () => v.removeEventListener("timeupdate", onTimeUpdate);
   }, [activeSlot]);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+      <video ref={video0Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 0 ? 0.32 : 0, transition: "none" }}>
+        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
+      </video>
+      <video ref={video1Ref} muted playsInline preload="auto" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: activeSlot === 1 ? 0.32 : 0, transition: "none" }}>
+        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
+      </video>
+      <div style={{ position: "absolute", inset: 0, background: "#000", opacity: crossfade === "in" ? 0.7 : 0, transition: crossfade === "none" ? "none" : "opacity 0.5s ease" }} />
+    </div>
+  );
+}
+
+// ── Hero ───────────────────────────────────────────────────────────────────
+
+function HeroSection({ animate = false }: { animate?: boolean }) {
+  const { navigateTo } = usePageNav();
+  const featureTexts = ["Instant delivery", "Affordable prices", "P2P chat support", "Safe and secure transaction"];
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setActiveFeature((i) => (i + 1) % featureTexts.length), 2200);
+    return () => clearInterval(interval);
+  }, []);
 
   const diag = (delay: number): React.CSSProperties =>
     animate
@@ -385,39 +409,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
       : { opacity: 0 };
 
   return (
-    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "#0d0d0d" }}>
-      {/* Video slot 0 */}
-      <video
-        ref={video0Ref}
-        muted
-        playsInline
-        preload="auto"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: activeSlot === 0 ? 0.32 : 0, zIndex: 0, transition: "none" }}
-      >
-        <source src={HERO_VIDEOS[orderRef.current[0]]} type="video/mp4" />
-      </video>
-      {/* Video slot 1 */}
-      <video
-        ref={video1Ref}
-        muted
-        playsInline
-        preload="auto"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: activeSlot === 1 ? 0.32 : 0, zIndex: 0, transition: "none" }}
-      >
-        <source src={HERO_VIDEOS[orderRef.current[1]]} type="video/mp4" />
-      </video>
-      {/* Black crossfade overlay — max opacity 0.7 */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "#000",
-          zIndex: 1,
-          opacity: crossfade === "in" ? 0.7 : 0,
-          transition: crossfade === "none" ? "none" : "opacity 0.5s ease",
-        }}
-      />
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 55% at 50% 55%, rgba(100,60,0,0.45) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={diag(0)}>
@@ -439,7 +431,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
           ))}
         </div>
         <div className="flex justify-center mt-1" style={diag(0.78)}>
-          <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 22px rgba(245,158,11,0.5), 0 3px 12px rgba(0,0,0,0.5)", fontSize: 12, border: "none", cursor: "pointer" }}>
+          <button onClick={() => navigateTo("/packages", "forward")} className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-full font-bold text-black" style={{ background: "linear-gradient(135deg,#fcd34d,#f59e0b)", boxShadow: "0 0 22px rgba(245,158,11,0.5), 0 3px 12px rgba(0,0,0,0.5)", fontSize: 12, border: "none", cursor: "pointer" }}>
             View Packages <span style={{ fontSize: 13 }}>→</span>
           </button>
         </div>
@@ -499,7 +491,7 @@ function StatsSection() {
 
 // ── How It Works ───────────────────────────────────────────────────────────
 function HowItWorks() {
-  const [, setLocation] = useLocation();
+  const { navigateTo } = usePageNav();
   const steps = [
     { num: "1", title: "Pick a Pack", desc: "Browse 5 categories and select your diamond pack." },
     { num: "2", title: "Verify & Pay", desc: "Enter your MLBB ID, verify your account, then scan our UPI QR to pay." },
@@ -522,7 +514,7 @@ function HowItWorks() {
             </div>
           ))}
         </div>
-        <button onClick={() => setLocation("/packages")} className="inline-flex items-center gap-1.5 px-7 py-3 rounded-full font-bold text-black mt-7" style={{ fontSize: 15, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 18px rgba(245,158,11,0.4)", border: "none", cursor: "pointer" }}>
+        <button onClick={() => navigateTo("/packages", "forward")} className="inline-flex items-center gap-1.5 px-7 py-3 rounded-full font-bold text-black mt-7" style={{ fontSize: 15, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 0 18px rgba(245,158,11,0.4)", border: "none", cursor: "pointer" }}>
           Start Now <span>→</span>
         </button>
       </div>
@@ -642,14 +634,16 @@ function MainSite() {
   return (
     <>
       {/* Main content always rendered so video starts immediately */}
-      <div style={{ pointerEvents: introDone ? "auto" : "none" }}>
+      <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
         <Navbar />
-        <HeroSection animate={introDone} />
-        <StatsSection />
-        <HowItWorks />
-        <LiveTicker />
-        <WhatsAppSection />
-        <Footer onAdminOpen={() => setShowAdmin(true)} />
+        <AnimatedPage>
+          <HeroSection animate={introDone} />
+          <StatsSection />
+          <HowItWorks />
+          <LiveTicker />
+          <WhatsAppSection />
+          <Footer onAdminOpen={() => setShowAdmin(true)} />
+        </AnimatedPage>
         <WhatsAppFAB />
       </div>
       {/* Intro overlays on top and fades out — content plays underneath */}
@@ -665,6 +659,7 @@ function MainSite() {
 
 // ── Packages Page ──────────────────────────────────────────────────────────
 function PackagesPage() {
+  const { navigateTo } = usePageNav();
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
   const [mlbbVerified, setMlbbVerified] = useState<boolean | null>(null);
@@ -705,34 +700,38 @@ function PackagesPage() {
   }
 
   return (
-    <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden" }}>
       <Navbar />
-      {mlbbVerified === false && (
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
-          <div
-            style={{ background: "linear-gradient(135deg,#111a00,#0f1500)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)" }}
-          >
-            <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
-              </svg>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
-              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
-            </div>
-            <button
-              onClick={() => setLocation("/verify")}
-              style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+      <AnimatedPage>
+        {mlbbVerified === false && (
+          <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
+            <div
+              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)" }}
             >
-              Verify →
-            </button>
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
+              </div>
+              <button
+                onClick={() => setLocation("/verify")}
+                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
+              >
+                Verify →
+              </button>
+            </div>
           </div>
+        )}
+        {mlbbVerified === true && <div style={{ paddingTop: 72 }} />}
+        <div style={{ background: "rgba(10,10,10,0.78)", minHeight: "calc(100vh - 56px)" }}>
+          <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
         </div>
-      )}
-      {mlbbVerified === true && <div style={{ paddingTop: 72 }} />}
-      <PackagesSection onPackageSelect={(_id) => {}} onBack={() => setLocation("/")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
+      </AnimatedPage>
     </div>
   );
 }
@@ -897,19 +896,22 @@ function AppRoutes() {
         },
       }}
     >
-      <Switch>
-        <Route path="/" component={MainSite} />
-        <Route path="/packages" component={PackagesPage} />
-        <Route path="/mlbb-target" component={MLBBTargetPage} />
-        <Route path="/cart" component={CartPage} />
-        <Route path="/pay" component={PaymentPage} />
-        <Route path="/verify" component={MLBBVerifyPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/sign-in/*?" component={SignInPage} />
-        <Route path="/sign-up/*?" component={SignUpPage} />
-        <Route path="/orders" component={OrderHistoryPage} />
-        <Route component={MainSite} />
-      </Switch>
+      <TransitionProvider>
+        <PersistentVideoBg />
+        <Switch>
+          <Route path="/" component={MainSite} />
+          <Route path="/packages" component={PackagesPage} />
+          <Route path="/mlbb-target" component={MLBBTargetPage} />
+          <Route path="/cart" component={CartPage} />
+          <Route path="/pay" component={PaymentPage} />
+          <Route path="/verify" component={MLBBVerifyPage} />
+          <Route path="/profile" component={ProfilePage} />
+          <Route path="/sign-in/*?" component={SignInPage} />
+          <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/orders" component={OrderHistoryPage} />
+          <Route component={MainSite} />
+        </Switch>
+      </TransitionProvider>
     </ClerkProvider>
   );
 }
@@ -918,7 +920,9 @@ export default function App() {
   return (
     <WouterRouter base={basePath}>
       <CartProvider>
-        <AppRoutes />
+        <div style={{ background: "#0a0a0a", minHeight: "100vh", overflowX: "hidden" }}>
+          <AppRoutes />
+        </div>
       </CartProvider>
     </WouterRouter>
   );

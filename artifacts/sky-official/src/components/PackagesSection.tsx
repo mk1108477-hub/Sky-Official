@@ -377,11 +377,11 @@ function ImagePane({ src }: { src: string }) {
 
 // ── Category card ───────────────────────────────────────────────────────────
 function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: Category; onClick: () => void; index: number; isPopularNow?: boolean; isExiting?: boolean }) {
-  const enterDelay = 0.06 + index * 0.09;
-  const exitDelay  = index * 0.055;
+  const enterDelay = index * 0.13;
+  const exitDelay  = index * 0.08;
   const anim = isExiting
-    ? `catSlideOut 0.42s cubic-bezier(0.55,0,0.9,0.5) ${exitDelay}s both`
-    : `catSlideIn 0.58s cubic-bezier(0.22,1,0.36,1) ${enterDelay}s both`;
+    ? `catSlideOut 0.35s cubic-bezier(0.55,0,0.9,0.5) ${exitDelay}s both`
+    : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${enterDelay}s both`;
   return (
     <div
       onClick={() => cat.available && onClick()}
@@ -664,8 +664,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       <style>{`
         @keyframes pkg-diagIn   { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes catSlideIn   { from{opacity:0;transform:translateX(56px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes catSlideOut  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(56px)} }
+        @keyframes catSlideIn   { from{opacity:0;transform:translateX(110%)} to{opacity:1;transform:translateX(0)} }
+        @keyframes catSlideOut  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(110%)} }
         @keyframes sp-bob1     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes sp-bob2     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes sp-bob3     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }

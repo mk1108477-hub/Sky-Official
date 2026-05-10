@@ -473,16 +473,25 @@ function SharedVideoBg() {
   const videoRef1 = useRef<HTMLVideoElement>(null);
   const videoRefs = [videoRef0, videoRef1];
 
-  // Start BOTH videos playing on mount (muted) so they're always buffered.
-  // This is the most reliable approach across browsers and deployed environments:
-  // the inactive video stays playing at opacity 0, so it's ready to show instantly.
+  // Start videos only after the intro loading screen finishes.
+  // If the intro has already played this session (e.g. navigating back to "/"),
+  // play immediately. Otherwise wait for the "skyIntroDone" custom event.
   useEffect(() => {
-    [videoRef0, videoRef1].forEach(ref => {
-      const v = ref.current;
-      if (!v) return;
-      v.muted = true;
-      v.play().catch(() => {});
-    });
+    const startVideos = () => {
+      [videoRef0, videoRef1].forEach(ref => {
+        const v = ref.current;
+        if (!v) return;
+        v.muted = true;
+        v.play().catch(() => {});
+      });
+    };
+
+    if (introPlayedThisSession) {
+      startVideos();
+    } else {
+      window.addEventListener("skyIntroDone", startVideos, { once: true });
+      return () => window.removeEventListener("skyIntroDone", startVideos);
+    }
   }, []);
 
   const handleEnded = (idx: number) => {
@@ -844,6 +853,7 @@ function MainSite() {
 
   const handleIntroDone = () => {
     introPlayedThisSession = true;
+    window.dispatchEvent(new Event("skyIntroDone"));
     setIntroDone(true);
     setTimeout(() => setIntroMounted(false), 1000);
   };

@@ -8,6 +8,7 @@ const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") 
 const UPI_ID = "8974666701@ptyes";
 const UPI_NAME = "Mantoshkumar Sarangthem";
 const QR_FALLBACK = "/upi-qr.jpg";
+const PAYMENT_TIMEOUT = 5 * 60; // 300 seconds
 
 export interface SelectedPackage {
   id: number;
@@ -49,6 +50,29 @@ function CopyBtn({ text }: { text: string }) {
   );
 }
 
+function CountdownBadge({ seconds }: { seconds: number }) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const urgent = seconds <= 60;
+  const label = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 6,
+      background: urgent ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.10)",
+      border: `1px solid ${urgent ? "rgba(239,68,68,0.35)" : "rgba(245,158,11,0.28)"}`,
+      borderRadius: 20, padding: "5px 14px",
+      animation: urgent ? "urgentPulse 1s ease-in-out infinite" : "none",
+    }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke={urgent ? "#ef4444" : "#f59e0b"} strokeWidth="2"/>
+        <path d="M12 7v5l3 3" stroke={urgent ? "#ef4444" : "#f59e0b"} strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <span style={{ color: urgent ? "#ef4444" : "#f59e0b", fontSize: 13, fontWeight: 800, fontFamily: "'Courier New', monospace", letterSpacing: "0.04em" }}>{label}</span>
+      <span style={{ color: urgent ? "rgba(239,68,68,0.6)" : "rgba(255,255,255,0.35)", fontSize: 11 }}>left</span>
+    </div>
+  );
+}
+
 export default function PaymentPage() {
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
@@ -60,6 +84,8 @@ export default function PaymentPage() {
   const [error, setError] = useState("");
   const [upiOpened, setUpiOpened] = useState(false);
   const [qrSrc, setQrSrc] = useState<string>(QR_FALLBACK);
+  const [secondsLeft, setSecondsLeft] = useState(PAYMENT_TIMEOUT);
+  const [expired, setExpired] = useState(false);
 
   const pkg = _selectedPackage;
   const target = getMLBBTarget();
@@ -72,6 +98,22 @@ export default function PaymentPage() {
       .catch(() => {});
   }, []);
 
+  // 5-minute countdown
+  useEffect(() => {
+    if (submitted) return;
+    const interval = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [submitted]);
+
   const refId = useMemo(() => `${Date.now()}`, []);
   const remark = useMemo(() => `SKY-${refId.slice(-8)}`, [refId]);
 
@@ -81,7 +123,11 @@ export default function PaymentPage() {
   }
 
   const amount = Number(pkg.price);
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
+  const upiParams = `pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
+  const upiLink    = `upi://pay?${upiParams}`;
+  const phonePeLink = `phonepe://pay?${upiParams}`;
+  const gpayLink   = `tez://upi/pay?${upiParams}`;
+  const paytmLink  = `paytmmp://pay?${upiParams}`;
 
   function downloadQR() {
     const a = document.createElement("a");
@@ -90,9 +136,9 @@ export default function PaymentPage() {
     a.click();
   }
 
-  function handlePayUPI() {
+  function openUPI(link: string) {
     setUpiOpened(true);
-    window.location.href = upiLink;
+    window.location.href = link;
   }
 
   async function confirmOrder() {
@@ -203,6 +249,31 @@ export default function PaymentPage() {
     );
   }
 
+  // ── Expired screen ──────────────────────────────────────────────────────
+  if (expired) {
+    return (
+      <div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px" }}>
+        <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(239,68,68,0.12)", border: "2px solid rgba(239,68,68,0.4)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="2"/>
+            <path d="M12 7v6" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round"/>
+            <circle cx="12" cy="17" r="1" fill="#ef4444"/>
+          </svg>
+        </div>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, textAlign: "center", marginBottom: 10 }}>Session Expired</div>
+        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, textAlign: "center", lineHeight: 1.6, marginBottom: 28, maxWidth: 300 }}>
+          The payment window has expired. Please go back and start a new transaction.
+        </div>
+        <button
+          onClick={() => setLocation(isCartMode ? "/cart" : "/packages")}
+          style={{ padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
   // ── Payment screen ──────────────────────────────────────────────────────
   return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", paddingBottom: 60 }}>
@@ -210,7 +281,7 @@ export default function PaymentPage() {
         @keyframes payIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes qrPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} 50%{box-shadow:0 0 0 8px rgba(245,158,11,0.1)} }
         @keyframes confirmBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-        @keyframes np-ring { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes urgentPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
       `}</style>
 
       {/* Header */}
@@ -246,9 +317,8 @@ export default function PaymentPage() {
                 : <>♦ {pkg.diamonds.toLocaleString()} Diamonds {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}>+{pkg.bonus_diamonds.toLocaleString()} bonus</span>}</>
               }
             </div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 20, padding: "4px 14px" }}>
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b" }} />
-              <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>Status: Pending</span>
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
+              <CountdownBadge seconds={secondsLeft} />
             </div>
           </div>
         </div>
@@ -283,27 +353,13 @@ export default function PaymentPage() {
 
         {/* ── QR Card ── */}
         <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden", animation: "payIn 0.4s ease 0.12s both" }}>
-          <div style={{ padding: "14px 20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>Scan to Pay</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>PhonePe · GPay · Paytm · BHIM · Any UPI app</div>
-            </div>
-            {/* Official payment app logos */}
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {[
-                { src: "/phonepe.jpg", alt: "PhonePe" },
-                { src: "/gpay.jpg",    alt: "GPay"    },
-                { src: "/paytm.jpg",   alt: "Paytm"   },
-              ].map(({ src, alt }) => (
-                <div key={alt} style={{ width: 32, height: 32, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: 3 }}>
-                  <img src={src} alt={alt} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                </div>
-              ))}
-            </div>
+          <div style={{ padding: "14px 20px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, marginBottom: 2 }}>Scan & Pay</div>
+            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>Use any UPI app to scan this QR code</div>
           </div>
 
           {/* QR Image */}
-          <div style={{ display: "flex", justifyContent: "center", padding: "20px 24px 16px" }}>
+          <div style={{ display: "flex", justifyContent: "center", padding: "20px 24px 12px" }}>
             <div style={{ background: "#fff", borderRadius: 16, padding: 14, animation: "qrPulse 3s ease-in-out infinite" }}>
               <img
                 src={qrSrc}
@@ -314,16 +370,62 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 10, padding: "0 20px 20px" }}>
-            <button onClick={downloadQR} style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+          {/* Download QR */}
+          <div style={{ padding: "0 20px 16px" }}>
+            <button onClick={downloadQR} style={{ width: "100%", padding: "10px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1.5px solid rgba(255,255,255,0.15)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v14m-7-7l7 7 7-7" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="19" width="18" height="2" rx="1" fill="#fff"/></svg>
               Download QR
             </button>
-            <button onClick={handlePayUPI} style={{ flex: 1, padding: "11px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, boxShadow: "0 4px 18px rgba(245,158,11,0.35)" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 22V12m0 0l-4 4m4-4l4 4" stroke="#000" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20 16.7A9 9 0 1 0 3.5 10" stroke="#000" strokeWidth="2" strokeLinecap="round"/></svg>
-              Pay with UPI
-            </button>
+          </div>
+
+          {/* UPI App Buttons */}
+          <div style={{ padding: "0 20px 20px" }}>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Or open directly in app</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {/* PhonePe */}
+              <button
+                onClick={() => openUPI(phonePeLink)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(95,55,240,0.1)", border: "1.5px solid rgba(95,55,240,0.35)", cursor: "pointer", transition: "all 0.18s" }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 2 }}>
+                  <img src="/phonepe.jpg" alt="PhonePe" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                </div>
+                <span style={{ color: "#a78bfa", fontWeight: 700, fontSize: 12 }}>PhonePe</span>
+              </button>
+
+              {/* GPay */}
+              <button
+                onClick={() => openUPI(gpayLink)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(66,133,244,0.1)", border: "1.5px solid rgba(66,133,244,0.35)", cursor: "pointer", transition: "all 0.18s" }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 2 }}>
+                  <img src="/gpay.jpg" alt="GPay" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                </div>
+                <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 12 }}>Google Pay</span>
+              </button>
+
+              {/* Paytm */}
+              <button
+                onClick={() => openUPI(paytmLink)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(0,186,127,0.08)", border: "1.5px solid rgba(0,186,127,0.3)", cursor: "pointer", transition: "all 0.18s" }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 2 }}>
+                  <img src="/paytm.jpg" alt="Paytm" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                </div>
+                <span style={{ color: "#34d399", fontWeight: 700, fontSize: 12 }}>Paytm</span>
+              </button>
+
+              {/* Other UPI */}
+              <button
+                onClick={() => openUPI(upiLink)}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(245,158,11,0.08)", border: "1.5px solid rgba(245,158,11,0.28)", cursor: "pointer", transition: "all 0.18s" }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 18a8 8 0 110-16 8 8 0 010 16z" fill="#f59e0b"/><path d="M8 12h8M12 8v8" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                </div>
+                <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 12 }}>Other UPI</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -352,7 +454,7 @@ export default function PaymentPage() {
           ) : (
             <div style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 13, padding: "4px 0" }}>
               <span style={{ fontSize: 18 }}>👆</span>
-              <div style={{ marginTop: 6 }}>Pay with UPI first, then confirm your order here</div>
+              <div style={{ marginTop: 6 }}>Open a UPI app above to pay, then confirm your order here</div>
             </div>
           )}
         </div>

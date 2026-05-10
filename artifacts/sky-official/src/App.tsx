@@ -90,6 +90,7 @@ const clerkAppearance = {
     main: "gap-5",
     socialButtons: "gap-2.5",
     formHeader: "hidden",
+    footerPages: "!hidden",
     internal__clerk_components_inner: "gap-5",
   },
 };
@@ -202,9 +203,11 @@ function CartNavIcon({ onClick }: { onClick: () => void }) {
 function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { getToken, isSignedIn } = useAuth();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -213,6 +216,17 @@ function Navbar() {
     }, 2500);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!isSignedIn) { setWalletBalance(null); return; }
+    getToken().then(token => {
+      if (!token) return;
+      fetch(`${API}/wallet`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" })
+        .then(r => r.json())
+        .then(data => setWalletBalance(Number(data.balance ?? 0)))
+        .catch(() => {});
+    });
+  }, [isSignedIn]);
 
   return (
     <nav
@@ -264,6 +278,15 @@ function Navbar() {
         </div>
       </button>
       <div className="flex items-center gap-2">
+        {isSignedIn && walletBalance !== null && (
+          <button
+            onClick={() => setLocation("/profile")}
+            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer" }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke="#f59e0b" strokeWidth="2"/><path d="M16 14a1 1 0 110-2 1 1 0 010 2z" fill="#f59e0b"/><path d="M2 11h20" stroke="#f59e0b" strokeWidth="2"/></svg>
+            <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: 800 }}>₹{walletBalance.toFixed(0)}</span>
+          </button>
+        )}
         <CartNavIcon onClick={() => setLocation("/cart")} />
         {isLoaded && (
           user ? (
@@ -450,16 +473,16 @@ function SharedVideoBg() {
   const videoRef1 = useRef<HTMLVideoElement>(null);
   const videoRefs = [videoRef0, videoRef1];
 
-  // Start the initial active video on mount
+  // Start BOTH videos playing on mount (muted) so they're always buffered.
+  // This is the most reliable approach across browsers and deployed environments:
+  // the inactive video stays playing at opacity 0, so it's ready to show instantly.
   useEffect(() => {
-    const v = videoRefs[startIdx.current].current;
-    if (!v) return;
-    v.muted = true;
-    v.currentTime = 0;
-    v.play().catch(() => {});
-    // Preload the other one silently
-    const other = videoRefs[startIdx.current === 0 ? 1 : 0].current;
-    if (other) { other.muted = true; other.load(); }
+    [videoRef0, videoRef1].forEach(ref => {
+      const v = ref.current;
+      if (!v) return;
+      v.muted = true;
+      v.play().catch(() => {});
+    });
   }, []);
 
   const handleEnded = (idx: number) => {
@@ -468,21 +491,15 @@ function SharedVideoBg() {
 
     const nextIdx = idx === 0 ? 1 : 0;
 
-    // Fade to black
+    // Rewind and restart the video that just ended (it'll keep playing silently in background)
+    const ended = videoRefs[idx].current;
+    if (ended) { ended.currentTime = 0; ended.play().catch(() => {}); }
+
+    // Crossfade to the other video
     setFadeBlack(true);
 
     setTimeout(() => {
-      // Prepare next video from start
-      const next = videoRefs[nextIdx].current;
-      if (next) { next.muted = true; next.currentTime = 0; next.play().catch(() => {}); }
-
-      // Pause the outgoing video
-      const prev = videoRefs[idx].current;
-      if (prev) { prev.pause(); }
-
       setActiveIdx(nextIdx);
-
-      // Fade back in
       setTimeout(() => {
         setFadeBlack(false);
         fadingRef.current = false;
@@ -667,18 +684,32 @@ function HowItWorks() {
 }
 
 // ── Live Ticker ────────────────────────────────────────────────────────────
+function maskName(name: string): string {
+  if (name.length <= 4) return name;
+  return "xxxx" + name.slice(-2);
+}
+
 function LiveTicker() {
-  const purchases = ["Hunter99 bought 514 Diamonds", "Shadow_X bought 1,048 Diamonds", "RajaGaming bought 257 Diamonds", "NightWolf bought 2,000 Diamonds", "StarPlayer bought 514 Diamonds", "GoldRush99 bought 1,048 Diamonds"];
+  const purchases = [
+    { name: "Hunter99",   amount: "514 diamonds"   },
+    { name: "Shadow_X",   amount: "1,048 diamonds" },
+    { name: "RajaGaming", amount: "257 diamonds"   },
+    { name: "NightWolf",  amount: "2,000 diamonds" },
+    { name: "StarPlayer", amount: "514 diamonds"   },
+    { name: "GoldRush99", amount: "1,048 diamonds" },
+    { name: "MLBBKing",   amount: "330 diamonds"   },
+    { name: "WarriorX9",  amount: "570 diamonds"   },
+  ];
   const doubled = [...purchases, ...purchases];
   return (
     <div className="py-2.5 overflow-hidden" style={{ background: "#fff", borderTop: "1px solid #eee", borderBottom: "1px solid #eee" }}>
       <div className="flex items-center gap-0">
         <div className="flex-shrink-0 px-3 py-1 flex items-center gap-1 font-bold" style={{ color: "#f59e0b", fontSize: 13 }}>⚡ Live Purchases</div>
         <div className="flex overflow-hidden">
-          <div className="flex gap-6 whitespace-nowrap" style={{ animation: "scrollTicker 20s linear infinite", willChange: "transform" }}>
+          <div className="flex gap-6 whitespace-nowrap" style={{ animation: "scrollTicker 24s linear infinite", willChange: "transform" }}>
             {doubled.map((p, i) => (
               <span key={i} className="text-gray-700 flex-shrink-0" style={{ fontSize: 13 }}>
-                <span className="font-bold text-amber-600">{p.split(" bought ")[0]}</span>{" bought "}<span className="font-bold">{p.split(" bought ")[1]}</span>
+                <span className="font-bold text-amber-600">{maskName(p.name)}</span>{" bought "}<span className="font-bold">{p.amount}</span>
                 <span className="ml-5 text-gray-300">|</span>
               </span>
             ))}
@@ -740,6 +771,17 @@ function Footer() {
             <a key={link} href="#" className="text-gray-400 hover:text-gray-700 transition-colors" style={{ textDecoration: "none", fontSize: 11 }}>{link}</a>
           ))}
         </div>
+        <div className="flex items-center gap-3 mt-1">
+          {[
+            { label: "Terms of Service", to: "/terms" },
+            { label: "Privacy Policy",   to: "/privacy" },
+            { label: "Refund Policy",    to: "/refund" },
+          ].map(({ label, to }) => (
+            <button key={to} onClick={() => setLocation(to)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#9ca3af", fontSize: 9.5 }}>
+              {label}
+            </button>
+          ))}
+        </div>
         <p
           className="text-gray-300 mt-2 select-none"
           style={{ fontSize: 9.5, cursor: "default" }}
@@ -761,7 +803,38 @@ function WhatsAppFAB() {
   );
 }
 
-// Module-level flag — resets on every hard refresh, survives in-page navigation
+// ── Why Choose Us ──────────────────────────────────────────────────────────
+function WhyChooseUs() {
+  const reasons = [
+    { icon: "⚡", title: "Instant Delivery",      desc: "Diamonds credited within minutes of payment. No waiting around." },
+    { icon: "🔒", title: "100% Secure",           desc: "All transactions are protected. We never store your payment details." },
+    { icon: "💰", title: "Best Prices",           desc: "Guaranteed lowest prices on all diamond packs — beat any deal." },
+    { icon: "🏆", title: "833+ Happy Gamers",     desc: "Join our growing community of satisfied MLBB players." },
+    { icon: "💬", title: "24/7 Support",          desc: "Reach us on WhatsApp anytime. Real humans, not bots." },
+    { icon: "♦",  title: "All Pack Types",        desc: "Small packs, normal, double diamond, passes, and rank boosting." },
+  ];
+  return (
+    <section className="py-10 px-5" style={{ background: "#f5f5f5" }}>
+      <div className="max-w-lg mx-auto">
+        <div className="text-center mb-6">
+          <div className="inline-block px-3.5 py-1 rounded-full font-bold uppercase tracking-widest mb-3" style={{ fontSize: 10, background: "rgba(245,158,11,0.12)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>Why Us</div>
+          <h2 className="text-gray-900 font-extrabold text-2xl">Why Choose Sky Official?</h2>
+          <p className="text-gray-400 mt-1" style={{ fontSize: 14 }}>Everything you need from a diamond top-up store</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {reasons.map((r, i) => (
+            <div key={i} className="rounded-xl p-3.5" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
+              <div className="text-2xl mb-2">{r.icon}</div>
+              <div className="font-bold text-gray-900 leading-tight" style={{ fontSize: 13, marginBottom: 4 }}>{r.title}</div>
+              <div className="text-gray-400 leading-snug" style={{ fontSize: 11 }}>{r.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 let introPlayedThisSession = false;
 
 // ── Main Site Page ─────────────────────────────────────────────────────────
@@ -783,6 +856,7 @@ function MainSite() {
           <HeroSection animate={introDone} />
           <StatsSection />
           <HowItWorks />
+          <WhyChooseUs />
           <LiveTicker />
           <WhatsAppSection />
           <Footer />
@@ -902,6 +976,10 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
           from { opacity: 0; transform: translate(-18px, -18px); }
           to   { opacity: 1; transform: translate(0, 0); }
         }
+        /* Hide Clerk's "Secured by Clerk" branding footer */
+        [class*="powered-by-clerk"], .cl-footer__pages,
+        .cl-internal-powered-by-clerk { display: none !important; }
+
         /* Force Clerk social buttons to have visible outline */
         .cl-socialButtonsBlockButton {
           background: #13151c !important;
@@ -1021,6 +1099,129 @@ function SignUpPage() {
   );
 }
 
+// ── Policy Page Shell ────────────────────────────────────────────────────────
+function PolicyPage({ title, children }: { title: string; children: React.ReactNode }) {
+  const [, setLocation] = useLocation();
+  return (
+    <div style={{ background: "#0a0a0a", minHeight: "100vh", paddingBottom: 48 }}>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 40, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px" }}>
+        <button onClick={() => setLocation("/")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{title}</div>
+      </div>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 20px 0" }}>
+        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 14, lineHeight: 1.8 }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TermsPage() {
+  return (
+    <PolicyPage title="Terms of Service">
+      <h2 style={{ color: "#f59e0b", fontWeight: 800, fontSize: 18, margin: "0 0 12px" }}>Terms of Service</h2>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 20 }}>Last updated: May 2026</p>
+
+      <p>By using Sky Official, you agree to the following terms. Please read them carefully before making any purchase.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>1. Services</h3>
+      <p>Sky Official provides Mobile Legends: Bang Bang diamond top-up services. We are an independent seller and are not affiliated with Moonton or Mobile Legends.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>2. Eligibility</h3>
+      <p>You must provide a valid MLBB User ID and Server ID for us to deliver diamonds. You are responsible for entering the correct account details. We are not liable for deliveries made to incorrectly provided accounts.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>3. Payment</h3>
+      <p>All payments are made via UPI. Payment is due before diamond delivery. Once payment is confirmed, the order will be processed. We do not store any payment card information.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>4. Delivery</h3>
+      <p>Diamonds are typically delivered within minutes of payment confirmation. During peak hours or technical issues, delivery may take up to 24 hours. We will keep you informed via WhatsApp if there are any delays.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>5. Account Security</h3>
+      <p>We will never ask for your MLBB account password. Never share your login credentials with anyone. We only require your MLBB User ID and Server ID for top-up.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>6. Prohibited Activities</h3>
+      <p>You may not use our services for fraudulent transactions, chargebacks, or any activity that violates Mobile Legends' terms of service.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>7. Changes</h3>
+      <p>We reserve the right to modify these terms at any time. Continued use of our service constitutes acceptance of any changes.</p>
+
+      <p style={{ marginTop: 24, color: "rgba(255,255,255,0.4)", fontSize: 12 }}>For questions, contact us on WhatsApp.</p>
+    </PolicyPage>
+  );
+}
+
+function PrivacyPage() {
+  return (
+    <PolicyPage title="Privacy Policy">
+      <h2 style={{ color: "#f59e0b", fontWeight: 800, fontSize: 18, margin: "0 0 12px" }}>Privacy Policy</h2>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 20 }}>Last updated: May 2026</p>
+
+      <p>Your privacy is important to us. This policy explains how Sky Official collects and uses your information.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Information We Collect</h3>
+      <p>We collect the following information when you use our service:</p>
+      <ul style={{ paddingLeft: 20, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+        <li>Your MLBB User ID and Server ID (to deliver diamonds)</li>
+        <li>Your email address (via Clerk authentication, for order confirmations)</li>
+        <li>Order history and transaction references</li>
+      </ul>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>How We Use Your Information</h3>
+      <ul style={{ paddingLeft: 20, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+        <li>To process and deliver your diamond orders</li>
+        <li>To send order confirmation and status emails</li>
+        <li>To provide customer support via WhatsApp</li>
+        <li>To maintain order history for your reference</li>
+      </ul>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Data Security</h3>
+      <p>We take data security seriously. We do not store payment card information. We do not sell or share your personal data with third parties. Authentication is handled by Clerk, a secure identity platform.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Cookies</h3>
+      <p>We use minimal cookies for authentication and session management. No tracking or advertising cookies are used.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Contact</h3>
+      <p>If you have questions about your data or this policy, contact us on WhatsApp.</p>
+    </PolicyPage>
+  );
+}
+
+function RefundPage() {
+  return (
+    <PolicyPage title="Refund Policy">
+      <h2 style={{ color: "#f59e0b", fontWeight: 800, fontSize: 18, margin: "0 0 12px" }}>Refund Policy</h2>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 20 }}>Last updated: May 2026</p>
+
+      <p>We want you to be completely satisfied with your purchase. Please read our refund policy carefully.</p>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Eligible for Refund</h3>
+      <ul style={{ paddingLeft: 20, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+        <li><strong style={{ color: "#fff" }}>Wrong account delivery:</strong> If diamonds were delivered to a wrong MLBB account due to our error, we will issue a full refund or re-deliver.</li>
+        <li><strong style={{ color: "#fff" }}>Duplicate payment:</strong> If you were charged twice for the same order, we will refund the extra charge.</li>
+        <li><strong style={{ color: "#fff" }}>Non-delivery:</strong> If payment was received but diamonds were not delivered within 24 hours, a full refund will be issued.</li>
+      </ul>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>Not Eligible for Refund</h3>
+      <ul style={{ paddingLeft: 20, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+        <li>Orders where the correct MLBB ID and Server ID were provided and diamonds were successfully delivered</li>
+        <li>Orders cancelled after diamonds have been delivered</li>
+        <li>Wrong account details provided by the customer</li>
+      </ul>
+
+      <h3 style={{ color: "#fff", fontWeight: 700, fontSize: 15, margin: "20px 0 8px" }}>How to Request a Refund</h3>
+      <p>Contact us on WhatsApp with your Order ID and the issue. Refund requests are reviewed within 24 hours. Approved refunds are processed within 2–3 business days to your original UPI account.</p>
+
+      <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, padding: "14px 16px", marginTop: 24 }}>
+        <p style={{ color: "#4ade80", fontWeight: 700, margin: "0 0 6px", fontSize: 14 }}>Our Commitment</p>
+        <p style={{ color: "rgba(255,255,255,0.6)", margin: 0, fontSize: 13 }}>We stand behind every transaction. If something goes wrong on our end, we will make it right. Customer satisfaction is our top priority.</p>
+      </div>
+    </PolicyPage>
+  );
+}
+
 // ── Persistent Navbar (outside page transitions so it never moves) ───────────
 function PersistentNavbar() {
   const [location] = useLocation();
@@ -1069,6 +1270,9 @@ function AppRoutes() {
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
           <Route path="/orders" component={OrderHistoryPage} />
+          <Route path="/terms" component={TermsPage} />
+          <Route path="/privacy" component={PrivacyPage} />
+          <Route path="/refund" component={RefundPage} />
           <Route component={MainSite} />
         </Switch>
       </TransitionProvider>

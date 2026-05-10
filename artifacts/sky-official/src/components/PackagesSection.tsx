@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
@@ -616,6 +616,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
+  const activeCategoryRef = useRef<Category | null>(null);
+  useEffect(() => { activeCategoryRef.current = activeCategory; }, [activeCategory]);
   useEffect(() => {
     fetch(`${API}/packages`)
       .then(r => r.json())
@@ -626,6 +628,30 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .then(data => setCategoryPopular(data || {}))
       .catch(() => {});
   }, []);
+
+  // Push browser history state when category is selected so device back button works
+  const selectCategory = (cat: Category) => {
+    window.history.pushState({ sky_cat: cat.id }, "");
+    setActiveCategory(cat);
+  };
+
+  useEffect(() => {
+    const handler = () => {
+      if (activeCategoryRef.current) {
+        setActiveCategory(null);
+      }
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
+  const handleBackBtn = () => {
+    if (activeCategory) {
+      window.history.back();
+    } else {
+      onBack?.();
+    }
+  };
 
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
 
@@ -656,6 +682,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         }
         @keyframes sl-pulse    { 0%,100%{transform:scale(0.93);opacity:0.85} 50%{transform:scale(1.07);opacity:1} }
         @keyframes rb-line     { 0%{opacity:0;transform:scaleY(0)} 40%{opacity:1} 100%{opacity:0;transform:scaleY(1) translateY(-30px)} }
+        @keyframes pkgPageIn   { from{opacity:0;transform:translateX(32px)} to{opacity:1;transform:translateX(0)} }
       `}</style>
 
       <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "min(560px, calc(100dvh * 9 / 16))", margin: "0 auto", padding: "0 16px" }}>
@@ -678,7 +705,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
 
         {/* Single back button — context-aware */}
         <button
-          onClick={() => activeCategory ? setActiveCategory(null) : onBack?.()}
+          onClick={handleBackBtn}
           style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
@@ -698,14 +725,14 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         {!activeCategory && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {CATEGORIES.map((cat, i) => (
-              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => setActiveCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} />
+              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => selectCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} />
             ))}
           </div>
         )}
 
-        {/* Pack list */}
+        {/* Pack list — animate in as a "page" transition when category selected */}
         {activeCategory && (
-          <>
+          <div key={activeCategory.id} style={{ animation: "pkgPageIn 0.38s cubic-bezier(0.22,1,0.36,1) both" }}>
             {loading && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
@@ -725,7 +752,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                 )}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </section>

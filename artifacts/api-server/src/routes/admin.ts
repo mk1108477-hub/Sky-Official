@@ -1,5 +1,7 @@
 import { Router } from "express";
 import pool from "../lib/db";
+import nodemailer from "nodemailer";
+import { createClerkClient } from "@clerk/express";
 
 const router = Router();
 
@@ -10,6 +12,83 @@ function requireAdmin(req: any, res: any, next: any) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
+}
+
+async function getClerkUserEmail(userId: string): Promise<string | null> {
+  if (!process.env.CLERK_SECRET_KEY || !userId) return null;
+  try {
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const user = await clerk.users.getUser(userId);
+    return user.emailAddresses[0]?.emailAddress ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_EMAIL_APP_PASSWORD) return;
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.NOTIFY_EMAIL,
+        pass: process.env.NOTIFY_EMAIL_APP_PASSWORD,
+      },
+    });
+    await transporter.sendMail({
+      from: `"Sky Official" <${process.env.NOTIFY_EMAIL}>`,
+      to,
+      subject: `Your ♦ ${Number(order.diamonds).toLocaleString()} Diamonds are delivered! — Sky Official`,
+      html: `
+        <div style="font-family:Inter,sans-serif;background:#0a0a0a;color:#f9fafb;padding:32px;max-width:480px;margin:0 auto;border-radius:16px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="width:56px;height:56px;border-radius:50%;border:2px solid #f59e0b;margin:0 auto;overflow:hidden;background:#111;">
+              <img src="https://skyofficial.replit.app/logo.jpg" alt="Sky Official" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+            <h1 style="color:#f59e0b;margin:12px 0 4px;font-size:22px;font-weight:800;">Sky Official</h1>
+            <p style="color:rgba(255,255,255,0.4);margin:0;font-size:13px;letter-spacing:0.1em;">MLBB DIAMOND TOP-UP</p>
+          </div>
+          <div style="background:#111;border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:20px;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span style="font-size:18px;">✅</span>
+              </div>
+              <div>
+                <div style="color:#4ade80;font-weight:700;font-size:16px;">Order Completed!</div>
+                <div style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:2px;">Your diamonds have been delivered</div>
+              </div>
+            </div>
+            <p style="color:rgba(255,255,255,0.6);margin:0 0 16px;font-size:14px;line-height:1.7;">
+              Your Mobile Legends diamonds have been successfully delivered to your account. Thank you for choosing Sky Official — your trusted MLBB top-up partner!
+            </p>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr>
+                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Order ID</td>
+                <td style="color:#fff;text-align:right;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);">#${order.id}</td>
+              </tr>
+              <tr>
+                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Diamonds</td>
+                <td style="color:#f59e0b;text-align:right;font-size:14px;font-weight:800;border-bottom:1px solid rgba(255,255,255,0.06);">♦ ${Number(order.diamonds).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Amount Paid</td>
+                <td style="color:#fff;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">₹${Number(order.price).toLocaleString("en-IN")}</td>
+              </tr>
+              ${order.mlbb_id ? `<tr><td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;">MLBB ID</td><td style="color:#fff;text-align:right;font-size:13px;">${order.mlbb_id}</td></tr>` : ""}
+            </table>
+          </div>
+          <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:16px;">
+            💬 Need help or have questions? Contact us on <strong style="color:#25d366;">WhatsApp</strong> for instant support.
+          </div>
+          <p style="color:rgba(255,255,255,0.2);font-size:11px;text-align:center;margin:0;">
+            © 2026 Sky Official. All rights reserved.
+          </p>
+        </div>
+      `,
+    });
+  } catch {
+    // Email send failure is non-fatal
+  }
 }
 
 router.post("/login", (req, res) => {
@@ -113,7 +192,17 @@ router.put("/orders/:id", requireAdmin, async (req, res): Promise<void> => {
       [status, note || null, id]
     );
     if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
-    res.json(rows[0]);
+    const order = rows[0];
+
+    // Send completion email when order is marked as completed
+    if (status === "completed" && order.clerk_user_id) {
+      const email = await getClerkUserEmail(order.clerk_user_id);
+      if (email) {
+        sendOrderCompletedEmail(email, order).catch(() => {});
+      }
+    }
+
+    res.json(order);
   } catch (err) {
     res.status(500).json({ error: "DB error" });
   }

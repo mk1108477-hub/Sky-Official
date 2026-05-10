@@ -331,7 +331,7 @@ function TransitionProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const navigateTo = useCallback((to: string, d: TransDir) => {
     setDir(d); setExiting(true); setHasNavigated(true);
-    setTimeout(() => { setExiting(false); setLocation(to); }, 340);
+    setTimeout(() => { setExiting(false); setLocation(to); }, 480);
   }, [setLocation]);
   return <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo }}>{children}</TransCtx.Provider>;
 }
@@ -411,9 +411,9 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
       } else {
         // Spring back with slight overshoot
         if (el) {
-          el.style.transition = "transform 0.32s cubic-bezier(0.34,1.56,0.64,1)";
+          el.style.transition = "transform 0.48s cubic-bezier(0.34,1.56,0.64,1)";
           el.style.transform  = "translateX(0)";
-          setTimeout(() => { if (containerRef.current) { containerRef.current.style.transition = ""; containerRef.current.style.transform = ""; } }, 360);
+          setTimeout(() => { if (containerRef.current) { containerRef.current.style.transition = ""; containerRef.current.style.transform = ""; } }, 520);
         }
       }
     };
@@ -441,8 +441,8 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   }
 
   const anim = exiting
-    ? (dir === "forward" ? "pgSwipeOutLeft 0.34s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.34s cubic-bezier(0.55,0,0.9,0.5) both")
-    : (dir === "forward" ? "pgSwipeInRight 0.42s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.42s cubic-bezier(0.16,1,0.3,1) both");
+    ? (dir === "forward" ? "pgSwipeOutLeft 0.48s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.48s cubic-bezier(0.55,0,0.9,0.5) both")
+    : (dir === "forward" ? "pgSwipeInRight 0.62s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.62s cubic-bezier(0.16,1,0.3,1) both");
   return (
     <div ref={containerRef} style={{ animation: anim, willChange: "transform", position: "relative", zIndex: 1 }}>
       <style>{`
@@ -457,63 +457,55 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
 }
 
 // ── Shared persistent video background (home + packages only) ────────────────
-const VIDEOS = ["/hero.mp4", "/bg-video.mp4"];
+const VIDEOS = ["/bg1.mp4", "/bg2.mp4"];
 
 function SharedVideoBg() {
   const [location] = useLocation();
   const active = location === "/" || location === "/packages";
 
-  // Random starting index, fixed for this mount
-  const startIdx = useRef(Math.random() < 0.5 ? 0 : 1);
-  const [activeIdx, setActiveIdx] = useState(startIdx.current);
+  // Pick ONE video randomly at mount — fixed for the whole session
+  const chosenIdx = useRef(Math.random() < 0.5 ? 0 : 1);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [fadeBlack, setFadeBlack] = useState(false);
-  const fadingRef = useRef(false);
+  const loopingRef = useRef(false);
 
-  const videoRef0 = useRef<HTMLVideoElement>(null);
-  const videoRef1 = useRef<HTMLVideoElement>(null);
-  const videoRefs = [videoRef0, videoRef1];
-
-  // Start videos only after the intro loading screen finishes.
-  // If the intro has already played this session (e.g. navigating back to "/"),
-  // play immediately. Otherwise wait for the "skyIntroDone" custom event.
+  // Start video only after the intro loading screen finishes
   useEffect(() => {
-    const startVideos = () => {
-      [videoRef0, videoRef1].forEach(ref => {
-        const v = ref.current;
-        if (!v) return;
-        v.muted = true;
-        v.play().catch(() => {});
-      });
+    const startVideo = () => {
+      const v = videoRef.current;
+      if (!v) return;
+      v.muted = true;
+      v.play().catch(() => {});
     };
 
     if (introPlayedThisSession) {
-      startVideos();
+      startVideo();
     } else {
-      window.addEventListener("skyIntroDone", startVideos, { once: true });
-      return () => window.removeEventListener("skyIntroDone", startVideos);
+      window.addEventListener("skyIntroDone", startVideo, { once: true });
+      return () => window.removeEventListener("skyIntroDone", startVideo);
     }
   }, []);
 
-  const handleEnded = (idx: number) => {
-    if (fadingRef.current) return;
-    fadingRef.current = true;
+  const handleEnded = () => {
+    if (loopingRef.current) return;
+    loopingRef.current = true;
 
-    const nextIdx = idx === 0 ? 1 : 0;
-
-    // Rewind and restart the video that just ended (it'll keep playing silently in background)
-    const ended = videoRefs[idx].current;
-    if (ended) { ended.currentTime = 0; ended.play().catch(() => {}); }
-
-    // Crossfade to the other video
+    // Fade to black
     setFadeBlack(true);
 
     setTimeout(() => {
-      setActiveIdx(nextIdx);
+      // Rewind and replay the same video
+      const v = videoRef.current;
+      if (v) {
+        v.currentTime = 0;
+        v.play().catch(() => {});
+      }
+      // Fade back in after a brief black hold
       setTimeout(() => {
         setFadeBlack(false);
-        fadingRef.current = false;
-      }, 80);
-    }, 650);
+        loopingRef.current = false;
+      }, 120);
+    }, 720);
   };
 
   return (
@@ -523,27 +515,23 @@ function SharedVideoBg() {
       height: "100dvh", zIndex: 0, overflow: "hidden", pointerEvents: "none",
       opacity: active ? 1 : 0, transition: "opacity 0.5s ease",
     }}>
-      {VIDEOS.map((src, i) => (
-        <video
-          key={src}
-          ref={videoRefs[i]}
-          src={src}
-          muted playsInline preload="auto"
-          onEnded={() => handleEnded(i)}
-          style={{
-            position: "absolute", inset: 0,
-            width: "100%", height: "100%", objectFit: "cover",
-            opacity: activeIdx === i ? 0.32 : 0,
-            transition: "opacity 0s",
-          }}
-        />
-      ))}
-      {/* Black crossfade overlay */}
+      <video
+        ref={videoRef}
+        src={VIDEOS[chosenIdx.current]}
+        muted playsInline preload="auto"
+        onEnded={handleEnded}
+        style={{
+          position: "absolute", inset: 0,
+          width: "100%", height: "100%", objectFit: "cover",
+          opacity: 0.32,
+        }}
+      />
+      {/* Black crossfade overlay for loop transitions */}
       <div style={{
         position: "absolute", inset: 0,
         background: "#000",
         opacity: fadeBlack ? 1 : 0,
-        transition: fadeBlack ? "opacity 0.6s ease" : "opacity 0.6s ease",
+        transition: "opacity 0.72s ease",
         pointerEvents: "none",
       }} />
       <div style={{

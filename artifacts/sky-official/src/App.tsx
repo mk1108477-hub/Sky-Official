@@ -223,7 +223,7 @@ function Navbar() {
     if (!isSignedIn) { setWalletBalance(null); return; }
     getToken().then(token => {
       if (!token) return;
-      fetch(`${API}/wallet`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" })
+      fetch(`${API}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" })
         .then(r => r.json())
         .then(data => setWalletBalance(Number(data.balance ?? 0)))
         .catch(() => {});
@@ -339,7 +339,7 @@ function TransitionProvider({ children }: { children: React.ReactNode }) {
 }
 function usePageNav() { return useContext(TransCtx); }
 
-function AnimatedPage({ children }: { children: React.ReactNode }) {
+function AnimatedPage({ children, skipPageAnim = false }: { children: React.ReactNode; skipPageAnim?: boolean }) {
   const { dir, exiting, hasNavigated, navigateTo } = usePageNav();
   const [location] = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -434,7 +434,7 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
 
   // Before first button-nav: still render the wrapper so sections sit above
   // the fixed video (position:relative z-index:1 creates the needed stacking context)
-  if (!hasNavigated) {
+  if (!hasNavigated || skipPageAnim) {
     return (
       <div ref={containerRef} style={{ position: "relative", zIndex: 1 }}>
         {children}
@@ -922,7 +922,7 @@ function PackagesPage() {
   }
 
   return (
-    <AnimatedPage>
+    <AnimatedPage skipPageAnim>
       <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, overflowX: "hidden" }}>
         <style>{`
           @keyframes pkgSlideLeft {

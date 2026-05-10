@@ -693,21 +693,30 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
 
       <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "min(560px, calc(100dvh * 9 / 16))", margin: "0 auto", padding: "0 16px" }}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999,
-            background: "rgba(245,200,40,0.1)", border: "1px solid rgba(245,200,40,0.3)",
-            color: "#f5c842", fontSize: 11, fontWeight: 700, letterSpacing: "0.18em",
-            textTransform: "uppercase", marginBottom: 12,
-            animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.1s both" }}>
-            Our Packages
-          </div>
-          <h2 style={{ color: "#fff", fontSize: "clamp(1.6rem,6vw,2.2rem)", fontWeight: 800, lineHeight: 1.2, margin: 0, animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.2s both" }}>
-            {activeCategory ? activeCategory.title : "Choose Your Pack"}
-          </h2>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 8, animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.28s both" }}>
-            {activeCategory ? "Tap a pack to purchase" : "Tap a category to view available packs"}
-          </p>
-        </div>
+        {(() => {
+          const exitHeader = isExiting && !activeCategory;
+          const hdrAnim = (delay: number) =>
+            exitHeader
+              ? `catSlideOut 0.38s cubic-bezier(0.55,0,0.9,0.5) ${delay}s both`
+              : `catSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) ${delay}s both`;
+          return (
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999,
+                background: "rgba(245,200,40,0.1)", border: "1px solid rgba(245,200,40,0.3)",
+                color: "#f5c842", fontSize: 11, fontWeight: 700, letterSpacing: "0.18em",
+                textTransform: "uppercase", marginBottom: 12,
+                animation: hdrAnim(0) }}>
+                Our Packages
+              </div>
+              <h2 style={{ color: "#fff", fontSize: "clamp(1.6rem,6vw,2.2rem)", fontWeight: 800, lineHeight: 1.2, margin: 0, animation: hdrAnim(exitHeader ? 0.04 : 0.09) }}>
+                {activeCategory ? activeCategory.title : "Choose Your Pack"}
+              </h2>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 8, animation: hdrAnim(exitHeader ? 0.08 : 0.16) }}>
+                {activeCategory ? "Tap a pack to purchase" : "Tap a category to view available packs"}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Single back button — context-aware */}
         <button
@@ -718,7 +727,9 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
             borderRadius: 999, padding: "7px 16px 7px 12px",
             color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600,
             cursor: "pointer", marginBottom: 20,
-            animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.34s both",
+            animation: isExiting && !activeCategory
+              ? `catSlideOut 0.38s cubic-bezier(0.55,0,0.9,0.5) 0.12s both`
+              : `catSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) 0.22s both`,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

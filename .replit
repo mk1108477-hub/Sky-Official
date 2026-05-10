@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+modules = ["nodejs-20", "python-3.12", "web"]
 
   [deployment]
   router = "application"
@@ -33,7 +33,7 @@ args = "bash scripts/start.sh"
 waitForPort = 5000
 
   [agent]
-  stack = "BEST_EFFORT_FALLBACK"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
   [postMerge]
@@ -85,7 +85,7 @@ localPort = 24534
 externalPort = 80
 
   [nix]
-  channel = "stable-25_05"
+channel = "stable-25_05"
 
   [userenv]
 

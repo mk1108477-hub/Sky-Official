@@ -6,12 +6,15 @@ fuser -k 5000/tcp 2>/dev/null || true
 fuser -k 8080/tcp 2>/dev/null || true
 fuser -k 24534/tcp 2>/dev/null || true
 
-# Install deps once at the root
+# Install deps once at the root (ensures all binaries like esbuild are present)
 pnpm -w install
+
+# Build API server (esbuild is in devDependencies of api-server, installed above)
+echo "[start] Building API server..."
+cd artifacts/api-server && node ./build.mjs && cd ../..
 
 # Start API server in background
 echo "[start] Starting API server on port 8080..."
-PORT=8080 pnpm --filter @workspace/api-server run build
 PORT=8080 NODE_ENV=development node --enable-source-maps artifacts/api-server/dist/index.mjs &
 API_PID=$!
 

@@ -464,7 +464,7 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
 }
 
 // ── Individual pack card (small / normal / double) ──────────────────────────
-function PackCard({ pack, isDouble, onBuy, onAddToCart }: { pack: Package; isDouble?: boolean; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
+function PackCard({ pack, isDouble, index, onBuy, onAddToCart }: { pack: Package; isDouble?: boolean; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
   const [cartFlash, setCartFlash] = useState(false);
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
@@ -485,6 +485,7 @@ function PackCard({ pack, isDouble, onBuy, onAddToCart }: { pack: Package; isDou
         overflow: "hidden", display: "flex", flexDirection: "column",
         boxShadow: pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)",
         position: "relative", cursor: "pointer",
+        animation: `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
       }}
       onMouseEnter={e => {
@@ -539,7 +540,7 @@ function PackCard({ pack, isDouble, onBuy, onAddToCart }: { pack: Package; isDou
 }
 
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
-function PassCard({ pack, onBuy, onAddToCart }: { pack: Package; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
+function PassCard({ pack, index, onBuy, onAddToCart }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
   const [cartFlash, setCartFlash] = useState(false);
 
   function handleAddToCart(e: React.MouseEvent) {
@@ -558,6 +559,7 @@ function PassCard({ pack, onBuy, onAddToCart }: { pack: Package; onBuy?: (pkg: P
         overflow: "hidden", display: "flex", flexDirection: "column",
         boxShadow: "0 0 18px rgba(168,85,247,0.18)",
         position: "relative", cursor: "pointer",
+        animation: `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
       }}
       onMouseEnter={e => {
@@ -747,9 +749,9 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           </div>
         )}
 
-        {/* Pack list — animate in as a "page" transition when category selected */}
+        {/* Pack list — individual stagger slide-in from right */}
         {activeCategory && (
-          <div key={activeCategory.id} style={{ animation: "pkgPageIn 0.38s cubic-bezier(0.22,1,0.36,1) both" }}>
+          <div key={activeCategory.id}>
             {loading && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
@@ -762,10 +764,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
             )}
             {!loading && activePacks.length > 0 && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                {activePacks.map(pack =>
+                {activePacks.map((pack, i) =>
                   activeCategory?.id === "passes"
-                    ? <PassCard key={pack.id} pack={pack} onBuy={onBuy} onAddToCart={onAddToCart} />
-                    : <PackCard key={pack.id} pack={pack} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} />
+                    ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} />
+                    : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} />
                 )}
               </div>
             )}

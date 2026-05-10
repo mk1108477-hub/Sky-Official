@@ -204,10 +204,12 @@ function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { getToken, isSignedIn } = useAuth();
+
+  const hideWallet = location === "/mlbb-target" || location === "/pay";
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -278,16 +280,16 @@ function Navbar() {
         </div>
       </button>
       <div className="flex items-center gap-2">
-        {isSignedIn && walletBalance !== null && (
+        <CartNavIcon onClick={() => setLocation("/cart")} />
+        {isSignedIn && walletBalance !== null && !hideWallet && (
           <button
             onClick={() => setLocation("/profile")}
-            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer", flexShrink: 0 }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke="#f59e0b" strokeWidth="2"/><path d="M16 14a1 1 0 110-2 1 1 0 010 2z" fill="#f59e0b"/><path d="M2 11h20" stroke="#f59e0b" strokeWidth="2"/></svg>
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: 800 }}>₹{walletBalance.toFixed(0)}</span>
           </button>
         )}
-        <CartNavIcon onClick={() => setLocation("/cart")} />
         {isLoaded && (
           user ? (
             <div className="flex items-center gap-1.5">
@@ -879,7 +881,7 @@ function AdminPage() {
 
 // ── Packages Page ──────────────────────────────────────────────────────────
 function PackagesPage() {
-  const { navigateTo } = usePageNav();
+  const { navigateTo, exiting } = usePageNav();
   const [, setLocation] = useLocation();
   const { getToken, isSignedIn } = useAuth();
   const [mlbbVerified, setMlbbVerified] = useState<boolean | null>(null);
@@ -953,7 +955,7 @@ function PackagesPage() {
           </div>
         )}
         {mlbbVerified !== false && <div style={{ paddingTop: 72 }} />}
-        <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} />
+        <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} isExiting={exiting} />
       </div>
     </AnimatedPage>
   );

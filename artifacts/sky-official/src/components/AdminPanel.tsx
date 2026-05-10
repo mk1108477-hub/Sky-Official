@@ -367,29 +367,34 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
           : { background: "#111", border: "1px solid rgba(245,158,11,0.3)", boxShadow: "0 0 60px rgba(245,158,11,0.15)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" style={{ background: "#111", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          {fullPage ? (
-            <button onClick={onClose} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-semibold">
-              <span style={{ fontSize: 20, lineHeight: 1 }}>←</span> Back
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span style={{ color: "#f59e0b", fontSize: 18 }}>🔑</span>
-              <span className="font-bold text-white text-base">Admin Panel</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
-            </div>
-          )}
-          {fullPage && (
-            <div className="flex items-center gap-2">
-              <span style={{ color: "#f59e0b", fontSize: 16 }}>🔑</span>
-              <span className="font-bold text-white text-sm">Admin Panel</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>Sky Official</span>
-            </div>
-          )}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ background: "#111", borderBottom: "1px solid rgba(255,255,255,0.07)", minHeight: 52 }}>
+          {/* Left: back / title */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {fullPage ? (
+              <button onClick={onClose} className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm font-semibold">
+                <span style={{ fontSize: 18, lineHeight: 1 }}>←</span> Back
+              </button>
+            ) : (
+              <>
+                <span style={{ color: "#f59e0b", fontSize: 17 }}>🔑</span>
+                <span className="font-bold text-white text-sm">Admin Panel</span>
+              </>
+            )}
+          </div>
+
+          {/* Right: compact actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {authed && notifButton()}
             {authed && (
-              <button onClick={logout} className="text-xs text-gray-400 hover:text-red-400 transition-colors">Sign out</button>
+              <button
+                onClick={logout}
+                className="flex items-center justify-center text-xs font-semibold transition-colors"
+                style={{ color: "#6b7280", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "5px 10px", whiteSpace: "nowrap" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#f87171")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#6b7280")}
+              >
+                Sign out
+              </button>
             )}
             {!fullPage && (
               <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-lg leading-none">×</button>

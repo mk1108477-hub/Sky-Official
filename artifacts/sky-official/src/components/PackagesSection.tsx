@@ -376,8 +376,12 @@ function ImagePane({ src }: { src: string }) {
 }
 
 // ── Category card ───────────────────────────────────────────────────────────
-function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; onClick: () => void; index: number; isPopularNow?: boolean }) {
-  const delay = 0.42 + index * 0.13;
+function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: Category; onClick: () => void; index: number; isPopularNow?: boolean; isExiting?: boolean }) {
+  const enterDelay = 0.06 + index * 0.09;
+  const exitDelay  = index * 0.055;
+  const anim = isExiting
+    ? `catSlideOut 0.42s cubic-bezier(0.55,0,0.9,0.5) ${exitDelay}s both`
+    : `catSlideIn 0.58s cubic-bezier(0.22,1,0.36,1) ${enterDelay}s both`;
   return (
     <div
       onClick={() => cat.available && onClick()}
@@ -389,7 +393,7 @@ function CategoryCard({ cat, onClick, index, isPopularNow }: { cat: Category; on
         boxShadow: cat.available ? `0 0 20px ${cat.glow}` : "none",
         opacity: cat.available ? 1 : 0.55,
         backdropFilter: "blur(6px)",
-        animation: `pkgSlideLeft 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
+        animation: anim,
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
         position: "relative",
       }}
@@ -611,7 +615,7 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
 }
 
 // ── Main section ────────────────────────────────────────────────────────────
-export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, onAddToCart }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void }) {
+export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, onAddToCart, isExiting }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -658,8 +662,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   return (
     <section style={{ position: "relative", background: "transparent", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
       <style>{`
-        @keyframes pkg-diagIn  { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
+        @keyframes pkg-diagIn   { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes catSlideIn   { from{opacity:0;transform:translateX(56px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes catSlideOut  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(56px)} }
         @keyframes sp-bob1     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes sp-bob2     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes sp-bob3     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
@@ -725,7 +731,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         {!activeCategory && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {CATEGORIES.map((cat, i) => (
-              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => selectCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} />
+              <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => selectCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} isExiting={isExiting && !activeCategory} />
             ))}
           </div>
         )}

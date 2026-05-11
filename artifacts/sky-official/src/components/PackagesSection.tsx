@@ -506,35 +506,35 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
     setTimeout(() => setCartFlash(false), 900);
   }
 
+  const glowBg = pack.is_popular ? "rgba(245,158,11,0.55)" : isDouble ? "rgba(0,229,255,0.5)" : "rgba(56,189,248,0.38)";
   return (
-    <div
+    <div style={{ position: "relative" }}>
+      {/* Backlight — blurred glow sits BEHIND the card */}
+      <div style={{ position: "absolute", inset: "-3px", borderRadius: 22, background: glowBg, filter: "blur(12px)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, zIndex: 0, pointerEvents: "none" }} />
+      <div
       style={{
-        background: "rgba(14,14,14,0.82)", borderRadius: 18,
+        background: "rgba(14,14,14,0.88)", borderRadius: 18,
         backdropFilter: "blur(6px)",
-        border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.6)" : isDouble ? "1.5px solid rgba(0,229,255,0.35)" : "1px solid rgba(255,255,255,0.08)",
+        border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.5)" : isDouble ? "1.5px solid rgba(0,229,255,0.3)" : "1px solid rgba(255,255,255,0.08)",
         overflow: "hidden", display: "flex", flexDirection: "column",
-        boxShadow: pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)",
-        position: "relative", cursor: isUnavailable ? "default" : "pointer",
+        boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+        position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
           ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
           : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
-        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        transition: "transform 0.18s ease",
       }}
       onMouseEnter={e => {
         if (isUnavailable) return;
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "translateY(-3px) scale(1.02)";
-        el.style.boxShadow = pack.is_popular ? "0 8px 36px rgba(245,158,11,0.4)" : isDouble ? "0 8px 28px rgba(0,229,255,0.3)" : "0 8px 28px rgba(0,0,0,0.6)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "";
-        el.style.boxShadow = pack.is_popular ? "0 0 24px rgba(245,158,11,0.25)" : isDouble ? "0 0 18px rgba(0,229,255,0.18)" : "0 2px 12px rgba(0,0,0,0.4)";
       }}
     >
-      {/* Pulsing glow overlay */}
-      <div style={{ position: "absolute", inset: 0, borderRadius: 18, boxShadow: `inset 0 0 14px 3px ${glowColor}`, animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, pointerEvents: "none", zIndex: 2 }} />
 
       {pack.status === "out_of_stock" && (
         <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(239,68,68,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Out of Stock</div>
@@ -586,6 +586,7 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -604,34 +605,33 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
   }
 
   return (
-    <div
+    <div style={{ position: "relative" }}>
+      {/* Backlight — blurred glow sits BEHIND the card */}
+      <div style={{ position: "absolute", inset: "-3px", borderRadius: 22, background: "rgba(168,85,247,0.5)", filter: "blur(12px)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, zIndex: 0, pointerEvents: "none" }} />
+      <div
       style={{
-        background: "rgba(14,14,14,0.82)", borderRadius: 18,
+        background: "rgba(14,14,14,0.88)", borderRadius: 18,
         backdropFilter: "blur(6px)",
-        border: "1.5px solid rgba(168,85,247,0.35)",
+        border: "1.5px solid rgba(168,85,247,0.3)",
         overflow: "hidden", display: "flex", flexDirection: "column",
-        boxShadow: "0 0 18px rgba(168,85,247,0.18)",
-        position: "relative", cursor: isUnavailable ? "default" : "pointer",
+        boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+        position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
           ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
           : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
-        transition: "transform 0.18s ease, box-shadow 0.18s ease",
+        transition: "transform 0.18s ease",
       }}
       onMouseEnter={e => {
         if (isUnavailable) return;
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "translateY(-3px) scale(1.02)";
-        el.style.boxShadow = "0 8px 28px rgba(168,85,247,0.3)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "";
-        el.style.boxShadow = "0 0 18px rgba(168,85,247,0.18)";
       }}
     >
-      {/* Pulsing glow overlay */}
-      <div style={{ position: "absolute", inset: 0, borderRadius: 18, boxShadow: "inset 0 0 14px 3px rgba(168,85,247,0.2)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, pointerEvents: "none", zIndex: 2 }} />
 
       {pack.status === "out_of_stock" && (
         <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(239,68,68,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Out of Stock</div>
@@ -663,6 +663,7 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -752,7 +753,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
         @keyframes catSlideIn   { from{opacity:0;transform:translateX(110%)} to{opacity:1;transform:translateX(0)} }
         @keyframes catSlideOut  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(110%)} }
-        @keyframes packGlow     { 0%,100%{opacity:0.35} 50%{opacity:1} }
+        @keyframes packGlow     { 0%,100%{opacity:0.3;transform:scale(0.96)} 50%{opacity:1;transform:scale(1.04)} }
         @keyframes sp-bob1     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes sp-bob2     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
         @keyframes sp-bob3     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }

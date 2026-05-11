@@ -363,22 +363,41 @@ function getPassImage(name: string | null, cfg: PassImagesCfg = DEFAULT_PASS_IMA
 
 function ImagePane({ src }: { src: string }) {
   return (
-    <div style={{ position: "relative", height: 130, overflow: "hidden", flexShrink: 0, background: "#0d0d14" }}>
+    <div style={{
+      position: "relative", height: 148, overflow: "hidden", flexShrink: 0,
+      background: "radial-gradient(ellipse at 50% 65%, #0c1a2e 0%, #080a10 100%)",
+    }}>
+      {/* Ambient glow layer */}
+      <div style={{
+        position: "absolute", inset: 0, zIndex: 0,
+        background: "radial-gradient(ellipse at 50% 70%, rgba(200,160,40,0.10) 0%, transparent 68%)",
+        pointerEvents: "none",
+      }} />
       <img
         src={src}
         alt=""
         style={{
-          width: "100%", height: "100%",
-          objectFit: "contain", objectPosition: "center center",
+          position: "absolute",
+          inset: 0,
+          width: "100%", height: "108%",
+          objectFit: "cover",
+          objectPosition: "center 45%",
           display: "block",
-          imageRendering: "high-quality" as React.CSSProperties["imageRendering"],
           transform: "translateZ(0)",
-          padding: "6px 4px 0",
+          filter: "drop-shadow(0 6px 18px rgba(56,189,248,0.22)) brightness(1.06) saturate(1.15)",
+          zIndex: 1,
         }}
       />
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28,
-        background: "linear-gradient(to top, #0d0d14 0%, rgba(13,13,20,0.6) 55%, transparent 100%)",
-        zIndex: 1, pointerEvents: "none" }} />
+      {/* Top vignette */}
+      <div style={{
+        position: "absolute", top: 0, left: 0, right: 0, height: 22, zIndex: 2, pointerEvents: "none",
+        background: "linear-gradient(to bottom, rgba(8,10,16,0.7) 0%, transparent 100%)",
+      }} />
+      {/* Bottom fade into card body */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, right: 0, height: 42, zIndex: 2, pointerEvents: "none",
+        background: "linear-gradient(to top, rgba(14,14,14,0.96) 0%, rgba(14,14,14,0.55) 55%, transparent 100%)",
+      }} />
     </div>
   );
 }

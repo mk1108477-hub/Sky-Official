@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
+interface OfferBanner { id: string; title: string; subtitle?: string; emoji?: string; bgGradient?: string; ctaText?: string; ctaLink?: string; }
+
 interface Package {
   id: number;
   name: string | null;
@@ -12,6 +14,7 @@ interface Package {
   is_popular: boolean;
   sort_order: number;
   category: string | null;
+  status?: string;
 }
 
 interface Order {
@@ -66,7 +69,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [editingPkg, setEditingPkg] = useState<Package | null>(null);
-  const [newPkg, setNewPkg] = useState({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small" });
+  const [newPkg, setNewPkg] = useState({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small", status: "available" });
   const [loading, setLoading] = useState(false);
   const [showAddPkg, setShowAddPkg] = useState(false);
   const [newOrder, setNewOrder] = useState({ diamonds: "", price: "", mlbb_id: "", status: "completed", note: "" });
@@ -80,6 +83,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [qrSaving, setQrSaving] = useState(false);
   const [qrSaved, setQrSaved] = useState(false);
   const qrInputRef = useRef<HTMLInputElement>(null);
+  const [trustpilotUrl, setTrustpilotUrl] = useState("");
+  const [trustpilotEnabled, setTrustpilotEnabled] = useState(false);
+  const [trustpilotSaving, setTrustpilotSaving] = useState(false);
+  const [trustpilotSaved, setTrustpilotSaved] = useState(false);
+  const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [bannersSaving, setBannersSaving] = useState(false);
+  const [showAddBanner, setShowAddBanner] = useState(false);
+  const [newBanner, setNewBanner] = useState({ emoji: "", title: "", subtitle: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b69)", ctaText: "", ctaLink: "" });
 
   // Push notifications
   const [notifState, setNotifState] = useState<NotifState>("unknown");
@@ -194,6 +205,56 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     }
   }, [token]);
 
+  const fetchTrustpilot = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/trustpilot`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      setTrustpilotUrl(data.url || "");
+      setTrustpilotEnabled(data.enabled || false);
+    }
+  }, [token]);
+
+  const fetchBanners = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/offer_banners`, { headers });
+    if (res.ok) setBanners(await res.json());
+  }, [token]);
+
+  const saveBanners = async (updated: OfferBanner[]) => {
+    setBannersSaving(true);
+    await fetch(`${API}/admin/settings/offer_banners`, { method: "PUT", headers, body: JSON.stringify(updated) });
+    setBanners(updated);
+    setBannersSaving(false);
+  };
+
+  const addBanner = () => {
+    if (!newBanner.title.trim()) return;
+    const banner: OfferBanner = {
+      id: Date.now().toString(),
+      title: newBanner.title,
+      ...(newBanner.subtitle && { subtitle: newBanner.subtitle }),
+      ...(newBanner.emoji && { emoji: newBanner.emoji }),
+      ...(newBanner.bgGradient && { bgGradient: newBanner.bgGradient }),
+      ...(newBanner.ctaText && { ctaText: newBanner.ctaText }),
+      ...(newBanner.ctaLink && { ctaLink: newBanner.ctaLink }),
+    };
+    saveBanners([...banners, banner]);
+    setNewBanner({ emoji: "", title: "", subtitle: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b69)", ctaText: "", ctaLink: "" });
+    setShowAddBanner(false);
+  };
+
+  const deleteBanner = (id: string) => saveBanners(banners.filter(b => b.id !== id));
+
+  const saveTrustpilot = async () => {
+    setTrustpilotSaving(true);
+    await fetch(`${API}/admin/settings/trustpilot`, {
+      method: "PUT", headers,
+      body: JSON.stringify({ url: trustpilotUrl, enabled: trustpilotEnabled }),
+    });
+    setTrustpilotSaved(true);
+    setTimeout(() => setTrustpilotSaved(false), 3000);
+    setTrustpilotSaving(false);
+  };
+
   const saveQr = async () => {
     if (!qrPreview) return;
     setQrSaving(true);
@@ -225,7 +286,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   }, [authed]);
 
   useEffect(() => {
-    if (authed && tab === "settings") fetchQr();
+    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); }
   }, [authed, tab]);
 
   const approveWallet = async (id: number) => {
@@ -281,7 +342,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       method: "POST", headers,
       body: JSON.stringify({ ...newPkg, sort_order: packages.length + 1 }),
     });
-    setNewPkg({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small" });
+    setNewPkg({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small", status: "available" });
     setShowAddPkg(false);
     await fetchPackages();
     setLoading(false);
@@ -508,6 +569,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         <input type="checkbox" checked={newPkg.is_popular} onChange={(e) => setNewPkg(p => ({ ...p, is_popular: e.target.checked }))} />
                         Mark as popular
                       </label>
+                      <select value={newPkg.status} onChange={(e) => setNewPkg(p => ({ ...p, status: e.target.value }))} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        <option value="available">Available</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                        <option value="coming_soon">Coming Soon</option>
+                      </select>
                       <div className="flex gap-2">
                         <button onClick={addPkg} disabled={loading} className="flex-1 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "#f59e0b" }}>Save</button>
                         <button onClick={() => setShowAddPkg(false)} className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-400" style={{ background: "#222" }}>Cancel</button>
@@ -560,6 +626,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                             <input type="checkbox" checked={editingPkg.is_popular} onChange={(e) => setEditingPkg(p => p ? { ...p, is_popular: e.target.checked } : p)} />
                             Mark as popular
                           </label>
+                          <div className="col-span-2">
+                            <div className="text-xs text-gray-400 mb-1">Status</div>
+                            <select value={editingPkg.status || "available"} onChange={(e) => setEditingPkg(p => p ? { ...p, status: e.target.value } : p)} className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.3)" }}>
+                              <option value="available">Available</option>
+                              <option value="out_of_stock">Out of Stock</option>
+                              <option value="coming_soon">Coming Soon</option>
+                            </select>
+                          </div>
                           <div className="flex gap-2">
                             <button onClick={() => savePkg(editingPkg)} disabled={loading} className="flex-1 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "#f59e0b" }}>Save</button>
                             <button onClick={() => setEditingPkg(null)} className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-400" style={{ background: "#222" }}>Cancel</button>
@@ -581,8 +655,10 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
                             {pkg.is_popular && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.2)", color: "#f59e0b" }}>Popular</span>}
+                            {pkg.status === "out_of_stock" && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(239,68,68,0.2)", color: "#ef4444" }}>Out of Stock</span>}
+                            {pkg.status === "coming_soon" && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(99,102,241,0.2)", color: "#a5b4fc" }}>Coming Soon</span>}
                             <button onClick={() => setEditingPkg(pkg)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors text-sm">✏️</button>
                             <button onClick={() => deletePkg(pkg.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors text-sm">🗑️</button>
                           </div>
@@ -651,7 +727,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                           {order.mlbb_id && <span className="text-gray-400 text-xs">ID: {order.mlbb_id}</span>}
                         </div>
                         {order.note && <div className="text-gray-500 text-xs mt-0.5 truncate">{order.note}</div>}
-                        <div className="text-gray-600 text-xs mt-0.5">{new Date(order.created_at).toLocaleDateString()}</div>
+                        <div className="text-gray-600 text-xs mt-0.5 flex items-center gap-2">
+                          <span className="font-mono text-gray-500">#{`SKY-${String(order.id).padStart(5,"0")}`}</span>
+                          <span>·</span>
+                          <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <select
@@ -807,6 +887,84 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
 
                     {qrSaved && (
                       <div className="text-center text-green-400 text-sm font-bold py-1">✓ QR updated successfully!</div>
+                    )}
+                  </div>
+
+                  {/* Trustpilot Settings */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Trustpilot Button</div>
+                    <div className="text-gray-400 text-xs">Show or hide a "Review us on Trustpilot" button in the footer, and set the link.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300 font-semibold">Show Trustpilot Button</span>
+                      <button
+                        onClick={() => setTrustpilotEnabled(e => !e)}
+                        className="relative flex-shrink-0 transition-all"
+                        style={{ width: 44, height: 24, borderRadius: 999, background: trustpilotEnabled ? "#00b67a" : "rgba(255,255,255,0.1)", border: `1px solid ${trustpilotEnabled ? "#00b67a" : "rgba(255,255,255,0.15)"}`, cursor: "pointer" }}
+                      >
+                        <span style={{ position: "absolute", top: 2, left: trustpilotEnabled ? 22 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.18s ease", display: "block" }} />
+                      </button>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-400 mb-1">Trustpilot URL</div>
+                      <input
+                        value={trustpilotUrl}
+                        onChange={(e) => setTrustpilotUrl(e.target.value)}
+                        placeholder="https://www.trustpilot.com/review/..."
+                        className="w-full px-3 py-2 rounded-lg text-white text-sm outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+                    </div>
+                    <button
+                      onClick={saveTrustpilot}
+                      disabled={trustpilotSaving}
+                      className="w-full py-2.5 rounded-xl text-sm font-bold text-black"
+                      style={{ background: trustpilotSaving ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
+                    >
+                      {trustpilotSaving ? "Saving…" : trustpilotSaved ? "✓ Saved!" : "Save Trustpilot Settings"}
+                    </button>
+                  </div>
+
+                  {/* Offer Banners */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Offer Banners</div>
+                    <div className="text-gray-400 text-xs">Promotional banners shown on the store homepage. Add up to 5 banners — they auto-rotate every 6 seconds.</div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {banners.length === 0 && !showAddBanner && (
+                      <div className="text-center text-gray-500 text-sm py-3">No banners yet.</div>
+                    )}
+                    {banners.map((banner) => (
+                      <div key={banner.id} className="rounded-xl p-3 flex items-center gap-3" style={{ background: banner.bgGradient || "linear-gradient(135deg,#1a0a2e,#2d1b69)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        {banner.emoji && <span style={{ fontSize: 22, lineHeight: 1 }}>{banner.emoji}</span>}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-bold text-sm truncate">{banner.title}</div>
+                          {banner.subtitle && <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }} className="truncate">{banner.subtitle}</div>}
+                        </div>
+                        <button onClick={() => deleteBanner(banner.id)} disabled={bannersSaving} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-500/15 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>🗑️</button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setShowAddBanner(v => !v)}
+                      className="w-full py-2 rounded-xl text-xs font-bold text-black"
+                      style={{ background: showAddBanner ? "#555" : "linear-gradient(135deg,#fbbf24,#f59e0b)", color: showAddBanner ? "#fff" : "#000" }}
+                    >
+                      {showAddBanner ? "Cancel" : "+ Add Banner"}
+                    </button>
+                    {showAddBanner && (
+                      <div className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.18)" }}>
+                        <div className="text-amber-400 text-xs font-bold mb-1">New Banner</div>
+                        <input placeholder="Emoji (e.g. 🎮)" value={newBanner.emoji} onChange={e => setNewBanner(b => ({ ...b, emoji: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="Title *" value={newBanner.title} onChange={e => setNewBanner(b => ({ ...b, title: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="Subtitle (optional)" value={newBanner.subtitle} onChange={e => setNewBanner(b => ({ ...b, subtitle: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="Background CSS e.g. linear-gradient(135deg,#1a0a2e,#c23)" value={newBanner.bgGradient} onChange={e => setNewBanner(b => ({ ...b, bgGradient: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="CTA Button Text (optional)" value={newBanner.ctaText} onChange={e => setNewBanner(b => ({ ...b, ctaText: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <input placeholder="CTA Link (optional, e.g. /packages)" value={newBanner.ctaLink} onChange={e => setNewBanner(b => ({ ...b, ctaLink: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        <button onClick={addBanner} disabled={bannersSaving} className="w-full py-2.5 rounded-xl text-sm font-bold text-black mt-1" style={{ background: bannersSaving ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
+                          {bannersSaving ? "Saving…" : "Save Banner"}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

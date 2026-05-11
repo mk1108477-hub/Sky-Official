@@ -71,6 +71,9 @@ async function initDb() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='is_for_friend') THEN
         ALTER TABLE orders ADD COLUMN is_for_friend BOOLEAN DEFAULT FALSE;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='status') THEN
+        ALTER TABLE packages ADD COLUMN status TEXT DEFAULT 'available';
+      END IF;
     END$$;
   `);
 

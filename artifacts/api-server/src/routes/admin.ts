@@ -112,12 +112,12 @@ router.get("/packages", requireAdmin, async (_req, res) => {
 });
 
 router.post("/packages", requireAdmin, async (req, res) => {
-  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category } = req.body;
+  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category, status } = req.body;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO packages (diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *`,
-      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null]
+      `INSERT INTO packages (diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category, status, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING *`,
+      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null, status || "available"]
     );
     res.json(rows[0]);
   } catch (err) {
@@ -127,12 +127,12 @@ router.post("/packages", requireAdmin, async (req, res) => {
 
 router.put("/packages/:id", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
-  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category } = req.body;
+  const { diamonds, bonus_diamonds, price, label, is_popular, sort_order, name, category, status } = req.body;
   try {
     const { rows } = await pool.query(
-      `UPDATE packages SET diamonds=$1, bonus_diamonds=$2, price=$3, label=$4, is_popular=$5, sort_order=$6, name=$7, category=$8, updated_at=NOW()
-       WHERE id=$9 RETURNING *`,
-      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null, id]
+      `UPDATE packages SET diamonds=$1, bonus_diamonds=$2, price=$3, label=$4, is_popular=$5, sort_order=$6, name=$7, category=$8, status=$9, updated_at=NOW()
+       WHERE id=$10 RETURNING *`,
+      [diamonds, bonus_diamonds || 0, price, label || null, is_popular || false, sort_order || 0, name || null, category || null, status || "available", id]
     );
     if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
@@ -251,6 +251,38 @@ router.put("/settings/category_popular", requireAdmin, async (req, res) => {
        ON CONFLICT (key) DO UPDATE SET value=$1`,
       [JSON.stringify(req.body)]
     );
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/offer_banners", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='offer_banners'");
+    res.json(JSON.parse(rows[0]?.value || "[]"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/offer_banners", requireAdmin, async (req, res) => {
+  try {
+    await pool.query(`INSERT INTO settings (key,value) VALUES ('offer_banners',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [JSON.stringify(req.body)]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/trustpilot", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT key, value FROM settings WHERE key IN ('trustpilot_url','trustpilot_enabled')");
+    const m: Record<string, string> = {};
+    rows.forEach((r: any) => { m[r.key] = r.value; });
+    res.json({ url: m["trustpilot_url"] || "", enabled: m["trustpilot_enabled"] === "true" });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/trustpilot", requireAdmin, async (req, res) => {
+  const { url, enabled } = req.body;
+  try {
+    await pool.query(`INSERT INTO settings (key,value) VALUES ('trustpilot_url',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [url || ""]);
+    await pool.query(`INSERT INTO settings (key,value) VALUES ('trustpilot_enabled',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [enabled ? "true" : "false"]);
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "DB error" }); }
 });

@@ -97,6 +97,8 @@ export default function OrderHistoryPage() {
       .catch((err) => { setError(err.message); setLoading(false); });
   }, [isLoaded, user]);
 
+  const formatOrderId = (id: number) => `SKY-${String(id).padStart(5, "0")}`;
+
   const formatDate = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + " · " +
@@ -114,7 +116,7 @@ export default function OrderHistoryPage() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => window.history.back()}
             style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -176,7 +178,7 @@ export default function OrderHistoryPage() {
                         {order.diamonds.toLocaleString()} Diamonds
                       </div>
                       <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginTop: 2 }}>
-                        Order #{order.id}
+                        #{formatOrderId(order.id)}
                       </div>
                     </div>
                   </div>

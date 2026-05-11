@@ -32,6 +32,22 @@ router.get("/settings/qr", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+router.get("/settings/trustpilot", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT key, value FROM settings WHERE key IN ('trustpilot_url','trustpilot_enabled')");
+    const m: Record<string, string> = {};
+    rows.forEach((r: any) => { m[r.key] = r.value; });
+    res.json({ url: m["trustpilot_url"] || "", enabled: m["trustpilot_enabled"] === "true" });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/offer_banners", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='offer_banners'");
+    res.json(JSON.parse(rows[0]?.value || "[]"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/packages", async (_req, res) => {
   try {
     const { rows } = await pool.query(

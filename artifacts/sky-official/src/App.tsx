@@ -204,6 +204,8 @@ function Navbar() {
   const [subtitleIdx, setSubtitleIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [location, setLocation] = useLocation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
@@ -229,6 +231,15 @@ function Navbar() {
         .catch(() => {});
     });
   }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(e.target as Node)) setShowProfileMenu(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showProfileMenu]);
 
   return (
     <nav
@@ -292,19 +303,47 @@ function Navbar() {
         )}
         {isLoaded && (
           user ? (
-            <div className="flex items-center gap-1.5">
-              <button onClick={() => setLocation("/profile")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}>
-                <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b" }}>
+            <div style={{ position: "relative" }} ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(v => !v)}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}
+              >
+                <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b", boxShadow: showProfileMenu ? "0 0 0 2px rgba(245,158,11,0.45)" : "none", transition: "box-shadow 0.15s" }}>
                   <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
                 </div>
               </button>
-              <button
-                onClick={() => signOut(() => setLocation("/"))}
-                className="px-2.5 py-1 rounded-full font-bold text-black"
-                style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", fontSize: 11 }}
-              >
-                Sign Out
-              </button>
+              {showProfileMenu && (
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", background: "#111316", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.7)", minWidth: 168, overflow: "hidden", zIndex: 999, animation: "navSlideDown 0.18s ease both" }}>
+                  {([
+                    { label: "Dashboard", icon: "👤", action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
+                    { label: "My Orders", icon: "📦", action: () => { setLocation("/orders"); setShowProfileMenu(false); } },
+                    { label: "Wallet", icon: "💎", action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
+                    { label: "Chat Support", icon: "💬", action: () => { window.open(WHATSAPP_NUMBER, "_blank"); setShowProfileMenu(false); } },
+                  ] as { label: string; icon: string; action: () => void }[]).map(item => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      className="flex items-center gap-2.5 w-full"
+                      style={{ padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.82)", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                    >
+                      <span style={{ fontSize: 15 }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => { signOut(() => setLocation("/")); setShowProfileMenu(false); }}
+                    className="flex items-center gap-2.5 w-full"
+                    style={{ padding: "10px 14px", background: "none", border: "none", color: "#ef4444", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                  >
+                    <span style={{ fontSize: 15 }}>🚪</span>
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button
@@ -591,6 +630,9 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
             View Packages <span style={{ fontSize: 13 }}>→</span>
           </button>
         </div>
+        <div className="flex justify-center mt-3" style={el(0.90, 0.23)}>
+          <ActiveRechargerPill />
+        </div>
       </div>
       <style>{`
         @keyframes fadeInDiag {
@@ -743,6 +785,14 @@ function Footer() {
   const [, setLocation] = useLocation();
   const tapCount = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [trustpilot, setTrustpilot] = useState<{ url: string; enabled: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/settings/trustpilot`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setTrustpilot(d))
+      .catch(() => {});
+  }, []);
 
   const handleCopyrightTap = () => {
     tapCount.current += 1;
@@ -781,6 +831,18 @@ function Footer() {
             </button>
           ))}
         </div>
+        {trustpilot?.enabled && trustpilot.url && (
+          <a
+            href={trustpilot.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 mt-1"
+            style={{ background: "#00b67a", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12, fontWeight: 700, color: "#fff" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2l2.9 8.9H23l-7.4 5.4 2.8 8.7L12 19.6l-6.4 5.4 2.8-8.7L1 10.9h8.1z"/></svg>
+            Review us on Trustpilot
+          </a>
+        )}
         <p
           className="text-gray-300 mt-2 select-none"
           style={{ fontSize: 9.5, cursor: "default" }}
@@ -823,13 +885,110 @@ function WhyChooseUs() {
         <div className="grid grid-cols-2 gap-3">
           {reasons.map((r, i) => (
             <div key={i} className="rounded-xl p-3.5" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
-              <div className="text-2xl mb-2">{r.icon}</div>
               <div className="font-bold text-gray-900 leading-tight" style={{ fontSize: 13, marginBottom: 4 }}>{r.title}</div>
               <div className="text-gray-400 leading-snug" style={{ fontSize: 11 }}>{r.desc}</div>
             </div>
           ))}
         </div>
       </div>
+    </section>
+  );
+}
+
+// ── Active Recharger Pill ──────────────────────────────────────────────────
+let _rechCount = Math.floor(Math.random() * 11) + 5;
+function ActiveRechargerPill() {
+  const [count, setCount] = useState(_rechCount);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      t = setTimeout(() => {
+        _rechCount = Math.max(3, Math.min(20, _rechCount + (Math.random() < 0.5 ? 1 : -1)));
+        setCount(_rechCount);
+        schedule();
+      }, 28000 + Math.random() * 32000);
+    };
+    schedule();
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 13px", borderRadius: 999, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.22)" }}>
+      <style>{`@keyframes rechPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.45;transform:scale(0.65)}}`}</style>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "rechPulse 1.6s ease-in-out infinite", display: "block", flexShrink: 0 }} />
+      <span style={{ color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: 700 }}>{count} recharging now</span>
+    </div>
+  );
+}
+
+// ── Offer Banner Carousel ──────────────────────────────────────────────────
+interface OfferBanner { id: string; title: string; subtitle?: string; emoji?: string; bgGradient?: string; ctaText?: string; ctaLink?: string; }
+
+function OfferBannerCarousel() {
+  const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    fetch(`${API}/settings/offer_banners`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setBanners(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (banners.length < 2) return;
+    const t = setInterval(() => setActiveIdx(i => (i + 1) % banners.length), 6000);
+    return () => clearInterval(t);
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+
+  return (
+    <section style={{ padding: "0 16px 0", maxWidth: 520, margin: "0 auto -20px" }}>
+      <div style={{ position: "relative" }}>
+        {banners.map((banner, i) => (
+          <div
+            key={banner.id}
+            style={{
+              display: activeIdx === i ? "flex" : "none",
+              flexDirection: "column",
+              gap: 6,
+              background: banner.bgGradient || "linear-gradient(135deg,#1a0a2e,#2d1b69)",
+              borderRadius: 18,
+              padding: "18px 20px",
+              minHeight: 100,
+              position: "relative",
+              overflow: "hidden",
+              animation: "oh-fadeIn 0.4s ease both",
+            }}
+          >
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.18)", borderRadius: 18 }} />
+            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+              {banner.emoji && <span style={{ fontSize: 28, lineHeight: 1 }}>{banner.emoji}</span>}
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, lineHeight: 1.25, textShadow: "0 1px 8px rgba(0,0,0,0.4)" }}>{banner.title}</div>
+              {banner.subtitle && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>{banner.subtitle}</div>}
+              {banner.ctaText && banner.ctaLink && (
+                <a
+                  href={banner.ctaLink}
+                  style={{ display: "inline-block", marginTop: 6, padding: "6px 16px", borderRadius: 999, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none", alignSelf: "flex-start" }}
+                >
+                  {banner.ctaText} →
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {banners.length > 1 && (
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 10 }}>
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIdx(i)}
+              style={{ width: i === activeIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.22)", transition: "all 0.3s ease", border: "none", cursor: "pointer", padding: 0 }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -854,6 +1013,7 @@ function MainSite() {
       <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
         <AnimatedPage>
           <HeroSection animate={introDone} />
+          <OfferBannerCarousel />
           <StatsSection />
           <HowItWorks />
           <WhyChooseUs />

@@ -92,6 +92,27 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [showAddBanner, setShowAddBanner] = useState(false);
   const [newBanner, setNewBanner] = useState({ emoji: "", title: "", subtitle: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b69)", ctaText: "", ctaLink: "" });
 
+  const DEFAULT_PACK_IMAGES_ADMIN = [
+    { maxDiamonds: 20,     url: "/pack1.png", label: "1–20 Diamonds"     },
+    { maxDiamonds: 50,     url: "/pack2.png", label: "21–50 Diamonds"    },
+    { maxDiamonds: 100,    url: "/pack3.png", label: "51–100 Diamonds"   },
+    { maxDiamonds: 500,    url: "/pack4.png", label: "101–500 Diamonds"  },
+    { maxDiamonds: 1000,   url: "/pack5.png", label: "501–1000 Diamonds" },
+    { maxDiamonds: 2000,   url: "/pack6.png", label: "1001–2000 Diamonds"},
+    { maxDiamonds: 999999, url: "/pack7.png", label: "2001+ Diamonds"    },
+  ];
+  const DEFAULT_PASS_IMAGES_ADMIN: Record<string, string> = {
+    "Weekly Pass":         "/pass1.png",
+    "Twilight Pass":       "/pass2.png",
+    "Weekly Elite Bundle": "/pass3.png",
+    "Monthly Epic Bundle": "/pass4.png",
+  };
+
+  const [packImages, setPackImages] = useState(DEFAULT_PACK_IMAGES_ADMIN);
+  const [passImages, setPassImages] = useState(DEFAULT_PASS_IMAGES_ADMIN);
+  const [imagesSaving, setImagesSaving] = useState(false);
+  const [imagesSaved, setImagesSaved] = useState(false);
+
   // Push notifications
   const [notifState, setNotifState] = useState<NotifState>("unknown");
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -219,6 +240,31 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     if (res.ok) setBanners(await res.json());
   }, [token]);
 
+  const fetchPackImages = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/pack_images`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) setPackImages(data);
+    }
+  }, [token]);
+
+  const fetchPassImages = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/pass_images`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === "object" && !Array.isArray(data)) setPassImages(data);
+    }
+  }, [token]);
+
+  const savePackImages = async () => {
+    setImagesSaving(true);
+    await fetch(`${API}/admin/settings/pack_images`, { method: "PUT", headers, body: JSON.stringify(packImages) });
+    await fetch(`${API}/admin/settings/pass_images`, { method: "PUT", headers, body: JSON.stringify(passImages) });
+    setImagesSaved(true);
+    setTimeout(() => setImagesSaved(false), 3000);
+    setImagesSaving(false);
+  };
+
   const saveBanners = async (updated: OfferBanner[]) => {
     setBannersSaving(true);
     await fetch(`${API}/admin/settings/offer_banners`, { method: "PUT", headers, body: JSON.stringify(updated) });
@@ -286,7 +332,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   }, [authed]);
 
   useEffect(() => {
-    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); }
+    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); }
   }, [authed, tab]);
 
   const approveWallet = async (id: number) => {
@@ -966,6 +1012,64 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         </button>
                       </div>
                     )}
+                  </div>
+
+                  {/* Pack Images */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Pack Images</div>
+                    <div className="text-gray-400 text-xs">Set the image URL shown on each diamond pack card. Paste any public URL or a path like /pack1.png for built-in images.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(56,189,248,0.2)" }}>
+                    <div className="text-sky-400 text-xs font-bold uppercase tracking-wider">Diamond Pack Images</div>
+                    {packImages.map((tier, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <div className="text-gray-400 text-xs">{tier.label}</div>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            value={tier.url}
+                            onChange={e => {
+                              const updated = [...packImages];
+                              updated[i] = { ...updated[i], url: e.target.value };
+                              setPackImages(updated);
+                            }}
+                            placeholder="/pack1.png or https://..."
+                            className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                            style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                          />
+                          {tier.url && (
+                            <img src={tier.url} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="text-amber-400 text-xs font-bold uppercase tracking-wider mt-2">Pass &amp; Bundle Images</div>
+                    {Object.entries(passImages).map(([name, url]) => (
+                      <div key={name} className="flex flex-col gap-1">
+                        <div className="text-gray-400 text-xs">{name}</div>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            value={url}
+                            onChange={e => setPassImages(p => ({ ...p, [name]: e.target.value }))}
+                            placeholder="/pass1.png or https://..."
+                            className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                            style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                          />
+                          {url && (
+                            <img src={url} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={savePackImages}
+                      disabled={imagesSaving}
+                      className="w-full py-2.5 rounded-xl text-sm font-bold text-black mt-1"
+                      style={{ background: imagesSaving ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
+                    >
+                      {imagesSaving ? "Saving…" : imagesSaved ? "✓ Saved!" : "Save Image Settings"}
+                    </button>
                   </div>
                 </div>
               )}

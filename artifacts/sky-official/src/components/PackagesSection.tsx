@@ -329,48 +329,55 @@ const PANEL_ANIMS: Record<CategoryId, React.ReactNode> = {
 };
 
 // ── Image helpers ────────────────────────────────────────────────────────────
-function getPackImage(diamonds: number): string {
-  if (diamonds <= 10) return "/pack1.png";
-  if (diamonds <= 49) return "/pack2.png";
-  if (diamonds <= 99) return "/pack3.png";
-  if (diamonds <= 499) return "/pack4.png";
-  if (diamonds <= 999) return "/pack5.png";
-  if (diamonds <= 1500) return "/pack6.png";
-  return "/pack7.png";
-}
+export interface PackImageTier { maxDiamonds: number; url: string; label: string; }
+export type PackImagesCfg = PackImageTier[];
+export type PassImagesCfg = Record<string, string>;
 
-const PASS_IMAGES: Record<string, string> = {
-  "Weekly Pass":          "/pass1.jpg",
-  "Twilight Pass":        "/pass2.jpg",
-  "Weekly Elite Bundle":  "/pass3.jpg",
-  "Monthly Epic Bundle":  "/pass4.jpg",
+export const DEFAULT_PACK_IMAGES: PackImagesCfg = [
+  { maxDiamonds: 20,     url: "/pack1.png", label: "1–20 Diamonds"     },
+  { maxDiamonds: 50,     url: "/pack2.png", label: "21–50 Diamonds"    },
+  { maxDiamonds: 100,    url: "/pack3.png", label: "51–100 Diamonds"   },
+  { maxDiamonds: 500,    url: "/pack4.png", label: "101–500 Diamonds"  },
+  { maxDiamonds: 1000,   url: "/pack5.png", label: "501–1000 Diamonds" },
+  { maxDiamonds: 2000,   url: "/pack6.png", label: "1001–2000 Diamonds"},
+  { maxDiamonds: 999999, url: "/pack7.png", label: "2001+ Diamonds"    },
+];
+
+export const DEFAULT_PASS_IMAGES: PassImagesCfg = {
+  "Weekly Pass":         "/pass1.png",
+  "Twilight Pass":       "/pass2.png",
+  "Weekly Elite Bundle": "/pass3.png",
+  "Monthly Epic Bundle": "/pass4.png",
 };
 
-function getPassImage(name: string | null): string {
-  return (name && PASS_IMAGES[name]) || "/pass1.jpg";
+function getPackImage(diamonds: number, cfg: PackImagesCfg = DEFAULT_PACK_IMAGES): string {
+  for (const tier of cfg) {
+    if (diamonds <= tier.maxDiamonds) return tier.url;
+  }
+  return cfg[cfg.length - 1]?.url ?? "/pack7.png";
+}
+
+function getPassImage(name: string | null, cfg: PassImagesCfg = DEFAULT_PASS_IMAGES): string {
+  return (name && cfg[name]) || cfg["Weekly Pass"] || "/pass1.png";
 }
 
 function ImagePane({ src }: { src: string }) {
   return (
-    <div style={{ position: "relative", height: 130, overflow: "hidden", flexShrink: 0, background: "#0a0a0a" }}>
+    <div style={{ position: "relative", height: 130, overflow: "hidden", flexShrink: 0, background: "#0d0d14" }}>
       <img
         src={src}
         alt=""
         style={{
           width: "100%", height: "100%",
-          objectFit: "cover", objectPosition: "center 45%",
+          objectFit: "contain", objectPosition: "center center",
           display: "block",
           imageRendering: "high-quality" as React.CSSProperties["imageRendering"],
           transform: "translateZ(0)",
-          filter: "contrast(1.08) saturate(1.18) brightness(1.04)",
-          WebkitBackfaceVisibility: "hidden",
+          padding: "6px 4px 0",
         }}
       />
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 18,
-        background: "linear-gradient(to bottom, #111 0%, rgba(17,17,17,0.5) 60%, transparent 100%)",
-        zIndex: 1, pointerEvents: "none" }} />
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 32,
-        background: "linear-gradient(to top, #111 0%, rgba(17,17,17,0.7) 55%, transparent 100%)",
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 28,
+        background: "linear-gradient(to top, #0d0d14 0%, rgba(13,13,20,0.6) 55%, transparent 100%)",
         zIndex: 1, pointerEvents: "none" }} />
     </div>
   );
@@ -465,7 +472,7 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
 }
 
 // ── Individual pack card (small / normal / double) ──────────────────────────
-function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting }: { pack: Package; isDouble?: boolean; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean }) {
+function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packImagesCfg }: { pack: Package; isDouble?: boolean; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; packImagesCfg?: PackImagesCfg }) {
   const [cartFlash, setCartFlash] = useState(false);
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
@@ -522,7 +529,7 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting }: { pa
       {pack.is_popular && (
         <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", padding: "3px 8px", borderRadius: 999, textTransform: "uppercase" }}>Popular</div>
       )}
-      <ImagePane src={getPackImage(pack.diamonds)} />
+      <ImagePane src={getPackImage(pack.diamonds, packImagesCfg)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
           <span style={{ color: isDouble ? "#00e5ff" : "#38bdf8", fontSize: 12 }}>♦</span>
@@ -565,7 +572,7 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting }: { pa
 }
 
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
-function PassCard({ pack, index, onBuy, onAddToCart, isExiting }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean }) {
+function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; passImagesCfg?: PassImagesCfg }) {
   const [cartFlash, setCartFlash] = useState(false);
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
 
@@ -613,7 +620,7 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting }: { pack: Packag
       {pack.status === "coming_soon" && (
         <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
       )}
-      <ImagePane src={getPassImage(pack.name)} />
+      <ImagePane src={getPassImage(pack.name, passImagesCfg)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{pack.name}</div>
         <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
@@ -670,6 +677,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
+  const [packImagesCfg, setPackImagesCfg] = useState<PackImagesCfg>(DEFAULT_PACK_IMAGES);
+  const [passImagesCfg, setPassImagesCfg] = useState<PassImagesCfg>(DEFAULT_PASS_IMAGES);
   const activeCategoryRef = useRef<Category | null>(null);
   useEffect(() => { activeCategoryRef.current = activeCategory; }, [activeCategory]);
   useEffect(() => {
@@ -680,6 +689,14 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
     fetch(`${API}/settings/category_popular`)
       .then(r => r.json())
       .then(data => setCategoryPopular(data || {}))
+      .catch(() => {});
+    fetch(`${API}/settings/pack_images`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setPackImagesCfg(data); })
+      .catch(() => {});
+    fetch(`${API}/settings/pass_images`)
+      .then(r => r.json())
+      .then(data => { if (data && typeof data === "object" && !Array.isArray(data)) setPassImagesCfg(data); })
       .catch(() => {});
   }, []);
 
@@ -815,8 +832,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {activePacks.map((pack, i) =>
                   activeCategory?.id === "passes"
-                    ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} />
-                    : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} />
+                    ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} passImagesCfg={passImagesCfg} />
+                    : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} packImagesCfg={packImagesCfg} />
                 )}
               </div>
             )}

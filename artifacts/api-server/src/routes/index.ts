@@ -48,6 +48,20 @@ router.get("/settings/offer_banners", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+router.get("/settings/pack_images", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='pack_images'");
+    res.json(rows[0] ? JSON.parse(rows[0].value) : null);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/pass_images", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='pass_images'");
+    res.json(rows[0] ? JSON.parse(rows[0].value) : null);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/packages", async (_req, res) => {
   try {
     const { rows } = await pool.query(

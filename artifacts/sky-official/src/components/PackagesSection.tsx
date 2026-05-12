@@ -686,8 +686,10 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
   const sort = (arr: Package[]) => [...arr].sort((a, b) => a.sort_order - b.sort_order || a.diamonds - b.diamonds);
   if (id === "small")  return sort(packages.filter(p => (p.category ?? (p.diamonds <= 49 ? "small" : "normal")) === "small"));
   if (id === "normal") return sort(packages.filter(p => (p.category ?? (p.diamonds <= 49 ? "small" : "normal")) === "normal"));
-  if (id === "double") return sort(packages.filter(p => p.category === "double"));
-  if (id === "passes") return sort(packages.filter(p => p.category === "passes"));
+  if (id === "double")    return sort(packages.filter(p => p.category === "double"));
+  if (id === "passes")    return sort(packages.filter(p => p.category === "passes"));
+  if (id === "starlight") return sort(packages.filter(p => p.category === "starlight"));
+  if (id === "rank")      return sort(packages.filter(p => p.category === "rank"));
   return [];
 }
 

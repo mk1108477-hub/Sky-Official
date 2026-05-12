@@ -728,7 +728,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const categories = CATEGORIES.map(cat => {
     const override = categoryAvailability[cat.id];
     if (!override) return cat;
-    return { ...cat, available: override === "available" };
+    return { ...cat, available: override !== "out_of_stock" };
   });
 
   // Push browser history state when category is selected so device back button works

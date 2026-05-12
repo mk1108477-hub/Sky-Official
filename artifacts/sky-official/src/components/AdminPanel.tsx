@@ -912,7 +912,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                           <button
                             disabled={catAvailSaving}
                             onClick={async () => {
-                              const updated = { ...categoryAvailability, [cat.id]: isAvail ? "coming_soon" : "available" };
+                              const updated = { ...categoryAvailability, [cat.id]: isAvail ? "out_of_stock" : "available" };
                               setCategoryAvailability(updated);
                               await saveCategoryAvailability(updated);
                             }}
@@ -924,7 +924,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               cursor: catAvailSaving ? "default" : "pointer", whiteSpace: "nowrap",
                             }}
                           >
-                            {isAvail ? "✓ Available" : "Coming Soon"}
+                            {isAvail ? "✓ Available" : "Out of Stock"}
                           </button>
                         </div>
                       );

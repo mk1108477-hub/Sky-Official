@@ -423,46 +423,26 @@ function AnimatedPage({ children, skipPageAnim = false }: { children: React.Reac
       const canBackward = loc === "/packages" && dx > 0;
       if (!canForward && !canBackward) return;
 
-      e.preventDefault();
       activeRef.current = true;
-
-      // Rubber-band: full 1:1 up to 65 % of screen, then resistance
-      const vw     = window.innerWidth;
-      const limit  = vw * 0.65;
-      const raw    = Math.abs(dx);
-      const clamped = raw < limit ? raw : limit + (raw - limit) * 0.15;
-      liveXRef.current = dx < 0 ? -clamped : clamped;
-
-      // Direct DOM — skips React scheduler, instant visual response
-      const el = containerRef.current;
-      if (el) { el.style.transition = "none"; el.style.transform = `translateX(${liveXRef.current}px)`; }
+      liveXRef.current = dx;
     };
 
     const onEnd = () => {
       if (!activeRef.current) return;
       activeRef.current = false;
-      const dx  = liveXRef.current;
+      const dx = liveXRef.current;
       liveXRef.current = 0;
-      const el  = containerRef.current;
-      const threshold = window.innerWidth * 0.18; // 18 % — very sensitive
+      const threshold = window.innerWidth * 0.18;
 
       if (Math.abs(dx) >= threshold) {
-        if (el) { el.style.transition = "none"; el.style.transform = ""; }
         navigateRef.current(dx < 0 ? "/packages" : "/", dx < 0 ? "forward" : "backward");
-      } else {
-        // Spring back with slight overshoot
-        if (el) {
-          el.style.transition = "transform 0.48s cubic-bezier(0.34,1.56,0.64,1)";
-          el.style.transform  = "translateX(0)";
-          setTimeout(() => { if (containerRef.current) { containerRef.current.style.transition = ""; containerRef.current.style.transform = ""; } }, 520);
-        }
       }
     };
 
-    document.addEventListener("touchstart",  onStart, { passive: true  });
-    document.addEventListener("touchmove",   onMove,  { passive: false });
-    document.addEventListener("touchend",    onEnd,   { passive: true  });
-    document.addEventListener("touchcancel", onEnd,   { passive: true  });
+    document.addEventListener("touchstart",  onStart, { passive: true });
+    document.addEventListener("touchmove",   onMove,  { passive: true });
+    document.addEventListener("touchend",    onEnd,   { passive: true });
+    document.addEventListener("touchcancel", onEnd,   { passive: true });
     return () => {
       document.removeEventListener("touchstart",  onStart);
       document.removeEventListener("touchmove",   onMove);

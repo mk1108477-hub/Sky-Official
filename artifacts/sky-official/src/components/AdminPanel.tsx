@@ -115,6 +115,8 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [categoryAvailability, setCategoryAvailability] = useState<Record<string, string>>({});
   const [catAvailSaving, setCatAvailSaving] = useState(false);
   const [catAvailSaved, setCatAvailSaved] = useState(false);
+  const [newPassName, setNewPassName] = useState("");
+  const [newPassUrl, setNewPassUrl] = useState("");
 
   const CATEGORY_META = [
     { id: "small",     title: "Small Pack",       color: "#38bdf8" },
@@ -1113,7 +1115,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                     <div className="text-amber-400 text-xs font-bold uppercase tracking-wider mt-2">Pass &amp; Bundle Images</div>
                     {Object.entries(passImages).map(([name, url]) => (
                       <div key={name} className="flex flex-col gap-1">
-                        <div className="text-gray-400 text-xs">{name}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-gray-400 text-xs">{name}</div>
+                          <button
+                            onClick={() => setPassImages(p => { const n = { ...p }; delete n[name]; return n; })}
+                            style={{ color: "rgba(239,68,68,0.7)", fontSize: 11, background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                            title="Remove this entry"
+                          >✕</button>
+                        </div>
                         <div className="flex gap-2 items-center">
                           <input
                             value={url}
@@ -1128,6 +1137,50 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         </div>
                       </div>
                     ))}
+
+                    {/* Add new image entry */}
+                    <div className="flex flex-col gap-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">Add New Entry</div>
+                      <input
+                        value={newPassName}
+                        onChange={e => setNewPassName(e.target.value)}
+                        placeholder='Pack name (e.g. "Starlight Membership")'
+                        className="w-full px-3 py-2 rounded-lg text-white text-xs outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+                      <div className="flex gap-2 items-center">
+                        <input
+                          value={newPassUrl}
+                          onChange={e => setNewPassUrl(e.target.value)}
+                          placeholder="/myimage.png or https://..."
+                          className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                        />
+                        {newPassUrl && (
+                          <img src={newPassUrl} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          const name = newPassName.trim();
+                          const url = newPassUrl.trim();
+                          if (!name || !url) return;
+                          setPassImages(p => ({ ...p, [name]: url }));
+                          setNewPassName("");
+                          setNewPassUrl("");
+                        }}
+                        disabled={!newPassName.trim() || !newPassUrl.trim()}
+                        className="w-full py-2 rounded-xl text-xs font-bold"
+                        style={{
+                          background: newPassName.trim() && newPassUrl.trim() ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.04)",
+                          border: `1px dashed ${newPassName.trim() && newPassUrl.trim() ? "rgba(245,158,11,0.4)" : "rgba(255,255,255,0.1)"}`,
+                          color: newPassName.trim() && newPassUrl.trim() ? "#f59e0b" : "rgba(255,255,255,0.3)",
+                          cursor: newPassName.trim() && newPassUrl.trim() ? "pointer" : "default",
+                        }}
+                      >
+                        + Add Entry
+                      </button>
+                    </div>
 
                     <button
                       onClick={savePackImages}

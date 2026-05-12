@@ -32,8 +32,8 @@ const CATEGORIES: Category[] = [
   { id: "normal",    title: "Normal Pack",       subtitle: "Best value with bonus diamonds",         color: "#f59e0b", glow: "rgba(245,158,11,0.30)",   available: true, badge: "Most Popular" },
   { id: "double",    title: "Double Diamond",    subtitle: "2× diamonds on your 1st recharge (resets yearly)",  color: "#00e5ff", glow: "rgba(0,229,255,0.22)",    available: true },
   { id: "passes",    title: "Passes & Bundles",  subtitle: "Weekly & monthly passes with perks",     color: "#a855f7", glow: "rgba(168,85,247,0.25)",   available: true },
-  { id: "starlight", title: "Starlight Cards",   subtitle: "Exclusive skins & limited rewards",      color: "#f5c842", glow: "rgba(245,200,66,0.25)",   available: false },
-  { id: "rank",      title: "Rank Boosting",     subtitle: "Rise to Mythical Glory with experts",    color: "#ec4899", glow: "rgba(236,72,153,0.25)",   available: false },
+  { id: "starlight", title: "Starlight Cards",   subtitle: "Exclusive skins & limited rewards",      color: "#f5c842", glow: "rgba(245,200,66,0.25)",   available: true },
+  { id: "rank",      title: "Rank Boosting",     subtitle: "Rise to Mythical Glory with experts",    color: "#ec4899", glow: "rgba(236,72,153,0.25)",   available: true },
 ];
 
 // ── Animated Panels ─────────────────────────────────────────────────────────

@@ -117,19 +117,29 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [catAvailSaved, setCatAvailSaved] = useState(false);
   const [newPassName, setNewPassName] = useState("");
   const [newPassUrl, setNewPassUrl] = useState("");
+  const [starlightImages, setStarlightImages] = useState<Record<string, string>>({});
+  const [newStarlightName, setNewStarlightName] = useState("");
+  const [newStarlightUrl, setNewStarlightUrl] = useState("");
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const uploadImage = async (file: File, onDone: (url: string) => void) => {
     const form = new FormData();
     form.append("image", file);
-    const res = await fetch(`${API}/admin/upload-image`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-    if (res.ok) {
-      const { url } = await res.json();
-      onDone(url);
+    try {
+      const res = await fetch(`${API}/admin/upload-image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        onDone(url);
+      } else {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        alert(`Upload failed: ${err.error || res.statusText}`);
+      }
+    } catch (e) {
+      alert("Upload failed: network error. Please try again.");
     }
   };
 
@@ -285,6 +295,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     }
   }, [token]);
 
+  const fetchStarlightImages = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/starlight_images`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === "object" && !Array.isArray(data)) setStarlightImages(data);
+    }
+  }, [token]);
+
   const fetchCategoryAvailability = useCallback(async () => {
     const res = await fetch(`${API}/admin/settings/category_availability`, { headers });
     if (res.ok) {
@@ -305,6 +323,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     setImagesSaving(true);
     await fetch(`${API}/admin/settings/pack_images`, { method: "PUT", headers, body: JSON.stringify(packImages) });
     await fetch(`${API}/admin/settings/pass_images`, { method: "PUT", headers, body: JSON.stringify(passImages) });
+    await fetch(`${API}/admin/settings/starlight_images`, { method: "PUT", headers, body: JSON.stringify(starlightImages) });
     setImagesSaved(true);
     setTimeout(() => setImagesSaved(false), 3000);
     setImagesSaving(false);
@@ -377,7 +396,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   }, [authed]);
 
   useEffect(() => {
-    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchCategoryAvailability(); }
+    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchStarlightImages(); fetchCategoryAvailability(); }
   }, [authed, tab]);
 
   const approveWallet = async (id: number) => {
@@ -1226,6 +1245,106 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         }}
                       >
                         + Add Entry
+                      </button>
+                    </div>
+
+                    <div className="text-yellow-300 text-xs font-bold uppercase tracking-wider mt-2" style={{ color: "#f5c842" }}>★ Starlight Card Images</div>
+                    {Object.entries(starlightImages).map(([name, url]) => (
+                      <div key={name} className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <div className="text-gray-400 text-xs">{name}</div>
+                          <button
+                            onClick={() => setStarlightImages(p => { const n = { ...p }; delete n[name]; return n; })}
+                            style={{ color: "rgba(239,68,68,0.7)", fontSize: 11, background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                            title="Remove this entry"
+                          >✕</button>
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <input
+                            value={url}
+                            onChange={e => setStarlightImages(p => ({ ...p, [name]: e.target.value }))}
+                            placeholder="/starlight.png or https://..."
+                            className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                            style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                          />
+                          <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload from gallery">
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                              const file = e.target.files?.[0]; if (!file) return;
+                              setUploadingKey("sl_" + name);
+                              await uploadImage(file, u => setStarlightImages(p => ({ ...p, [name]: u })));
+                              setUploadingKey(null);
+                              e.target.value = "";
+                            }} />
+                            <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "sl_" + name ? "rgba(245,200,66,0.3)" : "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {uploadingKey === "sl_" + name
+                                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c842" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f5c842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f5c842" strokeWidth="2"/></svg>
+                              }
+                            </div>
+                          </label>
+                          {url && (
+                            <img src={url} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add new Starlight entry */}
+                    <div className="flex flex-col gap-2 pt-2" style={{ borderTop: "1px solid rgba(245,200,66,0.1)" }}>
+                      <div className="text-gray-500 text-xs font-bold uppercase tracking-wider">Add Starlight Card</div>
+                      <input
+                        value={newStarlightName}
+                        onChange={e => setNewStarlightName(e.target.value)}
+                        placeholder='Card name (e.g. "Starlight Membership")'
+                        className="w-full px-3 py-2 rounded-lg text-white text-xs outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+                      <div className="flex gap-2 items-center">
+                        <input
+                          value={newStarlightUrl}
+                          onChange={e => setNewStarlightUrl(e.target.value)}
+                          placeholder="/starlight.png or https://..."
+                          className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                        />
+                        <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload from gallery">
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                            const file = e.target.files?.[0]; if (!file) return;
+                            setUploadingKey("__sl_new__");
+                            await uploadImage(file, u => setNewStarlightUrl(u));
+                            setUploadingKey(null);
+                            e.target.value = "";
+                          }} />
+                          <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "__sl_new__" ? "rgba(245,200,66,0.3)" : "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {uploadingKey === "__sl_new__"
+                              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c842" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f5c842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f5c842" strokeWidth="2"/></svg>
+                            }
+                          </div>
+                        </label>
+                        {newStarlightUrl && (
+                          <img src={newStarlightUrl} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          const name = newStarlightName.trim();
+                          const url = newStarlightUrl.trim();
+                          if (!name || !url) return;
+                          setStarlightImages(p => ({ ...p, [name]: url }));
+                          setNewStarlightName("");
+                          setNewStarlightUrl("");
+                        }}
+                        disabled={!newStarlightName.trim() || !newStarlightUrl.trim()}
+                        className="w-full py-2 rounded-xl text-xs font-bold"
+                        style={{
+                          background: newStarlightName.trim() && newStarlightUrl.trim() ? "rgba(245,200,66,0.15)" : "rgba(255,255,255,0.04)",
+                          border: `1px dashed ${newStarlightName.trim() && newStarlightUrl.trim() ? "rgba(245,200,66,0.45)" : "rgba(255,255,255,0.1)"}`,
+                          color: newStarlightName.trim() && newStarlightUrl.trim() ? "#f5c842" : "rgba(255,255,255,0.3)",
+                          cursor: newStarlightName.trim() && newStarlightUrl.trim() ? "pointer" : "default",
+                        }}
+                      >
+                        + Add Starlight Card
                       </button>
                     </div>
 

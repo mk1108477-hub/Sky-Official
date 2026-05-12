@@ -5,9 +5,12 @@ import { createClerkClient } from "@clerk/express";
 import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdirSync } from "node:fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicUploadsDir = path.resolve(__dirname, "../../../../artifacts/sky-official/public/uploads");
+
+mkdirSync(publicUploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, publicUploadsDir),
@@ -326,6 +329,20 @@ router.get("/settings/pass_images", requireAdmin, async (_req, res) => {
 router.put("/settings/pass_images", requireAdmin, async (req, res) => {
   try {
     await pool.query(`INSERT INTO settings (key,value) VALUES ('pass_images',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [JSON.stringify(req.body)]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/starlight_images", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='starlight_images'");
+    res.json(rows[0] ? JSON.parse(rows[0].value) : {});
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/starlight_images", requireAdmin, async (req, res) => {
+  try {
+    await pool.query(`INSERT INTO settings (key,value) VALUES ('starlight_images',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [JSON.stringify(req.body)]);
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "DB error" }); }
 });

@@ -117,6 +117,21 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [catAvailSaved, setCatAvailSaved] = useState(false);
   const [newPassName, setNewPassName] = useState("");
   const [newPassUrl, setNewPassUrl] = useState("");
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+
+  const uploadImage = async (file: File, onDone: (url: string) => void) => {
+    const form = new FormData();
+    form.append("image", file);
+    const res = await fetch(`${API}/admin/upload-image`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (res.ok) {
+      const { url } = await res.json();
+      onDone(url);
+    }
+  };
 
   const CATEGORY_META = [
     { id: "small",     title: "Small Pack",       color: "#38bdf8" },
@@ -1131,6 +1146,22 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                             className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
                             style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
                           />
+                          {/* Gallery upload button */}
+                          <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload from gallery">
+                            <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                              const file = e.target.files?.[0]; if (!file) return;
+                              setUploadingKey(name);
+                              await uploadImage(file, u => setPassImages(p => ({ ...p, [name]: u })));
+                              setUploadingKey(null);
+                              e.target.value = "";
+                            }} />
+                            <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === name ? "rgba(245,158,11,0.3)" : "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {uploadingKey === name
+                                ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f59e0b" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                                : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f59e0b" strokeWidth="2"/></svg>
+                              }
+                            </div>
+                          </label>
                           {url && (
                             <img src={url} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                           )}
@@ -1156,6 +1187,22 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                           className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
                           style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
                         />
+                        {/* Gallery upload for new entry */}
+                        <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload from gallery">
+                          <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                            const file = e.target.files?.[0]; if (!file) return;
+                            setUploadingKey("__new__");
+                            await uploadImage(file, u => setNewPassUrl(u));
+                            setUploadingKey(null);
+                            e.target.value = "";
+                          }} />
+                          <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "__new__" ? "rgba(245,158,11,0.3)" : "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {uploadingKey === "__new__"
+                              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f59e0b" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f59e0b" strokeWidth="2"/></svg>
+                            }
+                          </div>
+                        </label>
                         {newPassUrl && (
                           <img src={newPassUrl} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
                         )}

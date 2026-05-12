@@ -2,6 +2,21 @@ import { Router } from "express";
 import pool from "../lib/db";
 import nodemailer from "nodemailer";
 import { createClerkClient } from "@clerk/express";
+import multer from "multer";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicUploadsDir = path.resolve(__dirname, "../../../../artifacts/sky-official/public/uploads");
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, publicUploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || ".png";
+    cb(null, `upload_${Date.now()}${ext}`);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 8 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -313,6 +328,11 @@ router.put("/settings/pass_images", requireAdmin, async (req, res) => {
     await pool.query(`INSERT INTO settings (key,value) VALUES ('pass_images',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [JSON.stringify(req.body)]);
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.post("/upload-image", requireAdmin, upload.single("image"), (req: any, res: any) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  res.json({ url: `/uploads/${req.file.filename}` });
 });
 
 router.get("/settings/category_availability", requireAdmin, async (_req, res) => {

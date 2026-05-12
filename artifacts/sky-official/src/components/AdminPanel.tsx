@@ -121,6 +121,8 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [newStarlightName, setNewStarlightName] = useState("");
   const [newStarlightUrl, setNewStarlightUrl] = useState("");
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [newPkgImage, setNewPkgImage] = useState("");
+  const [editingPkgImage, setEditingPkgImage] = useState("");
 
   const uploadImage = async (file: File, onDone: (url: string) => void) => {
     const form = new FormData();
@@ -319,11 +321,15 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     setCatAvailSaving(false);
   };
 
+  const saveStarlightImages = async (images: Record<string, string>) => {
+    await fetch(`${API}/admin/settings/starlight_images`, { method: "PUT", headers, body: JSON.stringify(images) });
+  };
+
   const savePackImages = async () => {
     setImagesSaving(true);
     await fetch(`${API}/admin/settings/pack_images`, { method: "PUT", headers, body: JSON.stringify(packImages) });
     await fetch(`${API}/admin/settings/pass_images`, { method: "PUT", headers, body: JSON.stringify(passImages) });
-    await fetch(`${API}/admin/settings/starlight_images`, { method: "PUT", headers, body: JSON.stringify(starlightImages) });
+    await saveStarlightImages(starlightImages);
     setImagesSaved(true);
     setTimeout(() => setImagesSaved(false), 3000);
     setImagesSaving(false);
@@ -393,6 +399,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     fetchOrders();
     fetchWalletRequests();
     fetchCategoryPopular();
+    fetchStarlightImages();
   }, [authed]);
 
   useEffect(() => {
@@ -430,13 +437,27 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
 
   const savePkg = async (pkg: Package) => {
     setLoading(true);
-    await fetch(`${API}/admin/packages/${pkg.id}`, {
-      method: "PUT", headers,
-      body: JSON.stringify(pkg),
-    });
-    await fetchPackages();
-    setEditingPkg(null);
-    setLoading(false);
+    try {
+      const res = await fetch(`${API}/admin/packages/${pkg.id}`, {
+        method: "PUT", headers,
+        body: JSON.stringify(pkg),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        alert(`Failed to save package: ${err.error || res.statusText}`);
+        return;
+      }
+      if (pkg.category === "starlight" && pkg.name?.trim() && editingPkgImage.trim()) {
+        const updated = { ...starlightImages, [pkg.name.trim()]: editingPkgImage.trim() };
+        setStarlightImages(updated);
+        await saveStarlightImages(updated);
+      }
+      await fetchPackages();
+      setEditingPkg(null);
+      setEditingPkgImage("");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deletePkg = async (id: number) => {
@@ -448,14 +469,28 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const addPkg = async () => {
     if (!newPkg.diamonds || !newPkg.price) return;
     setLoading(true);
-    await fetch(`${API}/admin/packages`, {
-      method: "POST", headers,
-      body: JSON.stringify({ ...newPkg, sort_order: packages.length + 1 }),
-    });
-    setNewPkg({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small", status: "available" });
-    setShowAddPkg(false);
-    await fetchPackages();
-    setLoading(false);
+    try {
+      const res = await fetch(`${API}/admin/packages`, {
+        method: "POST", headers,
+        body: JSON.stringify({ ...newPkg, sort_order: packages.length + 1 }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        alert(`Failed to save package: ${err.error || res.statusText}`);
+        return;
+      }
+      if (newPkg.category === "starlight" && newPkg.name.trim() && newPkgImage.trim()) {
+        const updated = { ...starlightImages, [newPkg.name.trim()]: newPkgImage.trim() };
+        setStarlightImages(updated);
+        await saveStarlightImages(updated);
+      }
+      setNewPkg({ name: "", diamonds: "", bonus_diamonds: "", price: "", label: "", is_popular: false, category: "small", status: "available" });
+      setNewPkgImage("");
+      setShowAddPkg(false);
+      await fetchPackages();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addOrder = async () => {
@@ -684,6 +719,36 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         <option value="out_of_stock">Out of Stock</option>
                         <option value="coming_soon">Coming Soon</option>
                       </select>
+                      {newPkg.category === "starlight" && (
+                        <div>
+                          <div className="text-xs mb-1" style={{ color: "#f5c842" }}>★ Card Image</div>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              value={newPkgImage}
+                              onChange={e => setNewPkgImage(e.target.value)}
+                              placeholder="/uploads/image.png or https://..."
+                              className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                              style={{ background: "#111", border: "1px solid rgba(245,200,66,0.3)" }}
+                            />
+                            <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload image">
+                              <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                                const file = e.target.files?.[0]; if (!file) return;
+                                setUploadingKey("__newpkg__");
+                                await uploadImage(file, u => setNewPkgImage(u));
+                                setUploadingKey(null);
+                                e.target.value = "";
+                              }} />
+                              <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "__newpkg__" ? "rgba(245,200,66,0.3)" : "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {uploadingKey === "__newpkg__"
+                                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c842" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f5c842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f5c842" strokeWidth="2"/></svg>
+                                }
+                              </div>
+                            </label>
+                            {newPkgImage && <img src={newPkgImage} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                          </div>
+                        </div>
+                      )}
                       <div className="flex gap-2">
                         <button onClick={addPkg} disabled={loading} className="flex-1 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "#f59e0b" }}>Save</button>
                         <button onClick={() => setShowAddPkg(false)} className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-400" style={{ background: "#222" }}>Cancel</button>
@@ -744,6 +809,36 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               <option value="coming_soon">Coming Soon</option>
                             </select>
                           </div>
+                          {editingPkg.category === "starlight" && (
+                            <div className="col-span-2">
+                              <div className="text-xs mb-1" style={{ color: "#f5c842" }}>★ Card Image</div>
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  value={editingPkgImage}
+                                  onChange={e => setEditingPkgImage(e.target.value)}
+                                  placeholder="/uploads/image.png or https://..."
+                                  className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
+                                  style={{ background: "#111", border: "1px solid rgba(245,200,66,0.3)" }}
+                                />
+                                <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload image">
+                                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                                    const file = e.target.files?.[0]; if (!file) return;
+                                    setUploadingKey("__editpkg__");
+                                    await uploadImage(file, u => setEditingPkgImage(u));
+                                    setUploadingKey(null);
+                                    e.target.value = "";
+                                  }} />
+                                  <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "__editpkg__" ? "rgba(245,200,66,0.3)" : "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    {uploadingKey === "__editpkg__"
+                                      ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c842" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
+                                      : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f5c842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f5c842" strokeWidth="2"/></svg>
+                                    }
+                                  </div>
+                                </label>
+                                {editingPkgImage && <img src={editingPkgImage} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                              </div>
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <button onClick={() => savePkg(editingPkg)} disabled={loading} className="flex-1 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "#f59e0b" }}>Save</button>
                             <button onClick={() => setEditingPkg(null)} className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-400" style={{ background: "#222" }}>Cancel</button>
@@ -769,7 +864,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                             {pkg.is_popular && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.2)", color: "#f59e0b" }}>Popular</span>}
                             {pkg.status === "out_of_stock" && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(239,68,68,0.2)", color: "#ef4444" }}>Out of Stock</span>}
                             {pkg.status === "coming_soon" && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(99,102,241,0.2)", color: "#a5b4fc" }}>Coming Soon</span>}
-                            <button onClick={() => setEditingPkg(pkg)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors text-sm">✏️</button>
+                            <button onClick={() => { setEditingPkg(pkg); setEditingPkgImage(starlightImages[pkg.name || ""] || ""); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-amber-400 hover:bg-amber-400/10 transition-colors text-sm">✏️</button>
                             <button onClick={() => deletePkg(pkg.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors text-sm">🗑️</button>
                           </div>
                         </div>

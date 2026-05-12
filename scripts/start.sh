@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# Kill background children when this script exits (SIGTERM from workflow manager)
+cleanup() {
+  kill "$API_PID" 2>/dev/null || true
+  kill "$VITE_PID" 2>/dev/null || true
+  exit 0
+}
+trap cleanup TERM INT
+
 # Install deps once at the root (ensures all binaries like esbuild are present)
 pnpm -w install
 
@@ -8,10 +16,10 @@ pnpm -w install
 echo "[start] Building API server..."
 cd artifacts/api-server && node ./build.mjs && cd ../..
 
-# Kill anything on our ports
-fuser -k 8080/tcp 2>/dev/null || true
-fuser -k 5000/tcp 2>/dev/null || true
-fuser -k 24534/tcp 2>/dev/null || true
+# Kill anything still running on our ports
+echo "[start] Freeing ports..."
+pkill -9 -f "dist/index.mjs" 2>/dev/null || true
+sleep 3
 
 # Start API server in background
 echo "[start] Starting API server on port 8080..."
@@ -21,10 +29,7 @@ API_PID=$!
 # Wait for API server
 echo "[start] Waiting for API server..."
 for i in $(seq 1 30); do
-  if fuser 8080/tcp >/dev/null 2>&1; then
-    echo "[start] API server ready."
-    break
-  fi
+  curl -s http://localhost:8080/ >/dev/null 2>&1 && echo "[start] API server ready." && break
   sleep 1
 done
 
@@ -36,15 +41,9 @@ VITE_PID=$!
 # Wait for frontend
 echo "[start] Waiting for frontend..."
 for i in $(seq 1 60); do
-  if fuser 5000/tcp >/dev/null 2>&1; then
-    echo "[start] Frontend ready."
-    break
-  fi
+  curl -s http://localhost:5000/ >/dev/null 2>&1 && echo "[start] Frontend ready." && break
   sleep 1
 done
 
 # Wait for Vite to exit
 wait $VITE_PID
-
-# Cleanup
-kill $API_PID 2>/dev/null || true

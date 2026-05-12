@@ -7,8 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdirSync } from "node:fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const publicUploadsDir = path.resolve(__dirname, "../../../../artifacts/sky-official/public/uploads");
+const publicUploadsDir = path.resolve(process.cwd(), "artifacts/sky-official/public/uploads");
 
 mkdirSync(publicUploadsDir, { recursive: true });
 

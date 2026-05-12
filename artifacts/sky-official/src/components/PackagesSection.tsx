@@ -350,6 +350,9 @@ export const DEFAULT_PASS_IMAGES: PassImagesCfg = {
   "Monthly Epic Bundle": "/pass4.png",
 };
 
+export type StarlightImagesCfg = Record<string, string>;
+export const DEFAULT_STARLIGHT_IMAGES: StarlightImagesCfg = {};
+
 function getPackImage(diamonds: number, cfg: PackImagesCfg = DEFAULT_PACK_IMAGES): string {
   for (const tier of cfg) {
     if (diamonds <= tier.maxDiamonds) return tier.url;
@@ -359,6 +362,11 @@ function getPackImage(diamonds: number, cfg: PackImagesCfg = DEFAULT_PACK_IMAGES
 
 function getPassImage(name: string | null, cfg: PassImagesCfg = DEFAULT_PASS_IMAGES): string {
   return (name && cfg[name]) || cfg["Weekly Pass"] || "/pass1.png";
+}
+
+function getStarlightImage(name: string | null, cfg: StarlightImagesCfg = DEFAULT_STARLIGHT_IMAGES): string | null {
+  if (!name) return null;
+  return cfg[name] || null;
 }
 
 function ImagePane({ src }: { src: string }) {
@@ -591,6 +599,77 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
   );
 }
 
+// ── Starlight card ──────────────────────────────────────────────────────────
+function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg }) {
+  const [cartFlash, setCartFlash] = useState(false);
+  const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
+  const imgSrc = getStarlightImage(pack.name, starlightImagesCfg);
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (isUnavailable) return;
+    onAddToCart?.(pack);
+    setCartFlash(true);
+    setTimeout(() => setCartFlash(false), 900);
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "absolute", inset: "-3px", borderRadius: 22, background: "rgba(245,200,66,0.45)", filter: "blur(12px)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, zIndex: 0, pointerEvents: "none" }} />
+      <div
+        style={{
+          background: "rgba(14,14,14,0.88)", borderRadius: 18,
+          backdropFilter: "blur(6px)",
+          border: "1.5px solid rgba(245,200,66,0.35)",
+          overflow: "hidden", display: "flex", flexDirection: "column",
+          boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+          position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
+          opacity: isUnavailable ? 0.65 : 1,
+          animation: isExiting
+            ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
+            : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
+          transition: "transform 0.18s ease",
+        }}
+        onMouseEnter={e => { if (!isUnavailable) (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.02)"; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
+      >
+        {pack.status === "out_of_stock" && (
+          <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(239,68,68,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Out of Stock</div>
+        )}
+        {pack.status === "coming_soon" && (
+          <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
+        )}
+        {imgSrc
+          ? <ImagePane src={imgSrc} />
+          : <div style={{ height: 148, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><StarlightAnim /></div>
+        }
+        <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{pack.name || "Starlight Card"}</div>
+          <div style={{ color: "#f5c842", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+            {isUnavailable ? (
+              <div style={{ flex: 1, textAlign: "center", padding: "6px 0", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
+                {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleAddToCart}
+                  style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                >
+                  {cartFlash ? "✓" : <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  {cartFlash ? "Added!" : "Cart"}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#f5c842,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
 function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; passImagesCfg?: PassImagesCfg }) {
   const [cartFlash, setCartFlash] = useState(false);
@@ -702,6 +781,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [categoryAvailability, setCategoryAvailability] = useState<Record<string, string>>({});
   const [packImagesCfg, setPackImagesCfg] = useState<PackImagesCfg>(DEFAULT_PACK_IMAGES);
   const [passImagesCfg, setPassImagesCfg] = useState<PassImagesCfg>(DEFAULT_PASS_IMAGES);
+  const [starlightImagesCfg, setStarlightImagesCfg] = useState<StarlightImagesCfg>(DEFAULT_STARLIGHT_IMAGES);
   const activeCategoryRef = useRef<Category | null>(null);
   useEffect(() => { activeCategoryRef.current = activeCategory; }, [activeCategory]);
   useEffect(() => {
@@ -724,6 +804,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
     fetch(`${API}/settings/pass_images`)
       .then(r => r.json())
       .then(data => { if (data && typeof data === "object" && !Array.isArray(data)) setPassImagesCfg(data); })
+      .catch(() => {});
+    fetch(`${API}/settings/starlight_images`)
+      .then(r => r.json())
+      .then(data => { if (data && typeof data === "object" && !Array.isArray(data)) setStarlightImagesCfg(data); })
       .catch(() => {});
   }, []);
 
@@ -866,6 +950,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                 {activePacks.map((pack, i) =>
                   activeCategory?.id === "passes"
                     ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} passImagesCfg={passImagesCfg} />
+                    : activeCategory?.id === "starlight"
+                    ? <StarlightCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} />
                     : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} packImagesCfg={packImagesCfg} />
                 )}
               </div>

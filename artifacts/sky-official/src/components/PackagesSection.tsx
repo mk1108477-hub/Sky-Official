@@ -644,7 +644,7 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
           : <div style={{ height: 148, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><StarlightAnim /></div>
         }
         <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{pack.name || "Starlight Card"}</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name || "Starlight Card"}</div>
           <div style={{ color: "#f5c842", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
           <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
             {isUnavailable ? (
@@ -720,7 +720,7 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
       )}
       <ImagePane src={getPassImage(pack.name, passImagesCfg)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3 }}>{pack.name}</div>
+        <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name}</div>
         <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
         <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
           {isUnavailable ? (

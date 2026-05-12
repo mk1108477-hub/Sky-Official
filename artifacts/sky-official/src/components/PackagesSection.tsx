@@ -328,6 +328,15 @@ const PANEL_ANIMS: Record<CategoryId, React.ReactNode> = {
   rank: <RankBoostAnim />,
 };
 
+const PANEL_IMAGES: Record<CategoryId, string> = {
+  small:     "/cat-diamonds.png",
+  normal:    "/cat-diamonds.png",
+  double:    "/cat-double.png",
+  passes:    "/cat-passes.png",
+  starlight: "/cat-starlight.png",
+  rank:      "/cat-rank.png",
+};
+
 // ── Image helpers ────────────────────────────────────────────────────────────
 export interface PackImageTier { maxDiamonds: number; url: string; label: string; }
 export type PackImagesCfg = PackImageTier[];
@@ -470,9 +479,25 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
         </div>
       )}
 
-      {/* Animated panel */}
-      <div style={{ height: 90, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        {PANEL_ANIMS[cat.id]}
+      {/* Category image panel */}
+      <div style={{ height: 90, overflow: "hidden", flexShrink: 0, position: "relative" }}>
+        <img
+          src={PANEL_IMAGES[cat.id]}
+          alt={cat.title}
+          style={{
+            width: "100%", height: "100%",
+            objectFit: "cover",
+            objectPosition: "center",
+            display: "block",
+            filter: cat.available ? "brightness(1.05) saturate(1.1)" : "brightness(0.5) saturate(0.4)",
+            transition: "transform 0.3s ease",
+          }}
+        />
+        {/* Bottom fade into card body */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 32, pointerEvents: "none",
+          background: "linear-gradient(to top, rgba(14,14,14,0.95) 0%, transparent 100%)",
+        }} />
       </div>
 
       <div style={{ padding: "12px 14px 14px", display: "flex", flexDirection: "column", gap: 5 }}>

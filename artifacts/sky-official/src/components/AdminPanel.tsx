@@ -112,6 +112,18 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [passImages, setPassImages] = useState(DEFAULT_PASS_IMAGES_ADMIN);
   const [imagesSaving, setImagesSaving] = useState(false);
   const [imagesSaved, setImagesSaved] = useState(false);
+  const [categoryAvailability, setCategoryAvailability] = useState<Record<string, string>>({});
+  const [catAvailSaving, setCatAvailSaving] = useState(false);
+  const [catAvailSaved, setCatAvailSaved] = useState(false);
+
+  const CATEGORY_META = [
+    { id: "small",     title: "Small Pack",       color: "#38bdf8" },
+    { id: "normal",    title: "Normal Pack",       color: "#f59e0b" },
+    { id: "double",    title: "Double Diamond",    color: "#00e5ff" },
+    { id: "passes",    title: "Passes & Bundles",  color: "#a855f7" },
+    { id: "starlight", title: "Starlight Cards",   color: "#f5c842" },
+    { id: "rank",      title: "Rank Boosting",     color: "#ec4899" },
+  ];
 
   // Push notifications
   const [notifState, setNotifState] = useState<NotifState>("unknown");
@@ -256,6 +268,22 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     }
   }, [token]);
 
+  const fetchCategoryAvailability = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/category_availability`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === "object") setCategoryAvailability(data);
+    }
+  }, [token]);
+
+  const saveCategoryAvailability = async (updated: Record<string, string>) => {
+    setCatAvailSaving(true);
+    await fetch(`${API}/admin/settings/category_availability`, { method: "PUT", headers, body: JSON.stringify(updated) });
+    setCatAvailSaved(true);
+    setTimeout(() => setCatAvailSaved(false), 2500);
+    setCatAvailSaving(false);
+  };
+
   const savePackImages = async () => {
     setImagesSaving(true);
     await fetch(`${API}/admin/settings/pack_images`, { method: "PUT", headers, body: JSON.stringify(packImages) });
@@ -332,7 +360,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   }, [authed]);
 
   useEffect(() => {
-    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); }
+    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchCategoryAvailability(); }
   }, [authed, tab]);
 
   const approveWallet = async (id: number) => {
@@ -865,6 +893,45 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               {/* ── SETTINGS TAB ── */}
               {tab === "settings" && (
                 <div className="flex flex-col gap-5">
+
+                  {/* Category Panel Availability */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Category Panel Availability</div>
+                    <div className="text-gray-400 text-xs">Switch each storefront panel between Available and Coming Soon. Changes apply instantly to all visitors.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    {CATEGORY_META.map(cat => {
+                      const status = categoryAvailability[cat.id] ?? "available";
+                      const isAvail = status === "available";
+                      return (
+                        <div key={cat.id} className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: cat.color, flexShrink: 0 }} />
+                            <span className="text-white text-sm font-medium">{cat.title}</span>
+                          </div>
+                          <button
+                            disabled={catAvailSaving}
+                            onClick={async () => {
+                              const updated = { ...categoryAvailability, [cat.id]: isAvail ? "coming_soon" : "available" };
+                              setCategoryAvailability(updated);
+                              await saveCategoryAvailability(updated);
+                            }}
+                            style={{
+                              background: isAvail ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.12)",
+                              border: `1px solid ${isAvail ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.35)"}`,
+                              color: isAvail ? "#4ade80" : "#f87171",
+                              padding: "4px 16px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                              cursor: catAvailSaving ? "default" : "pointer", whiteSpace: "nowrap",
+                            }}
+                          >
+                            {isAvail ? "✓ Available" : "Coming Soon"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {catAvailSaved && <div className="text-center text-green-400 text-xs font-bold pt-1">✓ Saved!</div>}
+                  </div>
+
                   <div>
                     <div className="text-white font-bold text-sm mb-1">QR Code Management</div>
                     <div className="text-gray-400 text-xs">Upload a new UPI QR code. It will replace the one shown on the payment page instantly.</div>

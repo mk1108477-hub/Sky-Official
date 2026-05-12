@@ -697,6 +697,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [categoryPopular, setCategoryPopular] = useState<Record<string, boolean>>({});
+  const [categoryAvailability, setCategoryAvailability] = useState<Record<string, string>>({});
   const [packImagesCfg, setPackImagesCfg] = useState<PackImagesCfg>(DEFAULT_PACK_IMAGES);
   const [passImagesCfg, setPassImagesCfg] = useState<PassImagesCfg>(DEFAULT_PASS_IMAGES);
   const activeCategoryRef = useRef<Category | null>(null);
@@ -710,6 +711,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .then(r => r.json())
       .then(data => setCategoryPopular(data || {}))
       .catch(() => {});
+    fetch(`${API}/settings/category_availability`)
+      .then(r => r.json())
+      .then(data => { if (data && typeof data === "object") setCategoryAvailability(data); })
+      .catch(() => {});
     fetch(`${API}/settings/pack_images`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data) && data.length > 0) setPackImagesCfg(data); })
@@ -719,6 +724,12 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .then(data => { if (data && typeof data === "object" && !Array.isArray(data)) setPassImagesCfg(data); })
       .catch(() => {});
   }, []);
+
+  const categories = CATEGORIES.map(cat => {
+    const override = categoryAvailability[cat.id];
+    if (!override) return cat;
+    return { ...cat, available: override === "available" };
+  });
 
   // Push browser history state when category is selected so device back button works
   const selectCategory = (cat: Category) => {
@@ -829,7 +840,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         {/* Category grid */}
         {!activeCategory && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            {CATEGORIES.map((cat, i) => (
+            {categories.map((cat, i) => (
               <CategoryCard key={cat.id} cat={cat} index={i} onClick={() => selectCategory(cat)} isPopularNow={!!categoryPopular[cat.id]} isExiting={isExiting && !activeCategory} />
             ))}
           </div>

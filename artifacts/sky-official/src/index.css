@@ -127,15 +127,15 @@
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.8s ease forwards;
+  animation: fadeInUp 0.6s ease forwards;
 }
 
 .animate-fade-in-down {
-  animation: fadeInDown 0.8s ease forwards;
+  animation: fadeInDown 0.6s ease forwards;
 }
 
 .animate-slide-in-left {
-  animation: slideInLeft 0.8s ease forwards;
+  animation: slideInLeft 0.6s ease forwards;
 }
 
 .animate-smoke {
@@ -147,7 +147,7 @@
 }
 
 .loading-fade-out {
-  animation: fadeOut 1s ease forwards;
+  animation: fadeOut 0.75s ease forwards;
 }
 
 /* Custom scrollbar */

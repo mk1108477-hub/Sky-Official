@@ -85,7 +85,7 @@ export default function MLBBVerifyPage() {
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "72px 16px 0" }}>
 
         {/* Hero text */}
-        <div style={{ textAlign: "center", paddingTop: 28, paddingBottom: 24, animation: "verIn 0.5s ease both" }}>
+        <div style={{ textAlign: "center", paddingTop: 28, paddingBottom: 24, animation: "verIn 0.38s ease both" }}>
           <div style={{ width: 64, height: 64, borderRadius: 18, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
               <path d="M9 12l2 2 4-4" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -106,7 +106,7 @@ export default function MLBBVerifyPage() {
         {(step === "input" || step === "error") && (
           <>
             {/* How to find IDs guide */}
-            <div style={{ marginBottom: 20, animation: "verIn 0.5s ease 0.06s both" }}>
+            <div style={{ marginBottom: 20, animation: "verIn 0.38s ease 0.05s both" }}>
               <button
                 onClick={() => setShowGuide(v => !v)}
                 style={{ width: "100%", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
@@ -152,7 +152,7 @@ export default function MLBBVerifyPage() {
               )}
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16, animation: "verIn 0.5s ease 0.12s both" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16, animation: "verIn 0.38s ease 0.09s both" }}>
               <div>
                 <label style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>User ID</label>
                 <input
@@ -202,7 +202,7 @@ export default function MLBBVerifyPage() {
             <button
               onClick={goToConfirm}
               disabled={!canProceed}
-              style={{ width: "100%", padding: "15px 0", borderRadius: 14, background: canProceed ? "linear-gradient(135deg,#fcd34d,#f59e0b)" : "rgba(245,158,11,0.2)", color: canProceed ? "#000" : "rgba(255,255,255,0.3)", fontWeight: 800, fontSize: 15, border: "none", cursor: canProceed ? "pointer" : "default", transition: "all 0.2s", animation: "verIn 0.5s ease 0.18s both" }}
+              style={{ width: "100%", padding: "15px 0", borderRadius: 14, background: canProceed ? "linear-gradient(135deg,#fcd34d,#f59e0b)" : "rgba(245,158,11,0.2)", color: canProceed ? "#000" : "rgba(255,255,255,0.3)", fontWeight: 800, fontSize: 15, border: "none", cursor: canProceed ? "pointer" : "default", transition: "all 0.2s", animation: "verIn 0.38s ease 0.14s both" }}
             >
               Review My Details →
             </button>
@@ -211,7 +211,7 @@ export default function MLBBVerifyPage() {
 
         {/* CONFIRM STEP */}
         {step === "confirm" && (
-          <div style={{ animation: "verIn 0.4s ease both" }}>
+          <div style={{ animation: "verIn 0.3s ease both" }}>
             <div style={{ background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 20, padding: "24px 20px", marginBottom: 16 }}>
               <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 16, textAlign: "center" }}>
                 Please confirm your account details
@@ -261,7 +261,7 @@ export default function MLBBVerifyPage() {
 
         {/* SAVING STATE */}
         {step === "saving" && (
-          <div style={{ textAlign: "center", padding: "40px 0", animation: "verIn 0.3s ease both" }}>
+          <div style={{ textAlign: "center", padding: "40px 0", animation: "verIn 0.23s ease both" }}>
             <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
               {[0, 1, 2].map(i => (
                 <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: "#f59e0b", animation: `pulse 1.2s ease ${i * 0.2}s infinite` }} />
@@ -274,9 +274,9 @@ export default function MLBBVerifyPage() {
 
         {/* SAVED STATE */}
         {step === "saved" && (
-          <div style={{ animation: "verIn 0.4s ease both" }}>
+          <div style={{ animation: "verIn 0.3s ease both" }}>
             <div style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 20, padding: "28px 20px", textAlign: "center", marginBottom: 16 }}>
-              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", animation: "checkPop 0.4s ease both" }}>
+              <div style={{ width: 60, height: 60, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "2px solid rgba(34,197,94,0.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", animation: "checkPop 0.3s ease both" }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

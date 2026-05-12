@@ -249,7 +249,7 @@ function Navbar() {
         backdropFilter: "blur(18px)",
         borderBottom: "1px solid rgba(245,158,11,0.1)",
         boxShadow: "0 1px 24px rgba(0,0,0,0.4)",
-        animation: "navSlideDown 0.5s cubic-bezier(0.22,1,0.36,1) both",
+        animation: "navSlideDown 0.38s cubic-bezier(0.22,1,0.36,1) both",
       }}
     >
       <style>{`
@@ -286,7 +286,7 @@ function Navbar() {
         <div className="flex items-center gap-1.5">
           <div style={{ position: "relative", height: 25, minWidth: 80 }}>
             <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 12.75, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap" }}>Sky Official</span>
-            <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.4s ease", textAlign: "left", whiteSpace: "nowrap" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
+            <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.3s ease", textAlign: "left", whiteSpace: "nowrap" }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>
       </button>
@@ -313,7 +313,7 @@ function Navbar() {
                 </div>
               </button>
               {showProfileMenu && (
-                <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", background: "#111316", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.7)", minWidth: 168, overflow: "hidden", zIndex: 999, animation: "navSlideDown 0.18s ease both" }}>
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", background: "#111316", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.7)", minWidth: 168, overflow: "hidden", zIndex: 999, animation: "navSlideDown 0.14s ease both" }}>
                   {([
                     { label: "Dashboard", icon: "👤", action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
                     { label: "My Orders", icon: "📦", action: () => { setLocation("/orders"); setShowProfileMenu(false); } },
@@ -462,8 +462,8 @@ function AnimatedPage({ children, skipPageAnim = false }: { children: React.Reac
   }
 
   const anim = exiting
-    ? (dir === "forward" ? "pgSwipeOutLeft 0.48s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.48s cubic-bezier(0.55,0,0.9,0.5) both")
-    : (dir === "forward" ? "pgSwipeInRight 0.62s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.62s cubic-bezier(0.16,1,0.3,1) both");
+    ? (dir === "forward" ? "pgSwipeOutLeft 0.36s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.36s cubic-bezier(0.55,0,0.9,0.5) both")
+    : (dir === "forward" ? "pgSwipeInRight 0.47s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.47s cubic-bezier(0.16,1,0.3,1) both");
   return (
     <div ref={containerRef} style={{ animation: anim, willChange: "transform", position: "relative", zIndex: 1 }}>
       <style>{`
@@ -534,7 +534,7 @@ function SharedVideoBg() {
       position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
       width: "min(100vw, calc(100dvh * 9 / 16))",
       height: "100dvh", zIndex: 0, overflow: "hidden", pointerEvents: "none",
-      opacity: active ? 1 : 0, transition: "opacity 0.5s ease",
+      opacity: active ? 1 : 0, transition: "opacity 0.38s ease",
     }}>
       <video
         ref={videoRef}
@@ -552,7 +552,7 @@ function SharedVideoBg() {
         position: "absolute", inset: 0,
         background: "#000",
         opacity: fadeBlack ? 1 : 0,
-        transition: "opacity 0.72s ease",
+        transition: "opacity 0.54s ease",
         pointerEvents: "none",
       }} />
       <div style={{
@@ -578,8 +578,8 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
   }, []);
 
   const el = (enterDelay: number, exitDelay: number): React.CSSProperties => {
-    if (exiting) return { animation: `fadeOutDiag 0.28s ease ${exitDelay}s both` };
-    if (animate) return { animation: `fadeInDiag 0.75s cubic-bezier(0.25,0.46,0.45,0.94) ${enterDelay}s both` };
+    if (exiting) return { animation: `fadeOutDiag 0.21s ease ${exitDelay}s both` };
+    if (animate) return { animation: `fadeInDiag 0.56s cubic-bezier(0.25,0.46,0.45,0.94) ${enterDelay}s both` };
     return { opacity: 0 };
   };
 
@@ -602,7 +602,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
         </p>
         <div className="relative h-4 flex items-center justify-center overflow-hidden" style={el(0.65, 0.17)}>
           {featureTexts.map((text, i) => (
-            <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 9.5, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.55s ease, transform 0.55s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
+            <span key={i} className="absolute font-semibold text-center" style={{ fontSize: 9.5, color: "#fbbf24", opacity: activeFeature === i ? 1 : 0, transform: activeFeature === i ? "translateY(0)" : "translateY(6px)", transition: "opacity 0.41s ease, transform 0.41s ease", pointerEvents: "none", letterSpacing: "0.05em" }}>✦ {text}</span>
           ))}
         </div>
         <div className="flex justify-center mt-1" style={el(0.78, 0.20)}>
@@ -938,7 +938,7 @@ function OfferBannerCarousel() {
               minHeight: 100,
               position: "relative",
               overflow: "hidden",
-              animation: "oh-fadeIn 0.4s ease both",
+              animation: "oh-fadeIn 0.3s ease both",
             }}
           >
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.18)", borderRadius: 18 }} />
@@ -964,7 +964,7 @@ function OfferBannerCarousel() {
             <button
               key={i}
               onClick={() => setActiveIdx(i)}
-              style={{ width: i === activeIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.22)", transition: "all 0.3s ease", border: "none", cursor: "pointer", padding: 0 }}
+              style={{ width: i === activeIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.22)", transition: "all 0.23s ease", border: "none", cursor: "pointer", padding: 0 }}
             />
           ))}
         </div>
@@ -1005,7 +1005,7 @@ function MainSite() {
       </div>
       {/* Intro overlays on top and fades out — content plays underneath */}
       {introMounted && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, opacity: introDone ? 0 : 1, transition: "opacity 0.9s ease", pointerEvents: introDone ? "none" : "auto" }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, opacity: introDone ? 0 : 1, transition: "opacity 0.68s ease", pointerEvents: introDone ? "none" : "auto" }}>
           <LoadingScreen onDone={handleIntroDone} />
         </div>
       )}
@@ -1073,7 +1073,7 @@ function PackagesPage() {
         {mlbbVerified === false && (
           <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
             <div
-              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.55s cubic-bezier(0.22,1,0.36,1) 0.06s both" }}
+              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.41s cubic-bezier(0.22,1,0.36,1) 0.05s both" }}
             >
               <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -1106,7 +1106,7 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
   const [, setLocation] = useLocation();
 
   const diag = (delay: number): React.CSSProperties => ({
-    animation: `authFadeIn 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
+    animation: `authFadeIn 0.45s cubic-bezier(0.22,1,0.36,1) ${delay}s both`,
   });
 
   return (

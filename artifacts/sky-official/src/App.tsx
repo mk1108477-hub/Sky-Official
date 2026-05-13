@@ -8,6 +8,7 @@ import MLBBTargetPage, { setAfterTargetPath } from "./components/MLBBTargetPage"
 import CartPage from "./components/CartPage";
 import PaymentPage, { setSelectedPackage } from "./components/PaymentPage";
 import type { SelectedPackage } from "./components/PaymentPage";
+import SupportPage from "./components/SupportPage";
 import { CartProvider, useCart } from "./context/CartContext";
 import {
   ClerkProvider,
@@ -315,11 +316,11 @@ function Navbar() {
               {showProfileMenu && (
                 <div style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", background: "#111316", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 14, boxShadow: "0 10px 40px rgba(0,0,0,0.7)", minWidth: 168, overflow: "hidden", zIndex: 999, animation: "navSlideDown 0.14s ease both" }}>
                   {([
-                    { label: "Dashboard", icon: "👤", action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
-                    { label: "My Orders", icon: "📦", action: () => { setLocation("/orders"); setShowProfileMenu(false); } },
-                    { label: "Wallet", icon: "💎", action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
-                    { label: "Chat Support", icon: "💬", action: () => { window.open(WHATSAPP_NUMBER, "_blank"); setShowProfileMenu(false); } },
-                  ] as { label: string; icon: string; action: () => void }[]).map(item => (
+                    { label: "Profile", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>, action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
+                    { label: "My Orders", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, action: () => { setLocation("/orders"); setShowProfileMenu(false); } },
+                    { label: "Wallet", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M16 14a1 1 0 110-2 1 1 0 010 2z" fill="currentColor"/><path d="M2 11h20" stroke="currentColor" strokeWidth="1.8"/></svg>, action: () => { setLocation("/profile"); setShowProfileMenu(false); } },
+                    { label: "Support", icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, action: () => { setLocation("/support"); setShowProfileMenu(false); } },
+                  ] as { label: string; icon: React.ReactNode; action: () => void }[]).map(item => (
                     <button
                       key={item.label}
                       onClick={item.action}
@@ -328,7 +329,7 @@ function Navbar() {
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "none")}
                     >
-                      <span style={{ fontSize: 15 }}>{item.icon}</span>
+                      <span style={{ color: "rgba(255,255,255,0.45)", display: "flex" }}>{item.icon}</span>
                       {item.label}
                     </button>
                   ))}
@@ -339,7 +340,7 @@ function Navbar() {
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.08)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "none")}
                   >
-                    <span style={{ fontSize: 15 }}>🚪</span>
+                    <span style={{ display: "flex", color: "#ef4444" }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
                     Sign Out
                   </button>
                 </div>
@@ -610,9 +611,6 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
             View Packages <span style={{ fontSize: 13 }}>→</span>
           </button>
         </div>
-        <div className="flex justify-center mt-3" style={el(0.90, 0.23)}>
-          <ActiveRechargerPill />
-        </div>
       </div>
       <style>{`
         @keyframes fadeInDiag {
@@ -652,10 +650,25 @@ function FeaturesSection() {
 
 // ── Stats ──────────────────────────────────────────────────────────────────
 function StatsSection() {
+  const FLOORS = { orders: 300, diamonds: 10000, users: 250 };
+  const [real, setReal] = useState<{ total_orders: number; total_diamonds: number; total_users: number } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/stats`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setReal(d); })
+      .catch(() => {});
+  }, []);
+
+  function fmt(val: number, floor: number): string {
+    if (val < floor) return floor.toLocaleString() + "+";
+    return val.toLocaleString();
+  }
+
   const stats = [
-    { value: "1,248+", label: "Total Orders", color: "#111", icon: null },
-    { value: "98,423", label: "Diamonds Sold", color: "#f59e0b", icon: "♦" },
-    { value: "833+", label: "Happy Gamers", color: "#111", icon: "★" },
+    { value: real ? fmt(real.total_orders, FLOORS.orders) : FLOORS.orders.toLocaleString() + "+", label: "Total Orders", color: "#111", icon: null },
+    { value: real ? fmt(real.total_diamonds, FLOORS.diamonds) : FLOORS.diamonds.toLocaleString(), label: "Diamonds Sold", color: "#f59e0b", icon: "♦" },
+    { value: real ? fmt(real.total_users, FLOORS.users) : FLOORS.users.toLocaleString() + "+", label: "Happy Gamers", color: "#111", icon: "★" },
   ];
   return (
     <section className="py-5 px-4" style={{ background: "#f5f5f5" }}>
@@ -706,31 +719,36 @@ function HowItWorks() {
 
 // ── Live Ticker ────────────────────────────────────────────────────────────
 function maskName(name: string): string {
-  if (name.length <= 4) return name;
+  if (!name || name.length <= 4) return name || "Player";
   return "xxxx" + name.slice(-2);
 }
 
+interface RecentOrder { mlbb_ign: string | null; diamonds: number; created_at: string; }
+
 function LiveTicker() {
-  const purchases = [
-    { name: "Hunter99",   amount: "514 diamonds"   },
-    { name: "Shadow_X",   amount: "1,048 diamonds" },
-    { name: "RajaGaming", amount: "257 diamonds"   },
-    { name: "NightWolf",  amount: "2,000 diamonds" },
-    { name: "StarPlayer", amount: "514 diamonds"   },
-    { name: "GoldRush99", amount: "1,048 diamonds" },
-    { name: "MLBBKing",   amount: "330 diamonds"   },
-    { name: "WarriorX9",  amount: "570 diamonds"   },
-  ];
+  const [purchases, setPurchases] = useState<RecentOrder[]>([]);
+
+  useEffect(() => {
+    fetch(`${API}/orders/recent`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setPurchases(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  if (purchases.length === 0) return null;
+
   const doubled = [...purchases, ...purchases];
+  const duration = Math.max(16, doubled.length * 2.5);
+
   return (
     <div className="py-2.5 overflow-hidden" style={{ background: "#fff", borderTop: "1px solid #eee", borderBottom: "1px solid #eee" }}>
       <div className="flex items-center gap-0">
         <div className="flex-shrink-0 px-3 py-1 flex items-center gap-1 font-bold" style={{ color: "#f59e0b", fontSize: 13 }}>⚡ Live Purchases</div>
         <div className="flex overflow-hidden">
-          <div className="flex gap-6 whitespace-nowrap" style={{ animation: "scrollTicker 24s linear infinite", willChange: "transform" }}>
+          <div className="flex gap-6 whitespace-nowrap" style={{ animation: `scrollTicker ${duration}s linear infinite`, willChange: "transform" }}>
             {doubled.map((p, i) => (
               <span key={i} className="text-gray-700 flex-shrink-0" style={{ fontSize: 13 }}>
-                <span className="font-bold text-amber-600">{maskName(p.name)}</span>{" bought "}<span className="font-bold">{p.amount}</span>
+                <span className="font-bold text-amber-600">{maskName(p.mlbb_ign ?? "Player")}</span>{" bought "}<span className="font-bold">{Number(p.diamonds).toLocaleString()} diamonds</span>
                 <span className="ml-5 text-gray-300">|</span>
               </span>
             ))}
@@ -850,7 +868,7 @@ function WhyChooseUs() {
     { icon: "⚡", title: "Instant Delivery",      desc: "Diamonds credited within minutes of payment. No waiting around." },
     { icon: "🔒", title: "100% Secure",           desc: "All transactions are protected. We never store your payment details." },
     { icon: "💰", title: "Best Prices",           desc: "Guaranteed lowest prices on all diamond packs — beat any deal." },
-    { icon: "🏆", title: "833+ Happy Gamers",     desc: "Join our growing community of satisfied MLBB players." },
+    { icon: "🏆", title: "250+ Happy Gamers",     desc: "Join our growing community of satisfied MLBB players." },
     { icon: "💬", title: "24/7 Support",          desc: "Reach us on WhatsApp anytime. Real humans, not bots." },
     { icon: "♦",  title: "All Pack Types",        desc: "Small packs, normal, double diamond, passes, and rank boosting." },
   ];
@@ -875,101 +893,137 @@ function WhyChooseUs() {
   );
 }
 
-// ── Active Recharger Pill ──────────────────────────────────────────────────
-let _rechCount = Math.floor(Math.random() * 11) + 5;
-function ActiveRechargerPill() {
-  const [count, setCount] = useState(_rechCount);
-  useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    const schedule = () => {
-      t = setTimeout(() => {
-        _rechCount = Math.max(3, Math.min(20, _rechCount + (Math.random() < 0.5 ? 1 : -1)));
-        setCount(_rechCount);
-        schedule();
-      }, 28000 + Math.random() * 32000);
-    };
-    schedule();
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 13px", borderRadius: 999, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.22)" }}>
-      <style>{`@keyframes rechPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.45;transform:scale(0.65)}}`}</style>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#ef4444", animation: "rechPulse 1.6s ease-in-out infinite", display: "block", flexShrink: 0 }} />
-      <span style={{ color: "rgba(255,255,255,0.72)", fontSize: 10, fontWeight: 700 }}>{count} recharging now</span>
-    </div>
-  );
+// ── Promo Event Carousel ───────────────────────────────────────────────────
+interface PromoEvent {
+  id: string;
+  title: string;
+  description?: string;
+  badge?: string;
+  bgImage?: string;
+  bgGradient?: string;
+  packIds?: number[];
+  active?: boolean;
+  sortOrder?: number;
 }
 
-// ── Offer Banner Carousel ──────────────────────────────────────────────────
-interface OfferBanner { id: string; title: string; subtitle?: string; emoji?: string; bgGradient?: string; ctaText?: string; ctaLink?: string; }
-
-function OfferBannerCarousel() {
-  const [banners, setBanners] = useState<OfferBanner[]>([]);
+function PromoCarousel() {
+  const { addToCart } = useCart();
+  const [, setLocation] = useLocation();
+  const [events, setEvents] = useState<PromoEvent[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [packages, setPackages] = useState<{ id: number; diamonds: number; bonus_diamonds: number; price: string; name: string | null; category: string | null }[]>([]);
+  const touchStartX = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/settings/offer_banners`)
+    fetch(`${API}/promo-events`)
       .then(r => r.ok ? r.json() : [])
-      .then(data => setBanners(Array.isArray(data) ? data : []))
+      .then(d => setEvents(Array.isArray(d) ? d : []))
+      .catch(() => {});
+    fetch(`${API}/packages`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setPackages(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (banners.length < 2) return;
-    const t = setInterval(() => setActiveIdx(i => (i + 1) % banners.length), 6000);
-    return () => clearInterval(t);
-  }, [banners.length]);
+    if (events.length < 2) return;
+    timerRef.current = setInterval(() => setActiveIdx(i => (i + 1) % events.length), 5000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [events.length]);
 
-  if (banners.length === 0) return null;
+  if (events.length === 0) return null;
+
+  function handleClick(ev: PromoEvent) {
+    if (!ev.packIds?.length) return;
+    ev.packIds.forEach(pid => {
+      const pkg = packages.find(p => p.id === pid);
+      if (pkg) {
+        addToCart({ id: pkg.id, diamonds: pkg.diamonds, bonus_diamonds: pkg.bonus_diamonds, price: pkg.price, name: pkg.name, category: pkg.category });
+      }
+    });
+    setLocation("/cart");
+  }
+
+  function prev() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setActiveIdx(i => (i - 1 + events.length) % events.length);
+    timerRef.current = setInterval(() => setActiveIdx(i => (i + 1) % events.length), 5000);
+  }
+  function next() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setActiveIdx(i => (i + 1) % events.length);
+    timerRef.current = setInterval(() => setActiveIdx(i => (i + 1) % events.length), 5000);
+  }
+
+  const ev = events[activeIdx];
 
   return (
-    <section style={{ padding: "0 16px 0", maxWidth: 520, margin: "0 auto -20px" }}>
-      <div style={{ position: "relative" }}>
-        {banners.map((banner, i) => (
-          <div
-            key={banner.id}
-            style={{
-              display: activeIdx === i ? "flex" : "none",
-              flexDirection: "column",
-              gap: 6,
-              background: banner.bgGradient || "linear-gradient(135deg,#1a0a2e,#2d1b69)",
-              borderRadius: 18,
-              padding: "18px 20px",
-              minHeight: 100,
-              position: "relative",
-              overflow: "hidden",
-              animation: "oh-fadeIn 0.3s ease both",
-            }}
-          >
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.18)", borderRadius: 18 }} />
-            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-              {banner.emoji && <span style={{ fontSize: 28, lineHeight: 1 }}>{banner.emoji}</span>}
-              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, lineHeight: 1.25, textShadow: "0 1px 8px rgba(0,0,0,0.4)" }}>{banner.title}</div>
-              {banner.subtitle && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>{banner.subtitle}</div>}
-              {banner.ctaText && banner.ctaLink && (
-                <a
-                  href={banner.ctaLink}
-                  style={{ display: "inline-block", marginTop: 6, padding: "6px 16px", borderRadius: 999, background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none", alignSelf: "flex-start" }}
-                >
-                  {banner.ctaText} →
-                </a>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      {banners.length > 1 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 10 }}>
-          {banners.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIdx(i)}
-              style={{ width: i === activeIdx ? 18 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.22)", transition: "all 0.23s ease", border: "none", cursor: "pointer", padding: 0 }}
+    <div style={{ background: "#0a0a0a" }}>
+      <style>{`
+        @keyframes promoBgKen { from { transform: scale(1.04); } to { transform: scale(1); } }
+        @keyframes promoFadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      <div style={{ padding: "12px 14px 4px" }}>
+        <div
+          key={ev.id}
+          onClick={() => ev.packIds?.length && handleClick(ev)}
+          onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={e => {
+            const dx = e.changedTouches[0].clientX - touchStartX.current;
+            if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); }
+          }}
+          style={{
+            position: "relative",
+            borderRadius: 18,
+            overflow: "hidden",
+            minHeight: 130,
+            cursor: ev.packIds?.length ? "pointer" : "default",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            background: ev.bgGradient || "linear-gradient(135deg,#1a0a2e,#2d1b4e)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+          }}
+        >
+          {ev.bgImage && (
+            <img
+              src={ev.bgImage}
+              alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", animation: "promoBgKen 6s ease both" }}
             />
-          ))}
+          )}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 55%, rgba(0,0,0,0.1) 100%)" }} />
+          <div style={{ position: "relative", zIndex: 1, padding: "14px 16px", animation: "promoFadeUp 0.35s ease both" }}>
+            {ev.badge && (
+              <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 9px", borderRadius: 999, background: "rgba(245,158,11,0.18)", border: "1px solid rgba(245,158,11,0.45)", color: "#fbbf24", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 7, textTransform: "uppercase" }}>
+                {ev.badge}
+              </span>
+            )}
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 17, lineHeight: 1.25, textShadow: "0 2px 10px rgba(0,0,0,0.6)", marginBottom: 4 }}>{ev.title}</div>
+            {ev.description && (
+              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, lineHeight: 1.5 }}>{ev.description}</div>
+            )}
+            {ev.packIds && ev.packIds.length > 0 && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, padding: "6px 13px", borderRadius: 999, background: "rgba(245,158,11,0.18)", border: "1px solid rgba(245,158,11,0.45)" }}>
+                <span style={{ color: "#fbbf24", fontSize: 11, fontWeight: 700 }}>Shop this deal →</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </section>
+        {events.length > 1 && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 5, marginTop: 9, marginBottom: 2 }}>
+            {events.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { if (timerRef.current) clearInterval(timerRef.current); setActiveIdx(i); timerRef.current = setInterval(() => setActiveIdx(j => (j + 1) % events.length), 5000); }}
+                style={{ width: i === activeIdx ? 20 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.22)", transition: "all 0.25s ease", border: "none", cursor: "pointer", padding: 0 }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -993,7 +1047,7 @@ function MainSite() {
       <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
         <AnimatedPage>
           <HeroSection animate={introDone} />
-          <OfferBannerCarousel />
+          <PromoCarousel />
           <StatsSection />
           <HowItWorks />
           <WhyChooseUs />
@@ -1070,31 +1124,7 @@ function PackagesPage() {
             to   { opacity: 1; transform: translateX(0); }
           }
         `}</style>
-        {mlbbVerified === false && (
-          <div style={{ maxWidth: 560, margin: "0 auto", padding: "72px 16px 0" }}>
-            <div
-              style={{ background: "linear-gradient(135deg,rgba(17,26,0,0.92),rgba(15,21,0,0.92))", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 18, padding: "16px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 0 24px rgba(34,197,94,0.06)", animation: "pkgSlideLeft 0.41s cubic-bezier(0.22,1,0.36,1) 0.05s both" }}
-            >
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.8"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>Verify your MLBB account first</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 3 }}>Confirm your IGN so diamonds go to the right account.</div>
-              </div>
-              <button
-                onClick={() => setLocation("/verify")}
-                style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "8px 14px", color: "#22c55e", fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, whiteSpace: "nowrap" }}
-              >
-                Verify →
-              </button>
-            </div>
-          </div>
-        )}
-        {mlbbVerified !== false && <div style={{ paddingTop: 72 }} />}
+        <div style={{ paddingTop: 72 }} />
         <PackagesSection onPackageSelect={(_id) => {}} onBack={() => navigateTo("/", "backward")} onBuy={handleBuy} onAddToCart={handleAddToCart} isExiting={exiting} />
       </div>
     </AnimatedPage>
@@ -1413,6 +1443,7 @@ function AppRoutes() {
           <Route path="/terms" component={TermsPage} />
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/refund" component={RefundPage} />
+          <Route path="/support" component={SupportPage} />
           <Route component={MainSite} />
         </Switch>
       </TransitionProvider>

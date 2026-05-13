@@ -45,7 +45,7 @@ interface WalletRequest {
   created_at: string;
 }
 
-type Tab = "packages" | "orders" | "wallet" | "featured" | "settings";
+type Tab = "packages" | "orders" | "wallet" | "featured" | "events" | "staff" | "settings";
 type NotifState = "unknown" | "loading" | "subscribed" | "denied" | "unsupported";
 
 async function registerSW(): Promise<ServiceWorkerRegistration | null> {
@@ -91,6 +91,27 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [bannersSaving, setBannersSaving] = useState(false);
   const [showAddBanner, setShowAddBanner] = useState(false);
   const [newBanner, setNewBanner] = useState({ emoji: "", title: "", subtitle: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b69)", ctaText: "", ctaLink: "" });
+
+  interface PromoEventAdmin { id: string; title: string; description: string; badge: string; bgImage: string; bgGradient: string; packIds: number[]; active: boolean; sortOrder: number; }
+  const [promoEvents, setPromoEvents] = useState<PromoEventAdmin[]>([]);
+  const [promoSaving, setPromoSaving] = useState(false);
+  const [showAddPromo, setShowAddPromo] = useState(false);
+  const [editingPromo, setEditingPromo] = useState<PromoEventAdmin | null>(null);
+  const [newPromo, setNewPromo] = useState({ title: "", description: "", badge: "", bgImage: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b4e)", packIds: [] as number[], active: true });
+  const promoImgRef = useRef<HTMLInputElement>(null);
+
+  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; }
+  const [staffList, setStaffList] = useState<RechargeStaff[]>([]);
+  const [staffSaving, setStaffSaving] = useState(false);
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline" });
+  const [staffQrPreview, setStaffQrPreview] = useState<string | null>(null);
+  const staffQrRef = useRef<HTMLInputElement>(null);
+  const [staffQrFile, setStaffQrFile] = useState<File | null>(null);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderSearchStatus, setOrderSearchStatus] = useState("");
+  const [searchResults, setSearchResults] = useState<Order[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const DEFAULT_PACK_IMAGES_ADMIN = [
     { maxDiamonds: 20,     url: "/pack1.png", label: "1–20 Diamonds"     },
@@ -404,7 +425,105 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
 
   useEffect(() => {
     if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchStarlightImages(); fetchCategoryAvailability(); }
+    if (authed && tab === "events") fetchPromoEvents();
+    if (authed && tab === "staff") fetchStaff();
   }, [authed, tab]);
+
+  const fetchPromoEvents = async () => {
+    try {
+      const res = await fetch(`${API}/admin/promo-events`, { headers });
+      if (res.ok) setPromoEvents(await res.json());
+    } catch {}
+  };
+
+  const savePromoEvents = async (list: any[]) => {
+    setPromoSaving(true);
+    try {
+      await fetch(`${API}/admin/promo-events`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(list) });
+      await fetchPromoEvents();
+    } catch {} finally { setPromoSaving(false); }
+  };
+
+  const uploadPromoImage = async (file: File): Promise<string | null> => {
+    const fd = new FormData(); fd.append("image", file);
+    const res = await fetch(`${API}/admin/upload-image`, { method: "POST", headers, body: fd });
+    if (!res.ok) return null;
+    return (await res.json()).url;
+  };
+
+  const addPromoEvent = async () => {
+    if (!newPromo.title.trim()) { alert("Title is required."); return; }
+    let bgImage = newPromo.bgImage;
+    if (promoImgRef.current?.files?.[0]) {
+      const url = await uploadPromoImage(promoImgRef.current.files[0]);
+      if (url) bgImage = url;
+    }
+    const ev = { ...newPromo, bgImage, id: Date.now().toString(), sortOrder: promoEvents.length };
+    await savePromoEvents([...promoEvents, ev]);
+    setNewPromo({ title: "", description: "", badge: "", bgImage: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b4e)", packIds: [], active: true });
+    setShowAddPromo(false);
+    if (promoImgRef.current) promoImgRef.current.value = "";
+  };
+
+  const deletePromoEvent = async (id: string) => {
+    await savePromoEvents(promoEvents.filter(e => e.id !== id));
+  };
+
+  const togglePromoActive = async (id: string) => {
+    await savePromoEvents(promoEvents.map(e => e.id === id ? { ...e, active: !e.active } : e));
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API}/admin/staff`, { headers });
+      if (res.ok) setStaffList(await res.json());
+    } catch {}
+  };
+
+  const addStaff = async () => {
+    if (!newStaff.name.trim()) { alert("Name is required."); return; }
+    setStaffSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("name", newStaff.name);
+      if (newStaff.email) fd.append("email", newStaff.email);
+      if (newStaff.whatsapp) fd.append("whatsapp", newStaff.whatsapp);
+      if (newStaff.shift_hours) fd.append("shift_hours", newStaff.shift_hours);
+      fd.append("status", newStaff.status);
+      if (staffQrFile) fd.append("qr_image", staffQrFile);
+      await fetch(`${API}/admin/staff`, { method: "POST", headers, body: fd });
+      await fetchStaff();
+      setNewStaff({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline" });
+      setStaffQrFile(null); setStaffQrPreview(null);
+      setShowAddStaff(false);
+    } catch {} finally { setStaffSaving(false); }
+  };
+
+  const toggleStaffStatus = async (id: number, currentStatus: string) => {
+    const newStatus = currentStatus === "available" ? "offline" : "available";
+    try {
+      await fetch(`${API}/admin/staff/${id}/status`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
+      await fetchStaff();
+    } catch {}
+  };
+
+  const deleteStaff = async (id: number) => {
+    if (!confirm("Delete this staff member?")) return;
+    await fetch(`${API}/admin/staff/${id}`, { method: "DELETE", headers });
+    await fetchStaff();
+  };
+
+  const searchOrders = async () => {
+    if (!orderSearch.trim() && !orderSearchStatus) return;
+    setSearching(true);
+    try {
+      const params = new URLSearchParams();
+      if (orderSearch.trim()) params.set("q", orderSearch.trim());
+      if (orderSearchStatus) params.set("status", orderSearchStatus);
+      const res = await fetch(`${API}/admin/orders/search?${params}`, { headers });
+      if (res.ok) setSearchResults(await res.json());
+    } catch {} finally { setSearching(false); }
+  };
 
   const approveWallet = async (id: number) => {
     setWalletLoading(id);
@@ -654,7 +773,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              {(["packages", "orders", "wallet", "featured", "settings"] as Tab[]).map((t) => {
+              {(["packages", "orders", "wallet", "events", "staff", "featured", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
@@ -1452,6 +1571,161 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       {imagesSaving ? "Saving…" : imagesSaved ? "✓ Saved!" : "Save Image Settings"}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* ── EVENTS TAB ── */}
+              {tab === "events" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-bold text-sm">Promo Event Panels</span>
+                    <button onClick={() => setShowAddPromo(v => !v)} className="px-4 py-2 rounded-xl text-xs font-bold text-black" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>+ New Event</button>
+                  </div>
+                  <div className="text-gray-400 text-xs">These slides appear below the hero section. Click on a slide to add linked packs to cart.</div>
+
+                  {showAddPromo && (
+                    <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.2)" }}>
+                      <div className="text-amber-400 text-sm font-bold">New Promo Panel</div>
+                      <input placeholder="Title *" value={newPromo.title} onChange={e => setNewPromo(p => ({ ...p, title: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="Description (optional)" value={newPromo.description} onChange={e => setNewPromo(p => ({ ...p, description: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="Badge text (e.g. HOT, NEW)" value={newPromo.badge} onChange={e => setNewPromo(p => ({ ...p, badge: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <div>
+                        <div className="text-gray-400 text-xs mb-1.5">Background Image (optional)</div>
+                        <input ref={promoImgRef} type="file" accept="image/*" className="text-gray-300 text-xs" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 10px", width: "100%" }} />
+                      </div>
+                      <div>
+                        <div className="text-gray-400 text-xs mb-1.5">Link packages (hold Ctrl/Cmd to select multiple)</div>
+                        <select multiple value={newPromo.packIds.map(String)} onChange={e => setNewPromo(p => ({ ...p, packIds: Array.from(e.target.selectedOptions).map(o => parseInt(o.value)) }))} className="px-3 py-2 rounded-lg text-white text-xs outline-none w-full" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)", height: 90 }}>
+                          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.name || `♦${pkg.diamonds}`} — ₹{parseFloat(pkg.price).toFixed(0)}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={addPromoEvent} disabled={promoSaving} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-black" style={{ background: promoSaving ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>{promoSaving ? "Saving…" : "Add Event"}</button>
+                        <button onClick={() => setShowAddPromo(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-300" style={{ background: "#222", border: "1px solid rgba(255,255,255,0.1)" }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {promoEvents.length === 0 && !showAddPromo && (
+                    <div className="text-center text-gray-500 text-sm py-8">No promo events yet. Add your first one!</div>
+                  )}
+
+                  {promoEvents.map((ev) => (
+                    <div key={ev.id} className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "#1a1a1a", border: `1px solid ${ev.active ? "rgba(245,158,11,0.25)" : "rgba(255,255,255,0.07)"}` }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white font-bold text-sm">{ev.title}</span>
+                            {ev.badge && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.3)" }}>{ev.badge}</span>}
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${ev.active ? "text-green-400" : "text-gray-500"}`} style={{ background: ev.active ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.05)" }}>{ev.active ? "Active" : "Hidden"}</span>
+                          </div>
+                          {ev.description && <div className="text-gray-400 text-xs mt-1 truncate">{ev.description}</div>}
+                          {ev.bgImage && <div className="text-gray-600 text-xs mt-0.5 truncate">🖼 {ev.bgImage}</div>}
+                          {ev.packIds?.length > 0 && <div className="text-gray-500 text-xs mt-0.5">🔗 {ev.packIds.length} pack(s) linked</div>}
+                        </div>
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button onClick={() => togglePromoActive(ev.id)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: ev.active ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)", color: ev.active ? "#ef4444" : "#22c55e", border: `1px solid ${ev.active ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{ev.active ? "Hide" : "Show"}</button>
+                          <button onClick={() => deletePromoEvent(ev.id)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>Del</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── STAFF TAB ── */}
+              {tab === "staff" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-bold text-sm">Recharge Staff</span>
+                    <button onClick={() => setShowAddStaff(v => !v)} className="px-4 py-2 rounded-xl text-xs font-bold text-black" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>+ Add Staff</button>
+                  </div>
+                  <div className="text-gray-400 text-xs">Set staff as "Available" to make orders auto-assign to them using round-robin. Their QR will be shown to customers on the payment page.</div>
+
+                  {/* Order Search */}
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div className="text-amber-400 text-xs font-bold">Order Search</div>
+                    <div className="flex gap-2">
+                      <input placeholder="Search by Order ID, MLBB ID, IGN…" value={orderSearch} onChange={e => setOrderSearch(e.target.value)} onKeyDown={e => e.key === "Enter" && searchOrders()} className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <select value={orderSearchStatus} onChange={e => setOrderSearchStatus(e.target.value)} className="px-2 py-2 rounded-lg text-white text-xs outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                      <button onClick={searchOrders} disabled={searching} className="px-3 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", flexShrink: 0 }}>{searching ? "…" : "Search"}</button>
+                    </div>
+                    {searchResults && (
+                      <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                        {searchResults.length === 0 ? (
+                          <div className="text-gray-500 text-xs text-center py-3">No results found.</div>
+                        ) : searchResults.map(o => (
+                          <div key={o.id} className="rounded-lg p-3" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)" }}>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <span className="text-amber-400 font-bold text-xs font-mono">{(o as any).display_id || `#${o.id}`}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: o.status === "completed" ? "rgba(34,197,94,0.12)" : o.status === "pending" ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.06)", color: o.status === "completed" ? "#22c55e" : o.status === "pending" ? "#f59e0b" : "#9ca3af" }}>{o.status}</span>
+                            </div>
+                            <div className="text-gray-300 text-xs mt-1">♦{Number(o.diamonds).toLocaleString()} · ₹{parseFloat(o.price).toFixed(0)}</div>
+                            {o.mlbb_id && <div className="text-gray-500 text-xs mt-0.5">MLBB: {o.mlbb_id}</div>}
+                            {(o as any).staff_name && <div className="text-gray-500 text-xs mt-0.5">Staff: {(o as any).staff_name}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {showAddStaff && (
+                    <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(245,158,11,0.2)" }}>
+                      <div className="text-amber-400 text-sm font-bold">New Staff Member</div>
+                      <input placeholder="Name *" value={newStaff.name} onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="Email (for order notifications)" value={newStaff.email} onChange={e => setNewStaff(s => ({ ...s, email: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="WhatsApp number" value={newStaff.whatsapp} onChange={e => setNewStaff(s => ({ ...s, whatsapp: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="Shift hours (e.g. 9AM–6PM)" value={newStaff.shift_hours} onChange={e => setNewStaff(s => ({ ...s, shift_hours: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <select value={newStaff.status} onChange={e => setNewStaff(s => ({ ...s, status: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        <option value="offline">Offline</option>
+                        <option value="available">Available</option>
+                      </select>
+                      <div>
+                        <div className="text-gray-400 text-xs mb-1.5">QR Code (customer pays to this QR)</div>
+                        <input ref={staffQrRef} type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setStaffQrFile(f); const r = new FileReader(); r.onload = ev2 => setStaffQrPreview(ev2.target?.result as string); r.readAsDataURL(f); } }} className="text-gray-300 text-xs" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 10px", width: "100%" }} />
+                        {staffQrPreview && <img src={staffQrPreview} alt="QR preview" className="mt-2 rounded-lg" style={{ maxWidth: 120, maxHeight: 120, objectFit: "contain" }} />}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={addStaff} disabled={staffSaving} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-black" style={{ background: staffSaving ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>{staffSaving ? "Saving…" : "Add Staff"}</button>
+                        <button onClick={() => setShowAddStaff(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-300" style={{ background: "#222", border: "1px solid rgba(255,255,255,0.1)" }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {staffList.length === 0 && !showAddStaff && (
+                    <div className="text-center text-gray-500 text-sm py-8">No staff yet. Add your coworkers!</div>
+                  )}
+
+                  {staffList.map((s) => (
+                    <div key={s.id} className="rounded-xl p-4 flex flex-col gap-2" style={{ background: "#1a1a1a", border: `1px solid ${s.status === "available" ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.07)"}` }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white font-bold text-sm">{s.name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold`} style={{ background: s.status === "available" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)", color: s.status === "available" ? "#22c55e" : "#9ca3af" }}>{s.status === "available" ? "● Available" : "○ Offline"}</span>
+                          </div>
+                          {s.email && <div className="text-gray-400 text-xs mt-1">✉ {s.email}</div>}
+                          {s.whatsapp && <div className="text-gray-400 text-xs mt-0.5">📱 {s.whatsapp}</div>}
+                          {s.shift_hours && <div className="text-gray-500 text-xs mt-0.5">⏰ {s.shift_hours}</div>}
+                          {s.qr_image && <div className="text-gray-600 text-xs mt-0.5">QR: {s.qr_image}</div>}
+                        </div>
+                        <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
+                          <button onClick={() => toggleStaffStatus(s.id, s.status)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: s.status === "available" ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)", color: s.status === "available" ? "#ef4444" : "#22c55e", border: `1px solid ${s.status === "available" ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{s.status === "available" ? "Set Offline" : "Set Available"}</button>
+                          <button onClick={() => deleteStaff(s.id)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>Remove</button>
+                        </div>
+                      </div>
+                      {s.qr_image && (
+                        <div className="mt-1">
+                          <img src={s.qr_image} alt="QR" className="rounded-lg" style={{ maxWidth: 100, maxHeight: 100, objectFit: "contain" }} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 

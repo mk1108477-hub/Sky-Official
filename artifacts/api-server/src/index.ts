@@ -74,6 +74,15 @@ async function initDb() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='status') THEN
         ALTER TABLE packages ADD COLUMN status TEXT DEFAULT 'available';
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='display_id') THEN
+        ALTER TABLE orders ADD COLUMN display_id TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='assigned_staff_id') THEN
+        ALTER TABLE orders ADD COLUMN assigned_staff_id INT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='completed_at') THEN
+        ALTER TABLE orders ADD COLUMN completed_at TIMESTAMPTZ;
+      END IF;
     END$$;
   `);
 
@@ -96,6 +105,28 @@ async function initDb() {
       endpoint TEXT UNIQUE NOT NULL,
       p256dh TEXT NOT NULL,
       auth TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS recharge_staff (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT,
+      qr_image TEXT,
+      whatsapp TEXT,
+      status TEXT DEFAULT 'offline',
+      shift_hours TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS support_inquiries (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT,
+      user_name TEXT,
+      inquiry_type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      status TEXT DEFAULT 'open',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);

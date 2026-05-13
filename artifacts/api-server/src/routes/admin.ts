@@ -419,4 +419,136 @@ router.post("/wallet-requests/:id/reject", requireAdmin, async (req, res): Promi
   }
 });
 
+// ── Promo Events ──────────────────────────────────────────────────────────────
+router.get("/promo-events", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='promo_events'");
+    res.json(JSON.parse(rows[0]?.value || "[]"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/promo-events", requireAdmin, async (req, res) => {
+  try {
+    await pool.query(
+      `INSERT INTO settings (key,value) VALUES ('promo_events',$1) ON CONFLICT (key) DO UPDATE SET value=$1`,
+      [JSON.stringify(req.body)]
+    );
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+// ── Recharge Staff ────────────────────────────────────────────────────────────
+router.get("/staff", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT * FROM recharge_staff ORDER BY sort_order ASC, id ASC");
+    res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, res: any) => {
+  const { name, email, whatsapp, status, shift_hours, sort_order } = req.body;
+  if (!name) { res.status(400).json({ error: "name is required" }); return; }
+  const qrImage = req.file ? `/uploads/${req.file.filename}` : (req.body.qr_image || null);
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0]
+    );
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/staff/:id", requireAdmin, upload.single("qr_image"), async (req: any, res: any): Promise<void> => {
+  const { id } = req.params;
+  const { name, email, whatsapp, status, shift_hours, sort_order, qr_image } = req.body;
+  const qrImage = req.file ? `/uploads/${req.file.filename}` : (qr_image || null);
+  try {
+    const { rows } = await pool.query(
+      `UPDATE recharge_staff SET name=$1, email=$2, qr_image=COALESCE($3, qr_image), whatsapp=$4, status=$5, shift_hours=$6, sort_order=$7
+       WHERE id=$8 RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, id]
+    );
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/staff/:id/status", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { status } = req.body;
+  if (!["available", "offline"].includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
+  try {
+    const { rows } = await pool.query(
+      `UPDATE recharge_staff SET status=$1 WHERE id=$2 RETURNING *`,
+      [status, id]
+    );
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.delete("/staff/:id", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM recharge_staff WHERE id=$1", [id]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+// ── Support Inquiries ─────────────────────────────────────────────────────────
+router.get("/support-inquiries", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM support_inquiries ORDER BY created_at DESC LIMIT 100"
+    );
+    res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/support-inquiries/:id/status", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    await pool.query("UPDATE support_inquiries SET status=$1 WHERE id=$2", [status, id]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+// ── Enhanced order search ──────────────────────────────────────────────────────
+router.get("/orders/search", requireAdmin, async (req, res) => {
+  const { q, status: statusFilter } = req.query as Record<string, string>;
+  try {
+    let query = `SELECT o.*, s.name AS staff_name FROM orders o
+      LEFT JOIN recharge_staff s ON o.assigned_staff_id = s.id
+      WHERE 1=1`;
+    const params: any[] = [];
+    if (q) {
+      params.push(`%${q}%`);
+      query += ` AND (o.display_id ILIKE $${params.length} OR o.mlbb_id ILIKE $${params.length} OR o.mlbb_ign ILIKE $${params.length} OR o.clerk_user_id ILIKE $${params.length})`;
+    }
+    if (statusFilter) {
+      params.push(statusFilter);
+      query += ` AND o.status = $${params.length}`;
+    }
+    query += " ORDER BY o.created_at DESC LIMIT 100";
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+// ── Mark order completed with timestamp ───────────────────────────────────────
+router.put("/orders/:id/complete", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { note } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE orders SET status='completed', completed_at=NOW(), note=COALESCE($1, note) WHERE id=$2 RETURNING *`,
+      [note || null, id]
+    );
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 export default router;

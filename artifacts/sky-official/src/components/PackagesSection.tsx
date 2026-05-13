@@ -378,7 +378,30 @@ function getStarlightImage(name: string | null, cfg: StarlightImagesCfg = DEFAUL
   return cfg[name] || null;
 }
 
+function CatPanelImage({ src, alt, dimmed }: { src: string; alt: string; dimmed: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="eager"
+      fetchPriority="high"
+      onLoad={() => setLoaded(true)}
+      style={{
+        width: "100%", height: "100%",
+        objectFit: "cover",
+        objectPosition: "center",
+        display: "block",
+        filter: dimmed ? "brightness(0.5) saturate(0.4)" : "brightness(1.05) saturate(1.1)",
+        opacity: loaded ? 1 : 0,
+        transition: loaded ? "opacity 0.25s ease" : "none",
+      }}
+    />
+  );
+}
+
 function ImagePane({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false);
   return (
     <div style={{
       position: "relative", height: 148, overflow: "hidden", flexShrink: 0,
@@ -393,6 +416,9 @@ function ImagePane({ src }: { src: string }) {
       <img
         src={src}
         alt=""
+        loading="eager"
+        fetchPriority="high"
+        onLoad={() => setLoaded(true)}
         style={{
           position: "absolute",
           inset: 0,
@@ -403,6 +429,8 @@ function ImagePane({ src }: { src: string }) {
           transform: "translateZ(0)",
           filter: "drop-shadow(0 6px 18px rgba(56,189,248,0.22)) brightness(1.06) saturate(1.15)",
           zIndex: 1,
+          opacity: loaded ? 1 : 0,
+          transition: loaded ? "opacity 0.25s ease" : "none",
         }}
       />
       {/* Top vignette */}
@@ -481,18 +509,7 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
 
       {/* Category image panel */}
       <div style={{ height: 90, overflow: "hidden", flexShrink: 0, position: "relative" }}>
-        <img
-          src={PANEL_IMAGES[cat.id]}
-          alt={cat.title}
-          style={{
-            width: "100%", height: "100%",
-            objectFit: "cover",
-            objectPosition: "center",
-            display: "block",
-            filter: cat.available ? "brightness(1.05) saturate(1.1)" : "brightness(0.5) saturate(0.4)",
-            transition: "transform 0.3s ease",
-          }}
-        />
+        <CatPanelImage src={PANEL_IMAGES[cat.id]} alt={cat.title} dimmed={!cat.available} />
         {/* Bottom fade into card body */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0, height: 32, pointerEvents: "none",

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import RankBoostPage from "./RankBoostPage";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
 
@@ -974,8 +975,13 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           </div>
         )}
 
+        {/* Rank Boost page — full custom form */}
+        {activeCategory?.id === "rank" && (
+          <RankBoostPage onBack={() => window.history.back()} />
+        )}
+
         {/* Pack list — individual stagger slide-in from right */}
-        {activeCategory && (
+        {activeCategory && activeCategory.id !== "rank" && (
           <div key={activeCategory.id}>
             {loading && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>

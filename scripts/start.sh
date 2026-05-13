@@ -12,14 +12,14 @@ trap cleanup TERM INT
 # Install deps once at the root (ensures all binaries like esbuild are present)
 pnpm -w install
 
-# Build API server
+# Build API server using pnpm so binaries resolve correctly
 echo "[start] Building API server..."
-cd artifacts/api-server && node ./build.mjs && cd ../..
+pnpm --filter @workspace/api-server run build
 
 # Kill anything still running on our ports
 echo "[start] Freeing ports..."
 pkill -9 -f "dist/index.mjs" 2>/dev/null || true
-sleep 3
+sleep 1
 
 # Start API server in background
 echo "[start] Starting API server on port 8080..."

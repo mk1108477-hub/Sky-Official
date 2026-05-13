@@ -83,6 +83,9 @@ async function initDb() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='completed_at') THEN
         ALTER TABLE orders ADD COLUMN completed_at TIMESTAMPTZ;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='recharge_staff' AND column_name='staff_pin') THEN
+        ALTER TABLE recharge_staff ADD COLUMN staff_pin TEXT;
+      END IF;
     END$$;
   `);
 

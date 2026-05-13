@@ -44,7 +44,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
-  const [topupRef, setTopupRef] = useState("");
+  const [topupQr, setTopupQr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [topupMsg, setTopupMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -63,6 +63,14 @@ export default function ProfilePage() {
     if (isLoaded && !user) setLocation("/sign-in");
   }, [isLoaded, user]);
 
+  useEffect(() => {
+    if (!showTopup) return;
+    fetch(`${API}/settings/qr`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.qr) setTopupQr(d.qr); })
+      .catch(() => {});
+  }, [showTopup]);
+
   if (!isLoaded || !user) return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Loading…</div>
@@ -74,7 +82,6 @@ export default function ProfilePage() {
   async function submitTopup() {
     const amt = parseFloat(topupAmount);
     if (!amt || amt <= 0) { setTopupMsg({ ok: false, text: "Enter a valid amount." }); return; }
-    if (!topupRef.trim()) { setTopupMsg({ ok: false, text: "Enter your UPI reference." }); return; }
     setSubmitting(true);
     setTopupMsg(null);
     try {
@@ -82,12 +89,12 @@ export default function ProfilePage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amt, upi_ref: topupRef.trim() }),
+        body: JSON.stringify({ amount: amt }),
       });
       const data = await r.json();
       if (r.ok) {
         setTopupMsg({ ok: true, text: data.message });
-        setTopupAmount(""); setTopupRef("");
+        setTopupAmount("");
         const wallet = await fetch(`${API}/wallet/balance`, { credentials: "include" }).then(r => r.json());
         setTransactions(wallet.transactions ?? []);
       } else {
@@ -154,10 +161,11 @@ export default function ProfilePage() {
         <div style={{ background: "linear-gradient(135deg,#1a1200,#111)", borderRadius: 18, border: "1px solid rgba(245,158,11,0.25)", padding: "20px 18px", marginBottom: 16, animation: "profIn 0.5s ease 0.18s both", boxShadow: "0 0 30px rgba(245,158,11,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div>
-              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Sky Wallet</div>
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" }}>Sky Wallet (S Coins)</div>
               <div style={{ color: "#fff", fontWeight: 800, fontSize: 28, marginTop: 2 }}>
-                ₹{loading ? "—" : (stats?.wallet_balance ?? 0).toFixed(2)}
+                S {loading ? "—" : (stats?.wallet_balance ?? 0).toFixed(0)}
               </div>
+              <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginTop: 2 }}>1 S coin = ₹1</div>
             </div>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <DiamondIcon size={26} color="#f59e0b" />
@@ -175,22 +183,27 @@ export default function ProfilePage() {
           </button>
 
           {showTopup && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>
-                Pay via UPI to <strong style={{ color: "#f59e0b" }}>sky@upi</strong> then enter the amount and your UPI transaction reference below.
-              </div>
+            <div style={{ marginTop: 16 }}>
+              {topupQr ? (
+                <div style={{ textAlign: "center", marginBottom: 16 }}>
+                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>
+                    Scan the QR below to pay, then enter the amount you paid and submit.
+                  </div>
+                  <div style={{ display: "inline-block", background: "#fff", padding: 10, borderRadius: 14 }}>
+                    <img src={topupQr} alt="Payment QR" style={{ width: 160, height: 160, objectFit: "contain", display: "block" }} />
+                  </div>
+                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 8 }}>1 S coin = ₹1 — pay the same amount in rupees</div>
+                </div>
+              ) : (
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 12, textAlign: "center", padding: "12px 0" }}>
+                  Loading payment QR…
+                </div>
+              )}
               <input
                 type="number"
-                placeholder="Amount (₹)"
+                placeholder="Amount you paid (S coins)"
                 value={topupAmount}
                 onChange={e => setTopupAmount(e.target.value)}
-                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}
-              />
-              <input
-                type="text"
-                placeholder="UPI Transaction Reference"
-                value={topupRef}
-                onChange={e => setTopupRef(e.target.value)}
                 style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}
               />
               {topupMsg && (
@@ -219,10 +232,13 @@ export default function ProfilePage() {
                   <div>
                     <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{tx.description ?? (tx.type === "credit" ? "Top-up" : "Debit")}</div>
                     <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{new Date(tx.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    {tx.upi_ref && tx.upi_ref.startsWith("TUP-") && (
+                      <div style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, fontFamily: "monospace" }}>ID: {tx.upi_ref}</div>
+                    )}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
                     <div style={{ color: tx.type === "credit" ? "#22c55e" : "#ef4444", fontWeight: 700, fontSize: 14 }}>
-                      {tx.type === "credit" ? "+" : "-"}₹{parseFloat(tx.amount).toFixed(2)}
+                      {tx.type === "credit" ? "+" : "-"}S {parseFloat(tx.amount).toFixed(0)}
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 600, color: statusColor[tx.status] ?? "#aaa", background: (statusColor[tx.status] ?? "#aaa") + "18", padding: "1px 7px", borderRadius: 999 }}>
                       {tx.status}

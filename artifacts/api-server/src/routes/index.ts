@@ -160,7 +160,7 @@ router.post("/support", async (req, res) => {
         };
         await transporter.sendMail({
           from: `"Sky Official Support" <${notifyEmail}>`,
-          to: "sky2026offical@gmail.com",
+          to: "sky2026official@gmail.com",
           subject: `📩 Support Inquiry — ${typeLabels[inquiryType] || inquiryType}`,
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.3);padding:28px;">

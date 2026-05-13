@@ -9,6 +9,7 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import staffPortalRouter from "./routes/staff-portal";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -51,5 +52,6 @@ if (process.env.CLERK_SECRET_KEY) {
 }
 
 app.use("/api", router);
+app.use("/api/staff", staffPortalRouter);
 
 export default app;

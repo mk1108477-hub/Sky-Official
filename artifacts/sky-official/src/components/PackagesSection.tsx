@@ -453,8 +453,8 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
   const enterDelay = index * 0.13;
   const exitDelay  = index * 0.08;
   const anim = isExiting
-    ? `catSlideOut 0.35s cubic-bezier(0.55,0,0.9,0.5) ${exitDelay}s both`
-    : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${enterDelay}s both`;
+    ? `catFadeOut 0.28s ease ${exitDelay}s both`
+    : `catFadeIn 0.38s ease ${enterDelay}s both`;
   return (
     <div
       onClick={() => cat.available && onClick()}
@@ -575,8 +575,8 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
         position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
-          ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
-          : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
+          ? `catFadeOut 0.25s ease ${index * 0.04}s both`
+          : `catFadeIn 0.38s ease ${index * 0.1}s both`,
         transition: "transform 0.18s ease",
       }}
       onMouseEnter={e => {
@@ -672,8 +672,8 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
           position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
           opacity: isUnavailable ? 0.65 : 1,
           animation: isExiting
-            ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
-            : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
+            ? `catFadeOut 0.25s ease ${index * 0.04}s both`
+            : `catFadeIn 0.38s ease ${index * 0.1}s both`,
           transition: "transform 0.18s ease",
           touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
         }}
@@ -744,8 +744,8 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
         position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
-          ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
-          : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
+          ? `catFadeOut 0.25s ease ${index * 0.04}s both`
+          : `catFadeIn 0.38s ease ${index * 0.1}s both`,
         transition: "transform 0.18s ease",
       }}
       onMouseEnter={e => {
@@ -895,8 +895,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       <style>{`
         @keyframes pkg-diagIn   { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes catSlideIn   { from{opacity:0;transform:translateX(110%)} to{opacity:1;transform:translateX(0)} }
-        @keyframes catSlideOut  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(110%)} }
+        @keyframes catFadeIn  { from{opacity:0} to{opacity:1} }
+        @keyframes catFadeOut { from{opacity:1} to{opacity:0} }
         @keyframes packGlow     { 0%,100%{opacity:0.3;transform:scale(0.96)} 50%{opacity:1;transform:scale(1.04)} }
         @keyframes sp-bob1     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
         @keyframes sp-bob2     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
@@ -929,8 +929,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           const exitHeader = isExiting && !activeCategory;
           const hdrAnim = (delay: number) =>
             exitHeader
-              ? `catSlideOut 0.38s cubic-bezier(0.55,0,0.9,0.5) ${delay}s both`
-              : `catSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) ${delay}s both`;
+              ? `catFadeOut 0.28s ease ${delay}s both`
+              : `catFadeIn 0.42s ease ${delay}s both`;
           return (
             <div style={{ textAlign: "center", marginBottom: 28 }}>
               <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999,
@@ -960,8 +960,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
             color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600,
             cursor: "pointer", marginBottom: 20,
             animation: isExiting && !activeCategory
-              ? `catSlideOut 0.38s cubic-bezier(0.55,0,0.9,0.5) 0.12s both`
-              : `catSlideIn 0.55s cubic-bezier(0.22,1,0.36,1) 0.22s both`,
+              ? `catFadeOut 0.28s ease 0.08s both`
+              : `catFadeIn 0.42s ease 0.14s both`,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

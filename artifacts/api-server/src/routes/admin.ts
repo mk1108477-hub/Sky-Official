@@ -446,14 +446,14 @@ router.get("/staff", requireAdmin, async (_req, res) => {
 });
 
 router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, res: any) => {
-  const { name, email, whatsapp, status, shift_hours, sort_order } = req.body;
+  const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const qrImage = req.file ? `/uploads/${req.file.filename}` : (req.body.qr_image || null);
   try {
     const { rows } = await pool.query(
-      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0]
+      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order, staff_pin)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, staff_pin || null]
     );
     res.json(rows[0]);
   } catch { res.status(500).json({ error: "DB error" }); }

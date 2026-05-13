@@ -100,11 +100,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [newPromo, setNewPromo] = useState({ title: "", description: "", badge: "", bgImage: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b4e)", packIds: [] as number[], active: true });
   const promoImgRef = useRef<HTMLInputElement>(null);
 
-  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; }
+  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; staff_pin: string | null; }
   const [staffList, setStaffList] = useState<RechargeStaff[]>([]);
   const [staffSaving, setStaffSaving] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline" });
+  const [newStaff, setNewStaff] = useState({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline", pin: "" });
   const [staffQrPreview, setStaffQrPreview] = useState<string | null>(null);
   const staffQrRef = useRef<HTMLInputElement>(null);
   const [staffQrFile, setStaffQrFile] = useState<File | null>(null);
@@ -491,9 +491,10 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       if (newStaff.shift_hours) fd.append("shift_hours", newStaff.shift_hours);
       fd.append("status", newStaff.status);
       if (staffQrFile) fd.append("qr_image", staffQrFile);
+      if (newStaff.pin.trim()) fd.append("staff_pin", newStaff.pin.trim());
       await fetch(`${API}/admin/staff`, { method: "POST", headers, body: fd });
       await fetchStaff();
-      setNewStaff({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline" });
+      setNewStaff({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline", pin: "" });
       setStaffQrFile(null); setStaffQrPreview(null);
       setShowAddStaff(false);
     } catch {} finally { setStaffSaving(false); }
@@ -1681,6 +1682,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       <input placeholder="Email (for order notifications)" value={newStaff.email} onChange={e => setNewStaff(s => ({ ...s, email: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="WhatsApp number" value={newStaff.whatsapp} onChange={e => setNewStaff(s => ({ ...s, whatsapp: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="Shift hours (e.g. 9AM–6PM)" value={newStaff.shift_hours} onChange={e => setNewStaff(s => ({ ...s, shift_hours: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="Staff PIN (for staff portal login)" value={newStaff.pin} onChange={e => setNewStaff(s => ({ ...s, pin: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none font-mono" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.25)" }} />
                       <select value={newStaff.status} onChange={e => setNewStaff(s => ({ ...s, status: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
                         <option value="offline">Offline</option>
                         <option value="available">Available</option>
@@ -1713,6 +1715,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                           {s.whatsapp && <div className="text-gray-400 text-xs mt-0.5">📱 {s.whatsapp}</div>}
                           {s.shift_hours && <div className="text-gray-500 text-xs mt-0.5">⏰ {s.shift_hours}</div>}
                           {s.qr_image && <div className="text-gray-600 text-xs mt-0.5">QR: {s.qr_image}</div>}
+                          {s.staff_pin && <div className="text-gray-600 text-xs mt-0.5">🔐 Portal PIN: <span className="font-mono text-amber-600">{s.staff_pin}</span></div>}
                         </div>
                         <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
                           <button onClick={() => toggleStaffStatus(s.id, s.status)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: s.status === "available" ? "rgba(239,68,68,0.12)" : "rgba(34,197,94,0.12)", color: s.status === "available" ? "#ef4444" : "#22c55e", border: `1px solid ${s.status === "available" ? "rgba(239,68,68,0.3)" : "rgba(34,197,94,0.3)"}` }}>{s.status === "available" ? "Set Offline" : "Set Available"}</button>
@@ -1750,12 +1753,12 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-white font-bold text-sm">₹{parseFloat(req.amount).toFixed(2)}</span>
+                              <span className="text-white font-bold text-sm">S {parseFloat(req.amount).toFixed(0)}</span>
                               <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: statusColor + "20", color: statusColor }}>{req.status}</span>
                             </div>
                             <div className="text-gray-400 text-xs mt-1 font-mono break-all">{req.clerk_user_id}</div>
                             {req.upi_ref && (
-                              <div className="text-gray-300 text-xs mt-1">UPI Ref: <span className="font-semibold text-amber-300">{req.upi_ref}</span></div>
+                              <div className="text-gray-300 text-xs mt-1">Request ID: <span className="font-mono font-semibold text-amber-300">{req.upi_ref}</span></div>
                             )}
                             <div className="text-gray-600 text-xs mt-1">{new Date(req.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
                           </div>

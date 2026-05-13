@@ -1,0 +1,14 @@
+{
+  "name": "Sky Official Staff Portal",
+  "short_name": "Sky Staff",
+  "description": "Sky Official internal staff portal for managing diamond top-up orders",
+  "start_url": "/staff",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/logo.jpg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "/logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ]
+}

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../lib/db";
 import { requireAuth } from "../middlewares/requireAuth";
+import nodemailer from "nodemailer";
 
 const router = Router();
 
@@ -26,24 +27,53 @@ router.get("/balance", requireAuth, async (req: any, res) => {
 
 router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
   const userId = req.clerkUserId as string;
-  const { amount, upi_ref } = req.body;
+  const { amount } = req.body;
 
   if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
     res.status(400).json({ error: "Invalid amount" });
     return;
   }
-  if (!upi_ref || String(upi_ref).trim() === "") {
-    res.status(400).json({ error: "UPI reference is required" });
-    return;
-  }
 
   try {
+    const rand = Math.random().toString(36).toUpperCase().slice(2, 6);
+    const requestId = `TUP-${Date.now().toString(36).toUpperCase().slice(-5)}${rand}`;
+
     await pool.query(
       `INSERT INTO wallet_transactions (clerk_user_id, amount, type, status, upi_ref, description)
        VALUES ($1, $2, 'credit', 'pending', $3, 'Wallet top-up request')`,
-      [userId, Number(amount).toFixed(2), String(upi_ref).trim()]
+      [userId, Number(amount).toFixed(2), requestId]
     );
-    res.json({ ok: true, message: "Top-up request submitted. Admin will credit your wallet shortly." });
+
+    const notifyEmail = process.env.NOTIFY_EMAIL;
+    const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+    if (notifyEmail && notifyPass) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: { user: notifyEmail, pass: notifyPass },
+        });
+        await transporter.sendMail({
+          from: `"Sky Official Wallet" <${notifyEmail}>`,
+          to: "sky2026official@gmail.com",
+          subject: `💰 Wallet Top-up Request — S${Number(amount).toFixed(0)} (${requestId})`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.3);padding:28px;">
+              <h2 style="color:#f59e0b;margin:0 0 16px;">💰 New Wallet Top-up Request</h2>
+              <table style="width:100%;border-collapse:collapse;">
+                <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Request ID</td><td style="color:#f59e0b;font-weight:700;font-size:13px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">${requestId}</td></tr>
+                <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;font-size:16px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">S ${Number(amount).toFixed(0)}</td></tr>
+                <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;">User ID</td><td style="color:rgba(255,255,255,0.7);font-size:11px;text-align:right;word-break:break-all;">${userId}</td></tr>
+              </table>
+              <div style="margin-top:20px;background:rgba(245,158,11,0.08);border-radius:10px;padding:14px;color:rgba(255,255,255,0.7);font-size:13px;line-height:1.6;">
+                Please open the <strong style="color:#f59e0b;">Admin Panel → Wallet tab</strong> to approve or reject this request.
+              </div>
+            </div>
+          `,
+        });
+      } catch {}
+    }
+
+    res.json({ ok: true, message: "Top-up request submitted. Admin will credit your wallet shortly.", requestId });
   } catch {
     res.status(500).json({ error: "DB error" });
   }

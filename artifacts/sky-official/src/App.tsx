@@ -9,6 +9,7 @@ import CartPage from "./components/CartPage";
 import PaymentPage, { setSelectedPackage } from "./components/PaymentPage";
 import type { SelectedPackage } from "./components/PaymentPage";
 import SupportPage from "./components/SupportPage";
+import StaffPortal from "./components/StaffPortal";
 import { CartProvider, useCart } from "./context/CartContext";
 import {
   ClerkProvider,
@@ -373,7 +374,7 @@ function TransitionProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const navigateTo = useCallback((to: string, d: TransDir) => {
     setDir(d); setExiting(true); setHasNavigated(true);
-    setTimeout(() => { setExiting(false); setLocation(to); }, 480);
+    setTimeout(() => { setExiting(false); setLocation(to); }, 280);
   }, [setLocation]);
   return <TransCtx.Provider value={{ dir, exiting, hasNavigated, navigateTo }}>{children}</TransCtx.Provider>;
 }
@@ -462,16 +463,12 @@ function AnimatedPage({ children, skipPageAnim = false }: { children: React.Reac
     );
   }
 
-  const anim = exiting
-    ? (dir === "forward" ? "pgSwipeOutLeft 0.36s cubic-bezier(0.55,0,0.9,0.5) both" : "pgSwipeOutRight 0.36s cubic-bezier(0.55,0,0.9,0.5) both")
-    : (dir === "forward" ? "pgSwipeInRight 0.47s cubic-bezier(0.16,1,0.3,1) both"   : "pgSwipeInLeft 0.47s cubic-bezier(0.16,1,0.3,1) both");
+  const anim = exiting ? "pgFadeOut 0.24s ease both" : "pgFadeIn 0.32s ease both";
   return (
-    <div ref={containerRef} style={{ animation: anim, willChange: "transform", position: "relative", zIndex: 1 }}>
+    <div ref={containerRef} style={{ animation: anim, willChange: "opacity", position: "relative", zIndex: 1 }}>
       <style>{`
-        @keyframes pgSwipeInRight  { from { transform:translateX(100%);  } to { transform:translateX(0); } }
-        @keyframes pgSwipeInLeft   { from { transform:translateX(-100%); } to { transform:translateX(0); } }
-        @keyframes pgSwipeOutLeft  { from { transform:translateX(0); } to { transform:translateX(-100%); } }
-        @keyframes pgSwipeOutRight { from { transform:translateX(0); } to { transform:translateX(100%);  } }
+        @keyframes pgFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pgFadeOut { from { opacity: 1; } to { opacity: 0; } }
       `}</style>
       {children}
     </div>
@@ -1395,7 +1392,7 @@ function RefundPage() {
 // ── Persistent Navbar (outside page transitions so it never moves) ───────────
 function PersistentNavbar() {
   const [location] = useLocation();
-  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/admin")) return null;
+  if (location.startsWith("/sign-in") || location.startsWith("/sign-up") || location.startsWith("/admin") || location.startsWith("/staff")) return null;
   return <Navbar />;
 }
 
@@ -1444,6 +1441,7 @@ function AppRoutes() {
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/refund" component={RefundPage} />
           <Route path="/support" component={SupportPage} />
+          <Route path="/staff" component={StaffPortal} />
           <Route component={MainSite} />
         </Switch>
       </TransitionProvider>

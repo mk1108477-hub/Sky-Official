@@ -278,7 +278,7 @@ function Navbar() {
       <button
         onClick={() => setLocation("/")}
         className="flex items-center gap-2"
-        style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
       >
         <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.5)" }}>
           <img src="/logo.jpg" alt="Sky Official" className="w-full h-full object-cover" />
@@ -295,7 +295,7 @@ function Navbar() {
         {isSignedIn && walletBalance !== null && !hideWallet && (
           <button
             onClick={() => setLocation("/profile")}
-            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer", flexShrink: 0 }}
+            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke="#f59e0b" strokeWidth="2"/><path d="M16 14a1 1 0 110-2 1 1 0 010 2z" fill="#f59e0b"/><path d="M2 11h20" stroke="#f59e0b" strokeWidth="2"/></svg>
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: 800 }}>₹{walletBalance.toFixed(0)}</span>
@@ -306,7 +306,7 @@ function Navbar() {
             <div style={{ position: "relative" }} ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(v => !v)}
-                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%" }}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               >
                 <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b", boxShadow: showProfileMenu ? "0 0 0 2px rgba(245,158,11,0.45)" : "none", transition: "box-shadow 0.15s" }}>
                   <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />

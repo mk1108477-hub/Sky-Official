@@ -469,6 +469,9 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
         animation: anim,
         transition: "transform 0.18s ease, box-shadow 0.18s ease",
         position: "relative",
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+        userSelect: "none",
       }}
       onMouseEnter={e => {
         if (!cat.available) return;
@@ -625,14 +628,14 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
             <>
               <button
                 onClick={handleAddToCart}
-                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               >
                 {cartFlash ? "✓" : (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 )}
                 {cartFlash ? "Added!" : "Cart"}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
+              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
             </>
           )}
         </div>
@@ -672,6 +675,7 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
             ? `catSlideOut 0.32s cubic-bezier(0.55,0,0.9,0.5) ${index * 0.06}s both`
             : `catSlideIn 0.45s cubic-bezier(0.25,0.46,0.45,0.94) ${index * 0.13}s both`,
           transition: "transform 0.18s ease",
+          touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
         }}
         onMouseEnter={e => { if (!isUnavailable) (e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px) scale(1.02)"; }}
         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ""; }}
@@ -698,12 +702,12 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
               <>
                 <button
                   onClick={handleAddToCart}
-                  style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                  style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
                 >
                   {cartFlash ? "✓" : <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   {cartFlash ? "Added!" : "Cart"}
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#f5c842,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
+                <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#f5c842,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
               </>
             )}
           </div>
@@ -774,14 +778,14 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
             <>
               <button
                 onClick={handleAddToCart}
-                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}
+                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               >
                 {cartFlash ? "✓" : (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 )}
                 {cartFlash ? "Added!" : "Cart"}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none" }}>Buy Now</button>
+              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
             </>
           )}
         </div>
@@ -887,7 +891,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
 
   return (
-    <section style={{ position: "relative", background: "transparent", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
+    <section style={{ position: "relative", background: activeCategory ? "#0a0a0a" : "transparent", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
       <style>{`
         @keyframes pkg-diagIn   { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }

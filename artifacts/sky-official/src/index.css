@@ -55,6 +55,8 @@
 @layer base {
   * {
     @apply border-border;
+    /* Remove iOS tap flash on every element */
+    -webkit-tap-highlight-color: transparent;
   }
   html, body, #root {
     background: #0a0a0a;
@@ -63,6 +65,18 @@
   }
   body {
     @apply font-sans antialiased text-foreground;
+  }
+  /* Prevent double-tap zoom on interactive controls (iOS / Android) */
+  button, a, select, [role="button"] {
+    touch-action: manipulation;
+  }
+  /* Prevent iOS Safari auto-zoom when an input is focused.
+     Font-size must be ≥ 16px — this is a safety net for any
+     input that still has a smaller computed size. */
+  @supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+      font-size: max(16px, 1em);
+    }
   }
 }
 

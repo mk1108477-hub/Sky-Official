@@ -492,7 +492,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       fd.append("status", newStaff.status);
       if (staffQrFile) fd.append("qr_image", staffQrFile);
       if (newStaff.pin.trim()) fd.append("staff_pin", newStaff.pin.trim());
-      await fetch(`${API}/admin/staff`, { method: "POST", headers, body: fd });
+      await fetch(`${API}/admin/staff`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
       await fetchStaff();
       setNewStaff({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline", pin: "" });
       setStaffQrFile(null); setStaffQrPreview(null);

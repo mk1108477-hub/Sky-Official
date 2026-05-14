@@ -1,9 +1,18 @@
 import { Router } from "express";
 import webpush from "web-push";
 import pool from "../lib/db";
-import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
+
+function requireAdmin(req: any, res: any, next: any) {
+  const auth = req.headers["authorization"] || "";
+  const password = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!password || password !== process.env.ADMIN_PASSWORD) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  next();
+}
 
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY!;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
@@ -20,7 +29,7 @@ router.get("/vapid-public-key", (_req, res) => {
   res.json({ publicKey: vapidPublicKey || null });
 });
 
-router.post("/subscribe", requireAuth, async (req, res): Promise<void> => {
+router.post("/subscribe", requireAdmin, async (req, res): Promise<void> => {
   const { endpoint, keys } = req.body;
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     res.status(400).json({ error: "Invalid subscription object" });
@@ -39,7 +48,7 @@ router.post("/subscribe", requireAuth, async (req, res): Promise<void> => {
   }
 });
 
-router.post("/unsubscribe", requireAuth, async (req, res): Promise<void> => {
+router.post("/unsubscribe", requireAdmin, async (req, res): Promise<void> => {
   const { endpoint } = req.body;
   if (!endpoint) { res.status(400).json({ error: "endpoint required" }); return; }
   try {

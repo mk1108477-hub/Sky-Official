@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import path from "path";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import {
@@ -53,5 +54,15 @@ if (process.env.CLERK_SECRET_KEY) {
 
 app.use("/api", router);
 app.use("/api/staff", staffPortalRouter);
+
+if (process.env.NODE_ENV === "production") {
+  const staticDir = path.join(process.cwd(), "artifacts/sky-official/dist/public");
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  app.use(express.static(staticDir));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) { next(); return; }
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
 
 export default app;

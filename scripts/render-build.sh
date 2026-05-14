@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo "→ Installing pnpm..."
+npm install -g pnpm
+
 echo "→ Installing dependencies..."
 pnpm install
 

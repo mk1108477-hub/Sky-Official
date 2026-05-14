@@ -3,6 +3,7 @@ import pool from "./lib/db";
 import { logger } from "./lib/logger";
 
 async function initDb() {
+  // Step 1: Create all tables first (safe on both fresh and existing DBs)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS packages (
       id SERIAL PRIMARY KEY,
@@ -45,51 +46,7 @@ async function initDb() {
       description TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
-  `);
 
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='clerk_user_id') THEN
-        ALTER TABLE orders ADD COLUMN clerk_user_id TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='bonus_diamonds') THEN
-        ALTER TABLE packages ADD COLUMN bonus_diamonds INT NOT NULL DEFAULT 0;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='name') THEN
-        ALTER TABLE packages ADD COLUMN name TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='category') THEN
-        ALTER TABLE packages ADD COLUMN category TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_server_id') THEN
-        ALTER TABLE orders ADD COLUMN mlbb_server_id TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_ign') THEN
-        ALTER TABLE orders ADD COLUMN mlbb_ign TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='is_for_friend') THEN
-        ALTER TABLE orders ADD COLUMN is_for_friend BOOLEAN DEFAULT FALSE;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='status') THEN
-        ALTER TABLE packages ADD COLUMN status TEXT DEFAULT 'available';
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='display_id') THEN
-        ALTER TABLE orders ADD COLUMN display_id TEXT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='assigned_staff_id') THEN
-        ALTER TABLE orders ADD COLUMN assigned_staff_id INT;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='completed_at') THEN
-        ALTER TABLE orders ADD COLUMN completed_at TIMESTAMPTZ;
-      END IF;
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='recharge_staff' AND column_name='staff_pin') THEN
-        ALTER TABLE recharge_staff ADD COLUMN staff_pin TEXT;
-      END IF;
-    END$$;
-  `);
-
-  await pool.query(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -132,6 +89,49 @@ async function initDb() {
       status TEXT DEFAULT 'open',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+  `);
+
+  // Step 2: Add columns that may be missing on older installs (all tables exist by now)
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='clerk_user_id') THEN
+        ALTER TABLE orders ADD COLUMN clerk_user_id TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='bonus_diamonds') THEN
+        ALTER TABLE packages ADD COLUMN bonus_diamonds INT NOT NULL DEFAULT 0;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='name') THEN
+        ALTER TABLE packages ADD COLUMN name TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='category') THEN
+        ALTER TABLE packages ADD COLUMN category TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_server_id') THEN
+        ALTER TABLE orders ADD COLUMN mlbb_server_id TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='mlbb_ign') THEN
+        ALTER TABLE orders ADD COLUMN mlbb_ign TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='is_for_friend') THEN
+        ALTER TABLE orders ADD COLUMN is_for_friend BOOLEAN DEFAULT FALSE;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='packages' AND column_name='status') THEN
+        ALTER TABLE packages ADD COLUMN status TEXT DEFAULT 'available';
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='display_id') THEN
+        ALTER TABLE orders ADD COLUMN display_id TEXT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='assigned_staff_id') THEN
+        ALTER TABLE orders ADD COLUMN assigned_staff_id INT;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='completed_at') THEN
+        ALTER TABLE orders ADD COLUMN completed_at TIMESTAMPTZ;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='recharge_staff' AND column_name='staff_pin') THEN
+        ALTER TABLE recharge_staff ADD COLUMN staff_pin TEXT;
+      END IF;
+    END$$;
   `);
 }
 

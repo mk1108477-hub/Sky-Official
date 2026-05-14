@@ -59,7 +59,7 @@ if (process.env.NODE_ENV === "production") {
   const staticDir = path.join(process.cwd(), "artifacts/sky-official/dist/public");
   app.use("/uploads", express.static(path.join(process.cwd(), "artifacts/sky-official/public/uploads")));
   app.use(express.static(staticDir));
-  app.get("*", (req, res, next) => {
+  app.get("/{*any}", (req, res, next) => {
     if (req.path.startsWith("/api")) { next(); return; }
     res.sendFile(path.join(staticDir, "index.html"));
   });

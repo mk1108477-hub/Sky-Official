@@ -59,8 +59,8 @@ async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
       html: `
         <div style="font-family:Inter,sans-serif;background:#0a0a0a;color:#f9fafb;padding:32px;max-width:480px;margin:0 auto;border-radius:16px;">
           <div style="text-align:center;margin-bottom:24px;">
-            <div style="width:56px;height:56px;border-radius:50%;border:2px solid #f59e0b;margin:0 auto;overflow:hidden;background:#111;">
-              <img src="https://skyofficial.replit.app/logo.jpg" alt="Sky Official" style="width:100%;height:100%;object-fit:cover;" />
+            <div style="width:56px;height:56px;border-radius:50%;border:2px solid #f59e0b;margin:0 auto;background:#111;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:28px;">💎</span>
             </div>
             <h1 style="color:#f59e0b;margin:12px 0 4px;font-size:22px;font-weight:800;">Sky Official</h1>
             <p style="color:rgba(255,255,255,0.4);margin:0;font-size:13px;letter-spacing:0.1em;">MLBB DIAMOND TOP-UP</p>

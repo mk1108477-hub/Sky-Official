@@ -71,7 +71,7 @@ async function notifyAllStaff(orderId: string, assignedStaffId: number | null, o
   }
   try {
     const { rows: staffList } = await pool.query(
-      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND email IS NOT NULL AND email != ''`
+      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND status = 'available' AND email IS NOT NULL AND email != ''`
     );
     if (staffList.length === 0) {
       console.log("[email] notifyAllStaff: no staff with notify_orders=true and email set");

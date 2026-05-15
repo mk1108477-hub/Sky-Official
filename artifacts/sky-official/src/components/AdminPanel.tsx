@@ -1727,7 +1727,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                     <span className="text-white font-bold text-sm">Recharge Staff</span>
                     <button onClick={() => setShowAddStaff(v => !v)} className="px-4 py-2 rounded-xl text-xs font-bold text-black" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>+ Add Staff</button>
                   </div>
-                  <div className="text-gray-400 text-xs">Set staff as "Available" to make orders auto-assign to them using round-robin. Their QR will be shown to customers on the payment page.</div>
+                  <div className="text-gray-400 text-xs">Set staff as "Available" to receive orders. Their QR is shown to customers on the payment page, and email alerts are only sent to available staff who have 🔔 turned on.</div>
 
                   {/* Order Search */}
                   <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>

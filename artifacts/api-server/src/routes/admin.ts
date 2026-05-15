@@ -3,22 +3,12 @@ import pool from "../lib/db";
 import nodemailer from "nodemailer";
 import { createClerkClient } from "@clerk/express";
 import multer from "multer";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { mkdirSync } from "node:fs";
 
-const publicUploadsDir = path.resolve(process.cwd(), "artifacts/sky-official/public/uploads");
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
-mkdirSync(publicUploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, publicUploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".png";
-    cb(null, `upload_${Date.now()}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 8 * 1024 * 1024 } });
+function fileToDataUrl(file: Express.Multer.File): string {
+  return `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+}
 
 const router = Router();
 
@@ -351,7 +341,7 @@ router.put("/settings/starlight_images", requireAdmin, async (req, res) => {
 
 router.post("/upload-image", requireAdmin, upload.single("image"), (req: any, res: any) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({ url: `/uploads/${req.file.filename}` });
+  res.json({ url: fileToDataUrl(req.file) });
 });
 
 router.get("/settings/category_availability", requireAdmin, async (_req, res) => {
@@ -451,7 +441,7 @@ router.get("/staff", requireAdmin, async (_req, res) => {
 router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, res: any) => {
   const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
-  const qrImage = req.file ? `/uploads/${req.file.filename}` : (req.body.qr_image || null);
+  const qrImage = req.file ? fileToDataUrl(req.file) : (req.body.qr_image || null);
   const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(
@@ -466,7 +456,7 @@ router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, 
 router.put("/staff/:id", requireAdmin, upload.single("qr_image"), async (req: any, res: any): Promise<void> => {
   const { id } = req.params;
   const { name, email, whatsapp, status, shift_hours, sort_order, qr_image, notify_orders } = req.body;
-  const qrImage = req.file ? `/uploads/${req.file.filename}` : (qr_image || null);
+  const qrImage = req.file ? fileToDataUrl(req.file) : (qr_image || null);
   const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(

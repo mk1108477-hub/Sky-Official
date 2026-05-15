@@ -449,14 +449,15 @@ router.get("/staff", requireAdmin, async (_req, res) => {
 });
 
 router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, res: any) => {
-  const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin } = req.body;
+  const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const qrImage = req.file ? `/uploads/${req.file.filename}` : (req.body.qr_image || null);
+  const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order, staff_pin)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, staff_pin || null]
+      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, staff_pin || null, notifyOrders]
     );
     res.json(rows[0]);
   } catch { res.status(500).json({ error: "DB error" }); }
@@ -464,13 +465,14 @@ router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, 
 
 router.put("/staff/:id", requireAdmin, upload.single("qr_image"), async (req: any, res: any): Promise<void> => {
   const { id } = req.params;
-  const { name, email, whatsapp, status, shift_hours, sort_order, qr_image } = req.body;
+  const { name, email, whatsapp, status, shift_hours, sort_order, qr_image, notify_orders } = req.body;
   const qrImage = req.file ? `/uploads/${req.file.filename}` : (qr_image || null);
+  const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(
-      `UPDATE recharge_staff SET name=$1, email=$2, qr_image=COALESCE($3, qr_image), whatsapp=$4, status=$5, shift_hours=$6, sort_order=$7
-       WHERE id=$8 RETURNING *`,
-      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, id]
+      `UPDATE recharge_staff SET name=$1, email=$2, qr_image=COALESCE($3, qr_image), whatsapp=$4, status=$5, shift_hours=$6, sort_order=$7, notify_orders=$8
+       WHERE id=$9 RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, notifyOrders, id]
     );
     if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
@@ -489,6 +491,52 @@ router.put("/staff/:id/status", requireAdmin, async (req, res): Promise<void> =>
     if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
   } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/staff/:id/notify", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const { notify_orders } = req.body;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE recharge_staff SET notify_orders=$1 WHERE id=$2 RETURNING *`,
+      [!!notify_orders, id]
+    );
+    if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.post("/staff/:id/test-email", requireAdmin, async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const notifyEmail = process.env.NOTIFY_EMAIL;
+  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  if (!notifyEmail || !notifyPass) {
+    res.status(400).json({ error: "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not configured in secrets." });
+    return;
+  }
+  try {
+    const { rows } = await pool.query("SELECT name, email FROM recharge_staff WHERE id=$1", [id]);
+    const staff = rows[0];
+    if (!staff) { res.status(404).json({ error: "Staff not found" }); return; }
+    if (!staff.email) { res.status(400).json({ error: "This staff member has no email address saved." }); return; }
+
+    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
+    await transporter.sendMail({
+      from: `"Sky Official" <${notifyEmail}>`,
+      to: staff.email,
+      subject: `✅ Test Notification — Sky Official`,
+      html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(34,197,94,0.25);">
+        <h2 style="color:#22c55e;margin:0 0 12px;">✅ Email Notifications Working!</h2>
+        <p style="color:rgba(255,255,255,0.6);margin:0 0 12px;">Hi ${staff.name}, this is a test email from Sky Official.</p>
+        <p style="color:rgba(255,255,255,0.4);font-size:13px;margin:0;">You will receive emails like this whenever a new order comes in. You're all set! 🎉</p>
+      </div>`,
+    });
+    console.log("[email] Test email sent to staff", staff.name, "at", staff.email);
+    res.json({ ok: true, sentTo: staff.email });
+  } catch (err: any) {
+    console.error("[email] Test email to staff failed:", err);
+    res.status(500).json({ error: err?.message || "Failed to send test email." });
+  }
 });
 
 router.delete("/staff/:id", requireAdmin, async (req, res) => {

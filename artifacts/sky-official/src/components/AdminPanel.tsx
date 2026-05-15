@@ -100,7 +100,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [newPromo, setNewPromo] = useState({ title: "", description: "", badge: "", bgImage: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b4e)", packIds: [] as number[], active: true });
   const promoImgRef = useRef<HTMLInputElement>(null);
 
-  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; staff_pin: string | null; }
+  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; staff_pin: string | null; notify_orders: boolean; }
   const [staffList, setStaffList] = useState<RechargeStaff[]>([]);
   const [staffSaving, setStaffSaving] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
@@ -531,6 +531,34 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       await fetch(`${API}/admin/staff/${id}/status`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) });
       await fetchStaff();
     } catch {}
+  };
+
+  const toggleStaffNotify = async (id: number, current: boolean) => {
+    try {
+      await fetch(`${API}/admin/staff/${id}/notify`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ notify_orders: !current }) });
+      await fetchStaff();
+    } catch {}
+  };
+
+  const [testEmailStates, setTestEmailStates] = useState<Record<number, "idle" | "sending" | "ok" | "error">>({});
+  const sendTestEmail = async (id: number) => {
+    setTestEmailStates(s => ({ ...s, [id]: "sending" }));
+    try {
+      const res = await fetch(`${API}/admin/staff/${id}/test-email`, { method: "POST", headers });
+      const data = await res.json();
+      if (res.ok) {
+        setTestEmailStates(s => ({ ...s, [id]: "ok" }));
+        setTimeout(() => setTestEmailStates(s => ({ ...s, [id]: "idle" })), 3000);
+      } else {
+        alert(data.error || "Failed to send test email.");
+        setTestEmailStates(s => ({ ...s, [id]: "error" }));
+        setTimeout(() => setTestEmailStates(s => ({ ...s, [id]: "idle" })), 3000);
+      }
+    } catch {
+      alert("Network error sending test email.");
+      setTestEmailStates(s => ({ ...s, [id]: "error" }));
+      setTimeout(() => setTestEmailStates(s => ({ ...s, [id]: "idle" })), 3000);
+    }
   };
 
   const deleteStaff = async (id: number) => {
@@ -1767,12 +1795,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-white font-bold text-sm">{s.name}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold`} style={{ background: s.status === "available" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)", color: s.status === "available" ? "#22c55e" : "#9ca3af" }}>{s.status === "available" ? "● Available" : "○ Offline"}</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: s.status === "available" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)", color: s.status === "available" ? "#22c55e" : "#9ca3af" }}>{s.status === "available" ? "● Available" : "○ Offline"}</span>
                           </div>
                           {s.email && <div className="text-gray-400 text-xs mt-1">✉ {s.email}</div>}
                           {s.whatsapp && <div className="text-gray-400 text-xs mt-0.5">📱 {s.whatsapp}</div>}
                           {s.shift_hours && <div className="text-gray-500 text-xs mt-0.5">⏰ {s.shift_hours}</div>}
-                          {s.qr_image && <div className="text-gray-600 text-xs mt-0.5">QR: {s.qr_image}</div>}
                           {s.staff_pin && <div className="text-gray-600 text-xs mt-0.5">🔐 Portal PIN: <span className="font-mono text-amber-600">{s.staff_pin}</span></div>}
                         </div>
                         <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
@@ -1780,6 +1807,40 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                           <button onClick={() => deleteStaff(s.id)} className="px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>Remove</button>
                         </div>
                       </div>
+
+                      {/* Notification row */}
+                      <div className="flex items-center justify-between pt-1.5 mt-0.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold" style={{ color: s.notify_orders ? "#f59e0b" : "rgba(255,255,255,0.35)" }}>🔔 Order email alerts</span>
+                          <span className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>{s.notify_orders ? (s.email ? `Emails sent to ${s.email}` : "No email address set!") : "Alerts off for this staff"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {s.email && (
+                            <button
+                              onClick={() => sendTestEmail(s.id)}
+                              disabled={testEmailStates[s.id] === "sending"}
+                              className="px-2.5 py-1 rounded-lg text-xs font-bold"
+                              style={{ background: testEmailStates[s.id] === "ok" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)", color: testEmailStates[s.id] === "ok" ? "#22c55e" : "rgba(255,255,255,0.5)", border: `1px solid ${testEmailStates[s.id] === "ok" ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.1)"}` }}
+                            >
+                              {testEmailStates[s.id] === "sending" ? "Sending…" : testEmailStates[s.id] === "ok" ? "✓ Sent!" : "Test Email"}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => toggleStaffNotify(s.id, s.notify_orders)}
+                            className="relative inline-flex items-center rounded-full transition-colors"
+                            style={{ width: 40, height: 22, background: s.notify_orders ? "#f59e0b" : "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", flexShrink: 0 }}
+                          >
+                            <span style={{ position: "absolute", left: s.notify_orders ? 20 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left 0.18s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {!s.email && (
+                        <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.07)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                          ⚠ No email saved — add one so this staff can receive order alerts.
+                        </div>
+                      )}
+
                       {s.qr_image && (
                         <div className="mt-1">
                           <img src={s.qr_image} alt="QR" className="rounded-lg" style={{ maxWidth: 100, maxHeight: 100, objectFit: "contain" }} />

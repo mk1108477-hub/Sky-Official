@@ -62,45 +62,50 @@ async function assignAvailableStaff(): Promise<number | null> {
   return staffList[assignedIdx].id;
 }
 
-async function sendStaffNotification(staffId: number, orderId: string, orderData: any) {
+async function notifyAllStaff(orderId: string, assignedStaffId: number | null, orderData: any) {
+  const notifyEmail = process.env.NOTIFY_EMAIL;
+  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  if (!notifyEmail || !notifyPass) {
+    console.error("[email] notifyAllStaff skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+    return;
+  }
   try {
-    const { rows } = await pool.query(
-      `SELECT name, email FROM recharge_staff WHERE id = $1`,
-      [staffId]
+    const { rows: staffList } = await pool.query(
+      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND email IS NOT NULL AND email != ''`
     );
-    const staff = rows[0];
-    if (!staff?.email) return;
-
-    const notifyEmail = process.env.NOTIFY_EMAIL;
-    const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-    if (!notifyEmail || !notifyPass) {
-      console.error("[email] sendStaffNotification skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+    if (staffList.length === 0) {
+      console.log("[email] notifyAllStaff: no staff with notify_orders=true and email set");
       return;
     }
 
     const nodemailer = await import("nodemailer");
     const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
     const diamonds = Number(orderData.diamonds).toLocaleString("en-IN");
+    const price = parseFloat(orderData.price).toFixed(0);
 
-    await transporter.sendMail({
-      from: `"Sky Official" <${notifyEmail}>`,
-      to: staff.email,
-      subject: `🎯 New Order Assigned — ${orderId}`,
-      html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(245,158,11,0.25);">
-        <h2 style="color:#f59e0b;margin:0 0 16px;">Order Assigned to You</h2>
-        <p style="color:rgba(255,255,255,0.6);margin:0 0 16px;">Hi ${staff.name}, a new order has been assigned to you.</p>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Order ID</td><td style="color:#f59e0b;font-weight:800;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">${orderId}</td></tr>
-          <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Diamonds</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">♦ ${diamonds}</td></tr>
-          <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">₹${parseFloat(orderData.price).toFixed(0)}</td></tr>
-          ${orderData.mlbbId ? `<tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;">MLBB ID</td><td style="color:#38bdf8;font-weight:700;text-align:right;font-size:13px;">${orderData.mlbbId}</td></tr>` : ""}
-        </table>
-        <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px;">Log in to the admin panel to process this order.</p>
-      </div>`,
-    });
-    console.log("[email] Staff notification sent to", staff.email);
+    for (const staff of staffList) {
+      const isAssigned = assignedStaffId === staff.id;
+      await transporter.sendMail({
+        from: `"Sky Official" <${notifyEmail}>`,
+        to: staff.email,
+        subject: `💎 New Order ${orderId}${isAssigned ? " — Assigned to You" : ""}`,
+        html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(245,158,11,0.25);">
+          <h2 style="color:#f59e0b;margin:0 0 8px;">💎 New Order — Sky Official</h2>
+          <p style="color:rgba(255,255,255,0.6);margin:0 0 16px;font-size:13px;">Hi ${staff.name}${isAssigned ? ", this order has been assigned to you" : ", a new order just came in"}.</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Order ID</td><td style="color:#f59e0b;font-weight:800;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">${orderId}</td></tr>
+            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Diamonds</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">♦ ${diamonds}</td></tr>
+            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">₹${price}</td></tr>
+            ${orderData.mlbbId ? `<tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">MLBB ID</td><td style="color:#38bdf8;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">${orderData.mlbbId}</td></tr>` : ""}
+            ${isAssigned ? `<tr><td colspan="2" style="padding:8px 0;font-size:12px;"><span style="background:rgba(245,158,11,0.15);color:#f59e0b;font-weight:700;border-radius:20px;padding:3px 10px;border:1px solid rgba(245,158,11,0.3);">Assigned to You</span></td></tr>` : ""}
+          </table>
+          <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px;">Log in to the admin panel to process this order.</p>
+        </div>`,
+      }).catch((err: any) => console.error("[email] Failed to send to staff", staff.name, ":", err?.message));
+      console.log("[email] Staff notification sent to", staff.name, "at", staff.email);
+    }
   } catch (err) {
-    console.error("[email] sendStaffNotification failed:", err);
+    console.error("[email] notifyAllStaff failed:", err);
   }
 }
 
@@ -197,9 +202,9 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
       console.error("[email] sendOrderEmail failed:", err);
     });
 
-    if (staffId) {
-      sendStaffNotification(staffId, displayId, { diamonds: pkg.diamonds, price: pkg.price, mlbbId });
-    }
+    notifyAllStaff(displayId, staffId, { diamonds: pkg.diamonds, price: pkg.price, mlbbId }).catch((err) => {
+      console.error("[email] notifyAllStaff failed:", err);
+    });
 
     res.json({ ok: true, id: orderId, displayId });
   } catch {

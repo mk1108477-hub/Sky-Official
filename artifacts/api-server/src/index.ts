@@ -131,6 +131,9 @@ async function initDb() {
       IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='recharge_staff' AND column_name='staff_pin') THEN
         ALTER TABLE recharge_staff ADD COLUMN staff_pin TEXT;
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='recharge_staff' AND column_name='notify_orders') THEN
+        ALTER TABLE recharge_staff ADD COLUMN notify_orders BOOLEAN DEFAULT TRUE;
+      END IF;
     END$$;
   `);
 }

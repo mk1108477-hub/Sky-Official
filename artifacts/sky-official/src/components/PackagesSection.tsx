@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth, useUser } from "@clerk/react";
 import RankBoostPage from "./RankBoostPage";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
@@ -646,19 +647,36 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
   );
 }
 
+const WHATSAPP_NUMBER = "919362003788";
+
+function buildWhatsAppUrl(pack: Package, mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null, userName: string | null): string {
+  const lines = [
+    "Hi Sky Official! 👋",
+    "",
+    "I'd like to order a Starlight Card:",
+    "",
+    `🌟 Card: ${pack.name || "Starlight Card"}`,
+    `💰 Price: ₹${Number(pack.price).toLocaleString("en-IN")}`,
+    mlbbAccount ? `🎮 MLBB ID: ${mlbbAccount.mlbb_user_id} (Server: ${mlbbAccount.mlbb_server_id})` : "🎮 MLBB ID: (not set)",
+    mlbbAccount ? `👤 IGN: ${mlbbAccount.mlbb_ign}` : "👤 IGN: (not set)",
+    userName ? `🏪 Store Account: ${userName}` : null,
+    "",
+    "Please help me with the gifting process. Thank you! 🙏",
+  ];
+  const message = lines.filter(l => l !== null).join("\n");
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 // ── Starlight card ──────────────────────────────────────────────────────────
-function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg }) {
-  const [cartFlash, setCartFlash] = useState(false);
+function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount, userName }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg; mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null; userName: string | null }) {
   const [imgError, setImgError] = useState(false);
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
   const imgSrc = getStarlightImage(pack.name, starlightImagesCfg);
 
-  function handleAddToCart(e: React.MouseEvent) {
+  function handleWhatsApp(e: React.MouseEvent) {
     e.stopPropagation();
     if (isUnavailable) return;
-    onAddToCart?.(pack);
-    setCartFlash(true);
-    setTimeout(() => setCartFlash(false), 900);
+    window.open(buildWhatsAppUrl(pack, mlbbAccount, userName), "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -701,16 +719,13 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
                 {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
               </div>
             ) : (
-              <>
-                <button
-                  onClick={handleAddToCart}
-                  style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-                >
-                  {cartFlash ? "✓" : <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  {cartFlash ? "Added!" : "Cart"}
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#f5c842,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
-              </>
+              <button
+                onClick={handleWhatsApp}
+                style={{ flex: 1, background: "linear-gradient(135deg,#25d366,#128c7e)", color: "#fff", fontSize: 11, fontWeight: 800, padding: "7px 0", borderRadius: 8, cursor: "pointer", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.523 5.847L0 24l6.335-1.498A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.005-1.371l-.36-.214-3.727.881.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z"/></svg>
+                Order via WhatsApp
+              </button>
             )}
           </div>
         </div>
@@ -823,6 +838,8 @@ function filterByCategory(packages: Package[], id: CategoryId): Package[] {
 
 // ── Main section ────────────────────────────────────────────────────────────
 export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, onAddToCart, isExiting }: { onPackageSelect: (id: string) => void; onBack?: () => void; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean }) {
+  const { getToken, isSignedIn } = useAuth();
+  const { user } = useUser();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -831,8 +848,24 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [packImagesCfg, setPackImagesCfg] = useState<PackImagesCfg>(DEFAULT_PACK_IMAGES);
   const [passImagesCfg, setPassImagesCfg] = useState<PassImagesCfg>(DEFAULT_PASS_IMAGES);
   const [starlightImagesCfg, setStarlightImagesCfg] = useState<StarlightImagesCfg>(DEFAULT_STARLIGHT_IMAGES);
+  const [mlbbAccount, setMlbbAccount] = useState<{ mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null>(null);
   const activeCategoryRef = useRef<Category | null>(null);
+
+  const userName = user ? (user.fullName || user.username || user.primaryEmailAddress?.emailAddress || null) : null;
+
   useEffect(() => { activeCategoryRef.current = activeCategory; }, [activeCategory]);
+
+  useEffect(() => {
+    if (!isSignedIn) { setMlbbAccount(null); return; }
+    getToken().then(token => {
+      if (!token) return;
+      fetch(`${API}/verify/mlbb`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" })
+        .then(r => r.json())
+        .then(data => { if (data.ok && data.account) setMlbbAccount(data.account); })
+        .catch(() => {});
+    });
+  }, [isSignedIn]);
+
   useEffect(() => {
     fetch(`${API}/packages`)
       .then(r => r.json())
@@ -1005,7 +1038,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                   activeCategory?.id === "passes"
                     ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} passImagesCfg={passImagesCfg} />
                     : activeCategory?.id === "starlight"
-                    ? <StarlightCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} />
+                    ? <StarlightCard key={pack.id} pack={pack} index={i} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} mlbbAccount={mlbbAccount} userName={userName} />
                     : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} packImagesCfg={packImagesCfg} />
                 )}
               </div>

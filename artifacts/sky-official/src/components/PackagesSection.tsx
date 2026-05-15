@@ -1038,7 +1038,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
                   {[
-                    { step: "1", text: "Tap "Order via WhatsApp" on any card" },
+                    { step: "1", text: "Tap 'Order via WhatsApp' on any card" },
                     { step: "2", text: "Send us your MLBB ID & IGN to add as friend" },
                     { step: "3", text: "After 7 days of friendship, we send your gift!" },
                   ].map(({ step, text }) => (

@@ -401,7 +401,7 @@ function CatPanelImage({ src, alt, dimmed }: { src: string; alt: string; dimmed:
   );
 }
 
-function ImagePane({ src }: { src: string }) {
+function ImagePane({ src, onError }: { src: string; onError?: () => void }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <div style={{
@@ -420,6 +420,7 @@ function ImagePane({ src }: { src: string }) {
         loading="eager"
         fetchPriority="high"
         onLoad={() => setLoaded(true)}
+        onError={() => { onError?.(); }}
         style={{
           position: "absolute",
           inset: 0,
@@ -648,6 +649,7 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
 // ── Starlight card ──────────────────────────────────────────────────────────
 function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg }) {
   const [cartFlash, setCartFlash] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
   const imgSrc = getStarlightImage(pack.name, starlightImagesCfg);
 
@@ -686,8 +688,8 @@ function StarlightCard({ pack, index, onBuy, onAddToCart, isExiting, starlightIm
         {pack.status === "coming_soon" && (
           <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
         )}
-        {imgSrc
-          ? <ImagePane src={imgSrc} />
+        {imgSrc && !imgError
+          ? <ImagePane src={imgSrc} onError={() => setImgError(true)} />
           : <div style={{ height: 148, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><StarlightAnim /></div>
         }
         <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>

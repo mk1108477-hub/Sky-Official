@@ -73,7 +73,10 @@ async function sendStaffNotification(staffId: number, orderId: string, orderData
 
     const notifyEmail = process.env.NOTIFY_EMAIL;
     const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-    if (!notifyEmail || !notifyPass) return;
+    if (!notifyEmail || !notifyPass) {
+      console.error("[email] sendStaffNotification skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+      return;
+    }
 
     const nodemailer = await import("nodemailer");
     const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
@@ -95,7 +98,10 @@ async function sendStaffNotification(staffId: number, orderId: string, orderData
         <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px;">Log in to the admin panel to process this order.</p>
       </div>`,
     });
-  } catch {}
+    console.log("[email] Staff notification sent to", staff.email);
+  } catch (err) {
+    console.error("[email] sendStaffNotification failed:", err);
+  }
 }
 
 router.get("/my", requireAuth, async (req: any, res): Promise<void> => {
@@ -187,7 +193,9 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
     ];
     sendWhatsApp(lines.filter(Boolean).join("\n"));
 
-    sendOrderEmail({ orderId, diamonds: pkg.diamonds, price: pkg.price, mlbbId, remark: remark ?? null }).catch(() => {});
+    sendOrderEmail({ orderId, diamonds: pkg.diamonds, price: pkg.price, mlbbId, remark: remark ?? null }).catch((err) => {
+      console.error("[email] sendOrderEmail failed:", err);
+    });
 
     if (staffId) {
       sendStaffNotification(staffId, displayId, { diamonds: pkg.diamonds, price: pkg.price, mlbbId });

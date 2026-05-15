@@ -9,7 +9,15 @@ export async function sendOrderEmail(order: {
 }) {
   const user = process.env.NOTIFY_EMAIL;
   const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-  if (!user || !pass) return;
+
+  console.log("[email] sendOrderEmail triggered for order #" + order.orderId);
+
+  if (!user || !pass) {
+    console.error("[email] SKIPPED — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD is not set");
+    return;
+  }
+
+  console.log("[email] Sending order notification to", user);
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -60,10 +68,16 @@ export async function sendOrderEmail(order: {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Sky Official" <${user}>`,
-    to: user,
-    subject: `💎 New Order #${order.orderId} — ♦${diamonds} Diamonds · ₹${price}`,
-    html,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Sky Official" <${user}>`,
+      to: user,
+      subject: `💎 New Order #${order.orderId} — ♦${diamonds} Diamonds · ₹${price}`,
+      html,
+    });
+    console.log("[email] Order notification sent successfully, messageId:", info.messageId);
+  } catch (err) {
+    console.error("[email] Failed to send order notification:", err);
+    throw err;
+  }
 }

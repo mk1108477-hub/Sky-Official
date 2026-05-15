@@ -43,7 +43,10 @@ async function getClerkUserEmail(userId: string): Promise<string | null> {
 }
 
 async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_EMAIL_APP_PASSWORD) return;
+  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_EMAIL_APP_PASSWORD) {
+    console.error("[email] sendOrderCompletedEmail skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+    return;
+  }
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",

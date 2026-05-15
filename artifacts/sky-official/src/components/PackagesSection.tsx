@@ -1019,6 +1019,42 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           <RankBoostPage onBack={() => window.history.back()} />
         )}
 
+        {/* Starlight info banner */}
+        {activeCategory?.id === "starlight" && (
+          <div style={{
+            background: "linear-gradient(135deg, rgba(245,200,66,0.08) 0%, rgba(245,158,11,0.05) 100%)",
+            border: "1px solid rgba(245,200,66,0.25)",
+            borderRadius: 14,
+            padding: "14px 16px",
+            marginBottom: 18,
+            animation: "catFadeIn 0.38s ease 0.1s both",
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.3 }}>🎁</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ color: "#f5c842", fontWeight: 800, fontSize: 13 }}>How Starlight Card Orders Work</div>
+                <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11.5, lineHeight: 1.7 }}>
+                  Starlight Cards are gifted directly inside MLBB — this requires a <span style={{ color: "#f5c842", fontWeight: 700 }}>7-day in-game friendship</span> with us before the gift can be sent.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+                  {[
+                    { step: "1", text: "Tap "Order via WhatsApp" on any card" },
+                    { step: "2", text: "Send us your MLBB ID & IGN to add as friend" },
+                    { step: "3", text: "After 7 days of friendship, we send your gift!" },
+                  ].map(({ step, text }) => (
+                    <div key={step} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(245,200,66,0.18)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ color: "#f5c842", fontSize: 9, fontWeight: 800 }}>{step}</span>
+                      </div>
+                      <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Pack list — individual stagger slide-in from right */}
         {activeCategory && activeCategory.id !== "rank" && (
           <div key={activeCategory.id}>

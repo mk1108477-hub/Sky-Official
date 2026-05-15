@@ -175,6 +175,31 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     { id: "rank",      title: "Rank Boosting",     color: "#ec4899" },
   ];
 
+  // Test email
+  const [emailTestState, setEmailTestState] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [emailTestError, setEmailTestError] = useState("");
+
+  const sendTestEmail = async () => {
+    setEmailTestState("sending");
+    setEmailTestError("");
+    try {
+      const res = await fetch(`${API}/admin/test-email`, { method: "POST", headers });
+      const data = await res.json();
+      if (data.ok) {
+        setEmailTestState("ok");
+        setTimeout(() => setEmailTestState("idle"), 5000);
+      } else {
+        setEmailTestError(data.error || "Unknown error");
+        setEmailTestState("error");
+        setTimeout(() => setEmailTestState("idle"), 6000);
+      }
+    } catch {
+      setEmailTestError("Network error — is the API server running?");
+      setEmailTestState("error");
+      setTimeout(() => setEmailTestState("idle"), 6000);
+    }
+  };
+
   // Push notifications
   const [notifState, setNotifState] = useState<NotifState>("unknown");
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -1144,6 +1169,39 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               {/* ── SETTINGS TAB ── */}
               {tab === "settings" && (
                 <div className="flex flex-col gap-5">
+
+                  {/* Email Test */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Email Notifications</div>
+                    <div className="text-gray-400 text-xs">Send a test email to verify your notification setup is working correctly.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <button
+                      onClick={sendTestEmail}
+                      disabled={emailTestState === "sending"}
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                      style={{
+                        background: emailTestState === "ok"
+                          ? "rgba(34,197,94,0.15)"
+                          : emailTestState === "error"
+                          ? "rgba(239,68,68,0.12)"
+                          : "rgba(245,158,11,0.1)",
+                        border: `1px solid ${emailTestState === "ok" ? "rgba(34,197,94,0.4)" : emailTestState === "error" ? "rgba(239,68,68,0.35)" : "rgba(245,158,11,0.3)"}`,
+                        color: emailTestState === "ok" ? "#4ade80" : emailTestState === "error" ? "#f87171" : "#f59e0b",
+                        cursor: emailTestState === "sending" ? "default" : "pointer",
+                        opacity: emailTestState === "sending" ? 0.6 : 1,
+                      }}
+                    >
+                      {emailTestState === "sending" && <span style={{ width: 14, height: 14, border: "2px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />}
+                      {emailTestState === "ok" ? "✓ Test Email Sent!" : emailTestState === "error" ? "✕ Failed — Try Again" : emailTestState === "sending" ? "Sending…" : "📧 Send Test Email"}
+                    </button>
+                    {emailTestState === "ok" && (
+                      <div className="text-green-400 text-xs text-center">Check your inbox — email notifications are working!</div>
+                    )}
+                    {emailTestState === "error" && emailTestError && (
+                      <div className="text-red-400 text-xs text-center">{emailTestError}</div>
+                    )}
+                  </div>
 
                   {/* Category Panel Availability */}
                   <div>

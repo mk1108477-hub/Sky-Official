@@ -554,4 +554,42 @@ router.put("/orders/:id/complete", requireAdmin, async (req, res): Promise<void>
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+// ── Test email notification ────────────────────────────────────────────────────
+router.post("/test-email", requireAdmin, async (_req, res) => {
+  const user = process.env.NOTIFY_EMAIL;
+  const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+
+  if (!user || !pass) {
+    res.status(400).json({ ok: false, error: "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD is not configured." });
+    return;
+  }
+
+  try {
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+    await transporter.sendMail({
+      from: `"Sky Official" <${user}>`,
+      to: user,
+      subject: "✅ Email Test — Sky Official",
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(34,197,94,0.3);padding:28px;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:36px;margin-bottom:8px;">✅</div>
+            <div style="color:#4ade80;font-weight:800;font-size:20px;">Email Notifications Working!</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:13px;margin-top:6px;">This is a test email from your Sky Official admin panel.</div>
+          </div>
+          <div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px 16px;color:rgba(255,255,255,0.6);font-size:13px;line-height:1.6;text-align:center;">
+            Order and inquiry notifications will be delivered to <strong style="color:#fff;">${user}</strong>
+          </div>
+        </div>
+      `,
+    });
+    console.log("[email] Test email sent successfully to", user);
+    res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[email] Test email failed:", err);
+    res.status(500).json({ ok: false, error: err?.message || "Failed to send test email." });
+  }
+});
+
 export default router;

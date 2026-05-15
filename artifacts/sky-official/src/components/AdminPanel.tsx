@@ -541,7 +541,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   };
 
   const [testEmailStates, setTestEmailStates] = useState<Record<number, "idle" | "sending" | "ok" | "error">>({});
-  const sendTestEmail = async (id: number) => {
+  const sendStaffTestEmail = async (id: number) => {
     setTestEmailStates(s => ({ ...s, [id]: "sending" }));
     try {
       const res = await fetch(`${API}/admin/staff/${id}/test-email`, { method: "POST", headers });
@@ -1817,7 +1817,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                         <div className="flex items-center gap-2">
                           {s.email && (
                             <button
-                              onClick={() => sendTestEmail(s.id)}
+                              onClick={() => sendStaffTestEmail(s.id)}
                               disabled={testEmailStates[s.id] === "sending"}
                               className="px-2.5 py-1 rounded-lg text-xs font-bold"
                               style={{ background: testEmailStates[s.id] === "ok" ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.06)", color: testEmailStates[s.id] === "ok" ? "#22c55e" : "rgba(255,255,255,0.5)", border: `1px solid ${testEmailStates[s.id] === "ok" ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.1)"}` }}

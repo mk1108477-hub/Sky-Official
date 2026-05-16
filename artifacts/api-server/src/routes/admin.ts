@@ -537,6 +537,100 @@ router.delete("/staff/:id", requireAdmin, async (req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+// ── Test notification pipeline ────────────────────────────────────────────────
+router.post("/test-notification", requireAdmin, async (_req, res): Promise<void> => {
+  const notifyEmail = process.env.NOTIFY_EMAIL;
+  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  const log: string[] = [];
+  const result: Record<string, any> = { env: {}, steps: [] };
+
+  result.env.NOTIFY_EMAIL = notifyEmail ? `set (${notifyEmail})` : "NOT SET";
+  result.env.NOTIFY_EMAIL_APP_PASSWORD = notifyPass ? "set (hidden)" : "NOT SET";
+  result.env.GREENAPI_INSTANCE_ID = process.env.GREENAPI_INSTANCE_ID ? "set" : "not set";
+  result.env.GREENAPI_TOKEN = process.env.GREENAPI_TOKEN ? "set" : "not set";
+
+  log.push("STEP_1: env vars checked");
+
+  if (!notifyEmail || !notifyPass) {
+    result.steps = log;
+    result.error = "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not configured";
+    res.status(400).json(result);
+    return;
+  }
+
+  log.push("STEP_2: creating nodemailer transporter");
+  let transporter: any;
+  try {
+    transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
+    log.push("STEP_2: transporter created OK");
+  } catch (err: any) {
+    log.push(`STEP_2_FAILED: ${err?.message}`);
+    result.steps = log;
+    result.error = err?.message;
+    res.status(500).json(result);
+    return;
+  }
+
+  log.push("STEP_3: sending test owner email");
+  try {
+    const info = await transporter.sendMail({
+      from: `"Sky Official" <${notifyEmail}>`,
+      to: notifyEmail,
+      subject: `🧪 Test Notification — Sky Official`,
+      html: `<div style="font-family:sans-serif;background:#0a0a0a;padding:24px;border-radius:14px;border:1px solid rgba(245,158,11,0.3)">
+        <h2 style="color:#f59e0b">🧪 Test Notification</h2>
+        <p style="color:rgba(255,255,255,0.6)">This is a test from the Sky Official /test-notification endpoint. If you received this, email delivery is working correctly.</p>
+      </div>`,
+    });
+    log.push(`STEP_3_SUCCESS: owner email sent, messageId: ${info.messageId}`);
+    result.ownerEmail = { ok: true, messageId: info.messageId, sentTo: notifyEmail };
+  } catch (err: any) {
+    log.push(`STEP_3_FAILED: ${err?.message}`);
+    result.ownerEmail = { ok: false, error: err?.message };
+  }
+
+  log.push("STEP_4: checking available staff with email + notify_orders");
+  let staffResults: any[] = [];
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, email, status, notify_orders FROM recharge_staff WHERE email IS NOT NULL AND email != '' ORDER BY id`
+    );
+    log.push(`STEP_4: found ${rows.length} staff with email (${rows.filter((r: any) => r.status === 'available' && r.notify_orders).length} eligible for notifications)`);
+    for (const staff of rows) {
+      const eligible = staff.status === 'available' && staff.notify_orders;
+      if (eligible) {
+        log.push(`STEP_5: sending test email to staff ${staff.name} <${staff.email}>`);
+        try {
+          const info = await transporter.sendMail({
+            from: `"Sky Official" <${notifyEmail}>`,
+            to: staff.email,
+            subject: `🧪 Test Staff Notification — Sky Official`,
+            html: `<div style="font-family:sans-serif;background:#0a0a0a;padding:24px;border-radius:14px;border:1px solid rgba(245,158,11,0.3)">
+              <h2 style="color:#f59e0b">🧪 Staff Test</h2>
+              <p style="color:rgba(255,255,255,0.6)">Hi ${staff.name}, this confirms you will receive real order alerts at this email address.</p>
+            </div>`,
+          });
+          log.push(`STEP_5_SUCCESS: staff ${staff.name}, messageId: ${info.messageId}`);
+          staffResults.push({ name: staff.name, email: staff.email, ok: true, messageId: info.messageId });
+        } catch (err: any) {
+          log.push(`STEP_5_FAILED: staff ${staff.name}: ${err?.message}`);
+          staffResults.push({ name: staff.name, email: staff.email, ok: false, error: err?.message });
+        }
+      } else {
+        staffResults.push({ name: staff.name, email: staff.email, ok: null, skipped: `status=${staff.status}, notify_orders=${staff.notify_orders}` });
+      }
+    }
+  } catch (err: any) {
+    log.push(`STEP_4_FAILED: ${err?.message}`);
+  }
+
+  result.staffEmails = staffResults;
+  result.steps = log;
+  result.summary = "Test complete — check steps for details";
+  console.log("[notify] TEST_NOTIFICATION complete:", JSON.stringify(result, null, 2));
+  res.json(result);
+});
+
 // ── Support Inquiries ─────────────────────────────────────────────────────────
 router.get("/support-inquiries", requireAdmin, async (_req, res) => {
   try {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import pool from "../lib/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { sendPushToAll } from "./push";
-import { sendOrderEmail } from "../lib/email";
+import { sendOrderEmail, notifyAvailableStaff } from "../lib/email";
 
 const router = Router();
 
@@ -21,7 +21,9 @@ async function sendWhatsApp(message: string) {
         body: JSON.stringify({ chatId: ADMIN_WHATSAPP_CHAT_ID, message }),
       }
     );
-  } catch {}
+  } catch (err: any) {
+    console.error("[notify] WHATSAPP_FAILED:", err?.message);
+  }
 }
 
 async function getNextDisplayId(): Promise<string> {
@@ -53,60 +55,49 @@ async function assignAvailableStaff(): Promise<number | null> {
   );
   const currentIdx = parseInt(idxRows[0]?.value ?? "0");
   const assignedIdx = currentIdx % staffList.length;
-  const nextIdx = assignedIdx + 1;
-
   await pool.query(
     `UPDATE settings SET value = $1 WHERE key = 'staff_rr_idx'`,
-    [nextIdx.toString()]
+    [(assignedIdx + 1).toString()]
   );
   return staffList[assignedIdx].id;
 }
 
-async function notifyAllStaff(orderId: string, assignedStaffId: number | null, orderData: any) {
-  const notifyEmail = process.env.NOTIFY_EMAIL;
-  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-  if (!notifyEmail || !notifyPass) {
-    console.error("[email] notifyAllStaff skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
-    return;
-  }
-  try {
-    const { rows: staffList } = await pool.query(
-      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND status = 'available' AND email IS NOT NULL AND email != ''`
-    );
-    if (staffList.length === 0) {
-      console.log("[email] notifyAllStaff: no staff with notify_orders=true and email set");
-      return;
-    }
+function fireNotifications(displayId: string, orderId: number, staffId: number | null, pkg: { diamonds: number; price: string }, mlbbId: string | null, remark: string | null, extra: { serverId: string | null; ign: string | null; isForFriend: boolean }) {
+  const diamonds = Number(pkg.diamonds).toLocaleString("en-IN");
+  const price = parseFloat(pkg.price).toFixed(0);
 
-    const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
-    const diamonds = Number(orderData.diamonds).toLocaleString("en-IN");
-    const price = parseFloat(orderData.price).toFixed(0);
+  console.log(`[notify] NOTIFICATION_TRIGGERED — order ${displayId} (db id: ${orderId})`);
 
-    for (const staff of staffList) {
-      const isAssigned = assignedStaffId === staff.id;
-      await transporter.sendMail({
-        from: `"Sky Official" <${notifyEmail}>`,
-        to: staff.email,
-        subject: `💎 New Order ${orderId}${isAssigned ? " — Assigned to You" : ""}`,
-        html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(245,158,11,0.25);">
-          <h2 style="color:#f59e0b;margin:0 0 8px;">💎 New Order — Sky Official</h2>
-          <p style="color:rgba(255,255,255,0.6);margin:0 0 16px;font-size:13px;">Hi ${staff.name}${isAssigned ? ", this order has been assigned to you" : ", a new order just came in"}.</p>
-          <table style="width:100%;border-collapse:collapse;">
-            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Order ID</td><td style="color:#f59e0b;font-weight:800;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">${orderId}</td></tr>
-            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Diamonds</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">♦ ${diamonds}</td></tr>
-            <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">₹${price}</td></tr>
-            ${orderData.mlbbId ? `<tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">MLBB ID</td><td style="color:#38bdf8;font-weight:700;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">${orderData.mlbbId}</td></tr>` : ""}
-            ${isAssigned ? `<tr><td colspan="2" style="padding:8px 0;font-size:12px;"><span style="background:rgba(245,158,11,0.15);color:#f59e0b;font-weight:700;border-radius:20px;padding:3px 10px;border:1px solid rgba(245,158,11,0.3);">Assigned to You</span></td></tr>` : ""}
-          </table>
-          <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px;">Log in to the admin panel to process this order.</p>
-        </div>`,
-      }).catch((err: any) => console.error("[email] Failed to send to staff", staff.name, ":", err?.message));
-      console.log("[email] Staff notification sent to", staff.name, "at", staff.email);
-    }
-  } catch (err) {
-    console.error("[email] notifyAllStaff failed:", err);
-  }
+  sendPushToAll({
+    title: "💎 New Order!",
+    body: `${displayId} · ${diamonds} diamonds · ₹${price}`,
+    tag: "new-order",
+    url: "/admin",
+  });
+
+  const lines = [
+    "🛒 *New Order — Sky Official*",
+    "",
+    `🆔 *Order:* ${displayId}`,
+    `📦 *Package:* ♦ ${diamonds} Diamonds`,
+    `💰 *Amount:* ₹${price}`,
+    mlbbId ? `🎮 *MLBB ID:* ${mlbbId}` : null,
+    extra.serverId ? `🌐 *Server:* ${extra.serverId}` : null,
+    extra.ign ? `👤 *IGN:* ${extra.ign}` : null,
+    extra.isForFriend ? "👥 *Recharge:* For a Friend" : null,
+    remark ? `🔑 *Remark:* ${remark}` : null,
+    "",
+    "Open admin panel to fulfill →",
+  ];
+  sendWhatsApp(lines.filter(Boolean).join("\n"));
+
+  sendOrderEmail({ orderId, diamonds: pkg.diamonds, price: pkg.price, mlbbId, remark }).catch((err) => {
+    console.error(`[notify] EMAIL_FAILED — owner email for order ${displayId}:`, err?.message);
+  });
+
+  notifyAvailableStaff(displayId, staffId, { diamonds: pkg.diamonds, price: pkg.price, mlbbId }, pool).catch((err) => {
+    console.error(`[notify] EMAIL_FAILED — staff notifications for order ${displayId}:`, err?.message);
+  });
 }
 
 router.get("/my", requireAuth, async (req: any, res): Promise<void> => {
@@ -117,12 +108,14 @@ router.get("/my", requireAuth, async (req: any, res): Promise<void> => {
       [userId]
     );
     res.json(rows);
-  } catch {
+  } catch (err: any) {
+    console.error("[orders] GET /my failed:", err?.message);
     res.status(500).json({ error: "DB error" });
   }
 });
 
 router.post("/", requireAuth, async (req: any, res): Promise<void> => {
+  console.log("[notify] ORDER_API_HIT — POST /api/orders");
   const clerkUserId = req.clerkUserId as string;
   const { packageId, refId, remark, mlbbUserId, mlbbServerId, mlbbIgn, isForFriend } = req.body;
 
@@ -172,47 +165,20 @@ router.post("/", requireAuth, async (req: any, res): Promise<void> => {
     );
 
     const orderId = inserted[0].id;
-    const diamonds = Number(pkg.diamonds).toLocaleString("en-IN");
-    const price = parseFloat(pkg.price).toFixed(0);
-
-    sendPushToAll({
-      title: "💎 New Order!",
-      body: `${displayId} · ${diamonds} diamonds · ₹${price}`,
-      tag: "new-order",
-      url: "/admin",
-    });
-
-    const lines = [
-      "🛒 *New Order — Sky Official*",
-      "",
-      `🆔 *Order:* ${displayId}`,
-      `📦 *Package:* ♦ ${diamonds} Diamonds`,
-      `💰 *Amount:* ₹${price}`,
-      mlbbId ? `🎮 *MLBB ID:* ${mlbbId}` : null,
-      serverId ? `🌐 *Server:* ${serverId}` : null,
-      ign ? `👤 *IGN:* ${ign}` : null,
-      isForFriend ? "👥 *Recharge:* For a Friend" : null,
-      remark ? `🔑 *Remark:* ${remark}` : null,
-      "",
-      "Open admin panel to fulfill →",
-    ];
-    sendWhatsApp(lines.filter(Boolean).join("\n"));
-
-    sendOrderEmail({ orderId, diamonds: pkg.diamonds, price: pkg.price, mlbbId, remark: remark ?? null }).catch((err) => {
-      console.error("[email] sendOrderEmail failed:", err);
-    });
-
-    notifyAllStaff(displayId, staffId, { diamonds: pkg.diamonds, price: pkg.price, mlbbId }).catch((err) => {
-      console.error("[email] notifyAllStaff failed:", err);
-    });
+    console.log(`[notify] ORDER_SAVED — id: ${orderId}, displayId: ${displayId}, staffId: ${staffId ?? "none"}`);
 
     res.json({ ok: true, id: orderId, displayId });
-  } catch {
+
+    fireNotifications(displayId, orderId, staffId, { diamonds: pkg.diamonds, price: pkg.price }, mlbbId, remark ?? null, { serverId, ign, isForFriend: isForFriend || false });
+
+  } catch (err: any) {
+    console.error("[orders] POST / failed:", err?.message, err?.stack);
     res.status(500).json({ ok: false, error: "DB error. Please try again." });
   }
 });
 
 router.post("/cart", requireAuth, async (req: any, res): Promise<void> => {
+  console.log("[notify] ORDER_API_HIT — POST /api/orders/cart");
   const clerkUserId = req.clerkUserId as string;
   const { items, refId, remark, mlbbUserId, mlbbServerId, mlbbIgn, isForFriend } = req.body;
 
@@ -263,13 +229,40 @@ router.post("/cart", requireAuth, async (req: any, res): Promise<void> => {
       }
     }
 
-    const totalDiamonds = items.reduce((s: number, i: any) => s + (i.diamonds || 0) * (i.quantity || 1), 0);
-    const totalPrice = items.reduce((s: number, i: any) => s + parseFloat(i.price || "0") * (i.quantity || 1), 0);
-    sendPushToAll({ title: "🛒 Cart Order!", body: `${orderIds.length} items · ₹${totalPrice.toFixed(0)}`, tag: "new-order", url: "/admin" });
-    sendWhatsApp(`🛒 *Cart Order*\n${orderIds.length} items · ♦${totalDiamonds} diamonds · ₹${totalPrice.toFixed(0)}\n${mlbbId ? `🎮 ID: ${mlbbId}` : ""}\nIDs: ${displayIds.join(", ")}`);
+    console.log(`[notify] ORDER_SAVED — cart: ${orderIds.length} orders saved, displayIds: ${displayIds.join(", ")}`);
 
     res.json({ ok: true, ids: orderIds, displayIds });
-  } catch {
+
+    const totalDiamonds = items.reduce((s: number, i: any) => s + (i.diamonds || 0) * (i.quantity || 1), 0);
+    const totalPrice = items.reduce((s: number, i: any) => s + parseFloat(i.price || "0") * (i.quantity || 1), 0);
+
+    console.log(`[notify] NOTIFICATION_TRIGGERED — cart order, ${orderIds.length} items, ₹${totalPrice.toFixed(0)}`);
+
+    sendPushToAll({ title: "🛒 Cart Order!", body: `${orderIds.length} items · ₹${totalPrice.toFixed(0)}`, tag: "new-order", url: "/admin" });
+
+    sendWhatsApp(`🛒 *Cart Order*\n${orderIds.length} items · ♦${totalDiamonds} diamonds · ₹${totalPrice.toFixed(0)}\n${mlbbId ? `🎮 ID: ${mlbbId}` : ""}\nIDs: ${displayIds.join(", ")}`);
+
+    const firstDisplayId = displayIds[0] ?? "CART";
+    sendOrderEmail({
+      orderId: orderIds[0] ?? 0,
+      diamonds: totalDiamonds,
+      price: totalPrice.toFixed(2),
+      mlbbId,
+      remark: remark ?? `${orderIds.length} cart items — ${displayIds.join(", ")}`,
+    }).catch((err: any) => {
+      console.error(`[notify] EMAIL_FAILED — owner cart email: ${err?.message}`);
+    });
+
+    notifyAvailableStaff(firstDisplayId, staffId, {
+      diamonds: totalDiamonds,
+      price: totalPrice.toFixed(2),
+      mlbbId,
+    }, pool).catch((err: any) => {
+      console.error(`[notify] EMAIL_FAILED — staff cart email: ${err?.message}`);
+    });
+
+  } catch (err: any) {
+    console.error("[orders] POST /cart failed:", err?.message, err?.stack);
     res.status(500).json({ ok: false, error: "DB error. Please try again." });
   }
 });

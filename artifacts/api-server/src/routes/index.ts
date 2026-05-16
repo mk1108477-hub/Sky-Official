@@ -7,7 +7,7 @@ import profileRouter from "./profile";
 import verifyRouter from "./verify";
 import pushRouter from "./push";
 import pool from "../lib/db";
-import nodemailer from "nodemailer";
+import { sendInquiryEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -146,42 +146,19 @@ router.post("/support", async (req, res) => {
       [userEmail || null, userName || null, inquiryType, description.trim()]
     );
 
-    // Respond immediately — don't block on email sending
+    console.log(`[notify] INQUIRY_SAVED — type: ${inquiryType}, from: ${userEmail || "anonymous"}`);
+
+    // Respond immediately — fire email in background
     res.json({ ok: true });
 
-    // Send email notification in the background
-    const notifyEmail = process.env.NOTIFY_EMAIL;
-    const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-    if (notifyEmail && notifyPass) {
-      const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
-      const typeLabels: Record<string, string> = {
-        order: "Order Related",
-        payment: "Payment Related",
-        bug: "Bug / Technical Issue",
-        other: "Other",
-      };
-      transporter.sendMail({
-        from: `"Sky Official Support" <${notifyEmail}>`,
-        to: notifyEmail,
-        subject: `📩 Support Inquiry — ${typeLabels[inquiryType] || inquiryType}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.3);padding:28px;">
-            <h2 style="color:#f59e0b;margin:0 0 16px;">📩 New Support Inquiry</h2>
-            <table style="width:100%;border-collapse:collapse;">
-              <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Type</td><td style="color:#fff;font-weight:700;font-size:13px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">${typeLabels[inquiryType] || inquiryType}</td></tr>
-              ${userEmail ? `<tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">From</td><td style="color:#fff;font-weight:700;font-size:13px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">${userEmail}</td></tr>` : ""}
-              ${userName ? `<tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Name</td><td style="color:#fff;font-weight:700;font-size:13px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">${userName}</td></tr>` : ""}
-            </table>
-            <div style="margin-top:16px;background:rgba(255,255,255,0.04);border-radius:10px;padding:14px;color:rgba(255,255,255,0.8);font-size:14px;line-height:1.7;white-space:pre-wrap;">${description}</div>
-          </div>
-        `,
-      }).then(() => {
-        console.log("[email] Support inquiry notification sent to", notifyEmail);
-      }).catch((err) => {
-        console.error("[email] Support inquiry email failed:", err);
-      });
-    }
-  } catch { res.status(500).json({ error: "DB error" }); }
+    console.log(`[notify] NOTIFICATION_TRIGGERED — inquiry from ${userEmail || "anonymous"}`);
+    sendInquiryEmail({ userEmail: userEmail || null, userName: userName || null, inquiryType, description }).catch((err: any) => {
+      console.error("[notify] EMAIL_FAILED — inquiry:", err?.message);
+    });
+  } catch (err: any) {
+    console.error("[support] POST /support failed:", err?.message);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
 export default router;

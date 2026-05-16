@@ -510,7 +510,7 @@ router.post("/staff/:id/test-email", requireAdmin, async (req, res): Promise<voi
     if (!staff) { res.status(404).json({ error: "Staff not found" }); return; }
     if (!staff.email) { res.status(400).json({ error: "This staff member has no email address saved." }); return; }
 
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
+    const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: notifyEmail, pass: notifyPass }, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
     await transporter.sendMail({
       from: `"Sky Official" <${notifyEmail}>`,
       to: staff.email,
@@ -561,7 +561,7 @@ router.post("/test-notification", requireAdmin, async (_req, res): Promise<void>
   log.push("STEP_2: creating nodemailer transporter");
   let transporter: any;
   try {
-    transporter = nodemailer.createTransport({ service: "gmail", auth: { user: notifyEmail, pass: notifyPass } });
+    transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: notifyEmail, pass: notifyPass }, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
     log.push("STEP_2: transporter created OK");
   } catch (err: any) {
     log.push(`STEP_2_FAILED: ${err?.message}`);
@@ -697,8 +697,7 @@ router.post("/test-email", requireAdmin, async (_req, res) => {
   }
 
   try {
-    const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+    const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user, pass }, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
     await transporter.sendMail({
       from: `"Sky Official" <${user}>`,
       to: user,

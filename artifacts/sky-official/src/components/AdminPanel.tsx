@@ -178,6 +178,21 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   // Test email
   const [emailTestState, setEmailTestState] = useState<"idle" | "sending" | "ok" | "error">("idle");
   const [emailTestError, setEmailTestError] = useState("");
+  const [pipelineState, setPipelineState] = useState<"idle" | "running" | "done">("idle");
+  const [pipelineResult, setPipelineResult] = useState<any>(null);
+
+  const runPipelineTest = async () => {
+    setPipelineState("running");
+    setPipelineResult(null);
+    try {
+      const res = await fetch(`${API}/admin/test-notification`, { method: "POST", headers });
+      const data = await res.json();
+      setPipelineResult(data);
+    } catch (err: any) {
+      setPipelineResult({ error: "Network error — " + (err?.message || "could not reach server") });
+    }
+    setPipelineState("done");
+  };
 
   const sendTestEmail = async () => {
     setEmailTestState("sending");
@@ -1228,6 +1243,89 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                     )}
                     {emailTestState === "error" && emailTestError && (
                       <div className="text-red-400 text-xs text-center">{emailTestError}</div>
+                    )}
+                  </div>
+
+                  {/* Notification Pipeline Test */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Notification Pipeline Diagnostic</div>
+                    <div className="text-gray-400 text-xs">Runs the full email pipeline and shows exactly where it succeeds or fails. Use this to debug issues on any device.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <button
+                      onClick={runPipelineTest}
+                      disabled={pipelineState === "running"}
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                      style={{
+                        background: "rgba(56,189,248,0.1)",
+                        border: "1px solid rgba(56,189,248,0.3)",
+                        color: "#38bdf8",
+                        cursor: pipelineState === "running" ? "default" : "pointer",
+                        opacity: pipelineState === "running" ? 0.6 : 1,
+                      }}
+                    >
+                      {pipelineState === "running" && <span style={{ width: 14, height: 14, border: "2px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />}
+                      {pipelineState === "running" ? "Running…" : "🧪 Run Notification Diagnostic"}
+                    </button>
+
+                    {pipelineState === "done" && pipelineResult && (
+                      <div className="flex flex-col gap-2 mt-1">
+                        {/* Env vars */}
+                        {pipelineResult.env && (
+                          <div className="rounded-lg p-3 flex flex-col gap-1" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                            <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Environment</div>
+                            {Object.entries(pipelineResult.env).map(([k, v]: any) => (
+                              <div key={k} className="flex justify-between items-center gap-2">
+                                <span className="text-gray-400 text-xs font-mono">{k}</span>
+                                <span className="text-xs font-mono" style={{ color: String(v).includes("NOT SET") ? "#f87171" : "#4ade80" }}>{String(v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Owner email result */}
+                        {pipelineResult.ownerEmail && (
+                          <div className="rounded-lg p-3 flex items-center justify-between gap-2" style={{ background: pipelineResult.ownerEmail.ok ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${pipelineResult.ownerEmail.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                            <span className="text-xs font-medium" style={{ color: pipelineResult.ownerEmail.ok ? "#4ade80" : "#f87171" }}>
+                              {pipelineResult.ownerEmail.ok ? "✓ Owner email sent" : "✕ Owner email failed"}
+                            </span>
+                            {pipelineResult.ownerEmail.error && <span className="text-red-400 text-xs">{pipelineResult.ownerEmail.error}</span>}
+                            {pipelineResult.ownerEmail.sentTo && <span className="text-gray-400 text-xs">{pipelineResult.ownerEmail.sentTo}</span>}
+                          </div>
+                        )}
+
+                        {/* Staff email results */}
+                        {pipelineResult.staffEmails && pipelineResult.staffEmails.length > 0 && (
+                          <div className="flex flex-col gap-1">
+                            {pipelineResult.staffEmails.map((s: any, i: number) => (
+                              <div key={i} className="rounded-lg p-3 flex items-center justify-between gap-2" style={{ background: s.ok === true ? "rgba(34,197,94,0.07)" : s.ok === false ? "rgba(239,68,68,0.07)" : "rgba(255,255,255,0.03)", border: `1px solid ${s.ok === true ? "rgba(34,197,94,0.2)" : s.ok === false ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.06)"}` }}>
+                                <span className="text-xs" style={{ color: s.ok === true ? "#4ade80" : s.ok === false ? "#f87171" : "#9ca3af" }}>
+                                  {s.ok === true ? `✓ ${s.name}` : s.ok === false ? `✕ ${s.name}` : `– ${s.name} (skipped)`}
+                                </span>
+                                {s.error && <span className="text-red-400 text-xs">{s.error}</span>}
+                                {s.skipped && <span className="text-gray-500 text-xs">{s.skipped}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Top-level error */}
+                        {pipelineResult.error && (
+                          <div className="rounded-lg p-3" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
+                            <span className="text-red-400 text-xs">{pipelineResult.error}</span>
+                          </div>
+                        )}
+
+                        {/* Step log */}
+                        {pipelineResult.steps && pipelineResult.steps.length > 0 && (
+                          <div className="rounded-lg p-3 flex flex-col gap-1" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Step Log</div>
+                            {pipelineResult.steps.map((s: string, i: number) => (
+                              <div key={i} className="text-xs font-mono" style={{ color: s.includes("FAILED") || s.includes("NOT SET") ? "#f87171" : s.includes("SUCCESS") ? "#4ade80" : "#6b7280" }}>{s}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 

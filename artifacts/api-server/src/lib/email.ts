@@ -1,32 +1,50 @@
-import nodemailer from "nodemailer";
+// Email delivery via Brevo transactional API (HTTP — no SMTP, no firewall issues)
 
-function createTransporter() {
-  const user = process.env.NOTIFY_EMAIL;
-  const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: { user, pass },
-    family: 4,
-    connectionTimeout: 10000,
-    socketTimeout: 10000,
-    greetingTimeout: 10000,
-  });
-}
+async function brevoSend({
+  to,
+  subject,
+  html,
+  fromName = "Sky Official",
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  fromName?: string;
+}): Promise<string> {
+  const apiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.FROM_EMAIL;
 
-async function verifyTransporter(transporter: ReturnType<typeof nodemailer.createTransport>, label: string) {
-  console.log(`[notify] SMTP_VERIFY_STARTED — ${label}`);
-  try {
-    await transporter.verify();
-    console.log(`[notify] SMTP_VERIFY_SUCCESS — ${label}`);
-  } catch (err: any) {
-    console.error(`[notify] SMTP_VERIFY_FAILED — ${label}: ${err?.message}`);
-    throw err;
+  if (!apiKey || !fromEmail) {
+    throw new Error("BREVO_API_KEY or FROM_EMAIL not configured");
   }
+
+  const recipients = (Array.isArray(to) ? to : [to]).map((email) => ({ email }));
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: fromEmail },
+      to: recipients,
+      subject,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Brevo API error ${response.status}: ${text}`);
+  }
+
+  const data = (await response.json()) as { messageId?: string };
+  return data.messageId ?? "unknown";
 }
+
+export { brevoSend };
 
 export async function sendOrderEmail(order: {
   orderId: number;
@@ -35,21 +53,12 @@ export async function sendOrderEmail(order: {
   mlbbId: string | null;
   remark: string | null;
 }) {
-  const user = process.env.NOTIFY_EMAIL;
-  const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  const ownerEmail = process.env.NOTIFY_EMAIL;
 
   console.log(`[notify] EMAIL_ATTEMPT_STARTED — order #${order.orderId} to owner`);
 
-  if (!user || !pass) {
-    console.error("[notify] EMAIL_FAILED — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
-    return;
-  }
-
-  const transporter = createTransporter()!;
-  try {
-    await verifyTransporter(transporter, `order #${order.orderId} to owner`);
-  } catch {
-    console.error(`[notify] EMAIL_FAILED — order #${order.orderId} to owner: SMTP verification failed, aborting send`);
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    console.error("[notify] EMAIL_FAILED — BREVO_API_KEY or FROM_EMAIL not set");
     return;
   }
 
@@ -98,36 +107,33 @@ export async function sendOrderEmail(order: {
   `;
 
   try {
-    const info = await transporter.sendMail({
-      from: `"Sky Official" <${user}>`,
-      to: user,
+    const messageId = await brevoSend({
+      to: ownerEmail ?? process.env.FROM_EMAIL!,
       subject: `💎 New Order #${order.orderId} — ♦${diamonds} Diamonds · ₹${price}`,
       html,
     });
-    console.log(`[notify] EMAIL_SENT_SUCCESS — order #${order.orderId} to owner, messageId: ${info.messageId}`);
+    console.log(`[notify] EMAIL_SENT_SUCCESS — order #${order.orderId} to owner, messageId: ${messageId}`);
   } catch (err: any) {
     console.error(`[notify] EMAIL_FAILED — order #${order.orderId} to owner: ${err?.message}`);
     throw err;
   }
 }
 
-export async function notifyAvailableStaff(orderId: string, assignedStaffId: number | null, orderData: {
-  diamonds: number;
-  price: string;
-  mlbbId: string | null;
-}, db: any) {
-  const notifyEmail = process.env.NOTIFY_EMAIL;
-  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-
-  if (!notifyEmail || !notifyPass) {
-    console.error("[notify] STAFF_EMAIL_SKIPPED — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+export async function notifyAvailableStaff(
+  orderId: string,
+  assignedStaffId: number | null,
+  orderData: { diamonds: number; price: string; mlbbId: string | null },
+  db: any,
+) {
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    console.error("[notify] STAFF_EMAIL_SKIPPED — BREVO_API_KEY or FROM_EMAIL not set");
     return;
   }
 
   let staffList: any[];
   try {
     const { rows } = await db.query(
-      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND status = 'available' AND email IS NOT NULL AND email != ''`
+      `SELECT id, name, email FROM recharge_staff WHERE notify_orders = TRUE AND status = 'available' AND email IS NOT NULL AND email != ''`,
     );
     staffList = rows;
   } catch (err: any) {
@@ -142,14 +148,6 @@ export async function notifyAvailableStaff(orderId: string, assignedStaffId: num
 
   console.log(`[notify] NOTIFICATION_TRIGGERED — notifying ${staffList.length} available staff for order ${orderId}`);
 
-  const transporter = createTransporter()!;
-  try {
-    await verifyTransporter(transporter, `staff notifications for order ${orderId}`);
-  } catch {
-    console.error(`[notify] STAFF_EMAIL_FAILED — SMTP verification failed for order ${orderId}, aborting`);
-    return;
-  }
-
   const diamonds = Number(orderData.diamonds).toLocaleString("en-IN");
   const price = parseFloat(orderData.price).toFixed(0);
 
@@ -157,8 +155,7 @@ export async function notifyAvailableStaff(orderId: string, assignedStaffId: num
     const isAssigned = assignedStaffId === staff.id;
     console.log(`[notify] EMAIL_ATTEMPT_STARTED — order ${orderId} to staff ${staff.name} <${staff.email}>`);
     try {
-      const info = await transporter.sendMail({
-        from: `"Sky Official" <${notifyEmail}>`,
+      const messageId = await brevoSend({
         to: staff.email,
         subject: `💎 New Order ${orderId}${isAssigned ? " — Assigned to You" : ""}`,
         html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(245,158,11,0.25);">
@@ -174,7 +171,7 @@ export async function notifyAvailableStaff(orderId: string, assignedStaffId: num
           <p style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:20px;">Log in to the admin panel to process this order.</p>
         </div>`,
       });
-      console.log(`[notify] EMAIL_SENT_SUCCESS — order ${orderId} to staff ${staff.name}, messageId: ${info.messageId}`);
+      console.log(`[notify] EMAIL_SENT_SUCCESS — order ${orderId} to staff ${staff.name}, messageId: ${messageId}`);
     } catch (err: any) {
       console.error(`[notify] EMAIL_FAILED — order ${orderId} to staff ${staff.name} <${staff.email}>: ${err?.message}`);
     }
@@ -187,21 +184,12 @@ export async function sendInquiryEmail(inquiry: {
   inquiryType: string;
   description: string;
 }) {
-  const notifyEmail = process.env.NOTIFY_EMAIL;
-  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  const ownerEmail = process.env.NOTIFY_EMAIL;
 
   console.log(`[notify] EMAIL_ATTEMPT_STARTED — inquiry notification from ${inquiry.userEmail || "anonymous"}`);
 
-  if (!notifyEmail || !notifyPass) {
-    console.error("[notify] EMAIL_FAILED — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
-    return;
-  }
-
-  const transporter = createTransporter()!;
-  try {
-    await verifyTransporter(transporter, `inquiry notification from ${inquiry.userEmail || "anonymous"}`);
-  } catch {
-    console.error(`[notify] EMAIL_FAILED — inquiry notification: SMTP verification failed, aborting send`);
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    console.error("[notify] EMAIL_FAILED — BREVO_API_KEY or FROM_EMAIL not set");
     return;
   }
 
@@ -213,9 +201,9 @@ export async function sendInquiryEmail(inquiry: {
   };
 
   try {
-    const info = await transporter.sendMail({
-      from: `"Sky Official Support" <${notifyEmail}>`,
-      to: notifyEmail,
+    const messageId = await brevoSend({
+      to: ownerEmail ?? process.env.FROM_EMAIL!,
+      fromName: "Sky Official Support",
       subject: `📩 Support Inquiry — ${typeLabels[inquiry.inquiryType] || inquiry.inquiryType}`,
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.3);padding:28px;">
@@ -229,7 +217,7 @@ export async function sendInquiryEmail(inquiry: {
         </div>
       `,
     });
-    console.log(`[notify] EMAIL_SENT_SUCCESS — inquiry notification to owner, messageId: ${info.messageId}`);
+    console.log(`[notify] EMAIL_SENT_SUCCESS — inquiry notification to owner, messageId: ${messageId}`);
   } catch (err: any) {
     console.error(`[notify] EMAIL_FAILED — inquiry notification: ${err?.message}`);
   }

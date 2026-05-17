@@ -1,6 +1,6 @@
 import { Router } from "express";
 import pool from "../lib/db";
-import nodemailer from "nodemailer";
+import { brevoSend } from "../lib/email";
 import { createClerkClient } from "@clerk/express";
 import multer from "multer";
 
@@ -33,31 +33,13 @@ async function getClerkUserEmail(userId: string): Promise<string | null> {
 }
 
 async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
-  if (!process.env.NOTIFY_EMAIL || !process.env.NOTIFY_EMAIL_APP_PASSWORD) {
-    console.error("[email] sendOrderCompletedEmail skipped — NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not set");
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    console.error("[email] sendOrderCompletedEmail skipped — BREVO_API_KEY or FROM_EMAIL not set");
     return;
   }
+  console.log(`[email] EMAIL_ATTEMPT_STARTED — order completed #${order.id} to ${to}`);
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: {
-        user: process.env.NOTIFY_EMAIL,
-        pass: process.env.NOTIFY_EMAIL_APP_PASSWORD,
-      },
-      family: 4,
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-      greetingTimeout: 10000,
-    });
-    console.log(`[email] SMTP_VERIFY_STARTED — order completed email to ${to}`);
-    await transporter.verify();
-    console.log(`[email] SMTP_VERIFY_SUCCESS — order completed email to ${to}`);
-    console.log(`[email] EMAIL_ATTEMPT_STARTED — order completed #${order.id} to ${to}`);
-    await transporter.sendMail({
-      from: `"Sky Official" <${process.env.NOTIFY_EMAIL}>`,
+    const messageId = await brevoSend({
       to,
       subject: `Your ♦ ${Number(order.diamonds).toLocaleString()} Diamonds are delivered! — Sky Official`,
       html: `
@@ -510,10 +492,8 @@ router.put("/staff/:id/notify", requireAdmin, async (req, res): Promise<void> =>
 
 router.post("/staff/:id/test-email", requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
-  const notifyEmail = process.env.NOTIFY_EMAIL;
-  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-  if (!notifyEmail || !notifyPass) {
-    res.status(400).json({ error: "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not configured in secrets." });
+  if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
+    res.status(400).json({ error: "BREVO_API_KEY or FROM_EMAIL not configured in secrets." });
     return;
   }
   try {
@@ -522,9 +502,8 @@ router.post("/staff/:id/test-email", requireAdmin, async (req, res): Promise<voi
     if (!staff) { res.status(404).json({ error: "Staff not found" }); return; }
     if (!staff.email) { res.status(400).json({ error: "This staff member has no email address saved." }); return; }
 
-    const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 587, secure: false, requireTLS: true, auth: { user: notifyEmail, pass: notifyPass }, family: 4, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
-    await transporter.sendMail({
-      from: `"Sky Official" <${notifyEmail}>`,
+    console.log(`[email] EMAIL_ATTEMPT_STARTED — test email to staff ${staff.name} <${staff.email}>`);
+    const messageId = await brevoSend({
       to: staff.email,
       subject: `✅ Test Notification — Sky Official`,
       html: `<div style="font-family:sans-serif;background:#0a0a0a;color:#f9fafb;padding:24px;max-width:440px;border-radius:14px;border:1px solid rgba(34,197,94,0.25);">
@@ -533,10 +512,10 @@ router.post("/staff/:id/test-email", requireAdmin, async (req, res): Promise<voi
         <p style="color:rgba(255,255,255,0.4);font-size:13px;margin:0;">You will receive emails like this whenever a new order comes in. You're all set! 🎉</p>
       </div>`,
     });
-    console.log("[email] Test email sent to staff", staff.name, "at", staff.email);
+    console.log(`[email] EMAIL_SENT_SUCCESS — test email to staff ${staff.name}, messageId: ${messageId}`);
     res.json({ ok: true, sentTo: staff.email });
   } catch (err: any) {
-    console.error("[email] Test email to staff failed:", err);
+    console.error("[email] EMAIL_FAILED — test email to staff:", err?.message);
     res.status(500).json({ error: err?.message || "Failed to send test email." });
   }
 });
@@ -552,50 +531,40 @@ router.delete("/staff/:id", requireAdmin, async (req, res) => {
 // ── Test notification pipeline ────────────────────────────────────────────────
 router.post("/test-notification", requireAdmin, async (_req, res): Promise<void> => {
   const notifyEmail = process.env.NOTIFY_EMAIL;
-  const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  const brevoKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.FROM_EMAIL;
   const log: string[] = [];
   const result: Record<string, any> = { env: {}, steps: [] };
 
   result.env.NOTIFY_EMAIL = notifyEmail ? `set (${notifyEmail})` : "NOT SET";
-  result.env.NOTIFY_EMAIL_APP_PASSWORD = notifyPass ? "set (hidden)" : "NOT SET";
+  result.env.BREVO_API_KEY = brevoKey ? "set (hidden)" : "NOT SET";
+  result.env.FROM_EMAIL = fromEmail ? `set (${fromEmail})` : "NOT SET";
   result.env.GREENAPI_INSTANCE_ID = process.env.GREENAPI_INSTANCE_ID ? "set" : "not set";
   result.env.GREENAPI_TOKEN = process.env.GREENAPI_TOKEN ? "set" : "not set";
 
   log.push("STEP_1: env vars checked");
 
-  if (!notifyEmail || !notifyPass) {
+  if (!brevoKey || !fromEmail) {
     result.steps = log;
-    result.error = "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD not configured";
+    result.error = "BREVO_API_KEY or FROM_EMAIL not configured";
     res.status(400).json(result);
     return;
   }
 
-  log.push("STEP_2: creating nodemailer transporter");
-  let transporter: any;
-  try {
-    transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 587, secure: false, requireTLS: true, auth: { user: notifyEmail, pass: notifyPass }, family: 4, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
-    log.push("STEP_2: transporter created OK");
-  } catch (err: any) {
-    log.push(`STEP_2_FAILED: ${err?.message}`);
-    result.steps = log;
-    result.error = err?.message;
-    res.status(500).json(result);
-    return;
-  }
+  log.push("STEP_2: Brevo API configured — no SMTP connection needed");
 
-  log.push("STEP_3: sending test owner email");
+  log.push("STEP_3: sending test owner email via Brevo");
   try {
-    const info = await transporter.sendMail({
-      from: `"Sky Official" <${notifyEmail}>`,
-      to: notifyEmail,
+    const messageId = await brevoSend({
+      to: notifyEmail ?? fromEmail,
       subject: `🧪 Test Notification — Sky Official`,
       html: `<div style="font-family:sans-serif;background:#0a0a0a;padding:24px;border-radius:14px;border:1px solid rgba(245,158,11,0.3)">
         <h2 style="color:#f59e0b">🧪 Test Notification</h2>
         <p style="color:rgba(255,255,255,0.6)">This is a test from the Sky Official /test-notification endpoint. If you received this, email delivery is working correctly.</p>
       </div>`,
     });
-    log.push(`STEP_3_SUCCESS: owner email sent, messageId: ${info.messageId}`);
-    result.ownerEmail = { ok: true, messageId: info.messageId, sentTo: notifyEmail };
+    log.push(`STEP_3_SUCCESS: owner email sent, messageId: ${messageId}`);
+    result.ownerEmail = { ok: true, messageId, sentTo: notifyEmail ?? fromEmail };
   } catch (err: any) {
     log.push(`STEP_3_FAILED: ${err?.message}`);
     result.ownerEmail = { ok: false, error: err?.message };
@@ -613,8 +582,7 @@ router.post("/test-notification", requireAdmin, async (_req, res): Promise<void>
       if (eligible) {
         log.push(`STEP_5: sending test email to staff ${staff.name} <${staff.email}>`);
         try {
-          const info = await transporter.sendMail({
-            from: `"Sky Official" <${notifyEmail}>`,
+          const messageId = await brevoSend({
             to: staff.email,
             subject: `🧪 Test Staff Notification — Sky Official`,
             html: `<div style="font-family:sans-serif;background:#0a0a0a;padding:24px;border-radius:14px;border:1px solid rgba(245,158,11,0.3)">
@@ -622,8 +590,8 @@ router.post("/test-notification", requireAdmin, async (_req, res): Promise<void>
               <p style="color:rgba(255,255,255,0.6)">Hi ${staff.name}, this confirms you will receive real order alerts at this email address.</p>
             </div>`,
           });
-          log.push(`STEP_5_SUCCESS: staff ${staff.name}, messageId: ${info.messageId}`);
-          staffResults.push({ name: staff.name, email: staff.email, ok: true, messageId: info.messageId });
+          log.push(`STEP_5_SUCCESS: staff ${staff.name}, messageId: ${messageId}`);
+          staffResults.push({ name: staff.name, email: staff.email, ok: true, messageId });
         } catch (err: any) {
           log.push(`STEP_5_FAILED: staff ${staff.name}: ${err?.message}`);
           staffResults.push({ name: staff.name, email: staff.email, ok: false, error: err?.message });
@@ -700,19 +668,19 @@ router.put("/orders/:id/complete", requireAdmin, async (req, res): Promise<void>
 
 // ── Test email notification ────────────────────────────────────────────────────
 router.post("/test-email", requireAdmin, async (_req, res) => {
-  const user = process.env.NOTIFY_EMAIL;
-  const pass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
+  const ownerEmail = process.env.NOTIFY_EMAIL;
+  const fromEmail = process.env.FROM_EMAIL;
 
-  if (!user || !pass) {
-    res.status(400).json({ ok: false, error: "NOTIFY_EMAIL or NOTIFY_EMAIL_APP_PASSWORD is not configured." });
+  if (!process.env.BREVO_API_KEY || !fromEmail) {
+    res.status(400).json({ ok: false, error: "BREVO_API_KEY or FROM_EMAIL is not configured." });
     return;
   }
 
+  const to = ownerEmail ?? fromEmail;
+  console.log(`[email] EMAIL_ATTEMPT_STARTED — test email to ${to}`);
   try {
-    const transporter = nodemailer.createTransport({ host: "smtp.gmail.com", port: 587, secure: false, requireTLS: true, auth: { user, pass }, family: 4, connectionTimeout: 10000, socketTimeout: 10000, greetingTimeout: 10000 });
-    await transporter.sendMail({
-      from: `"Sky Official" <${user}>`,
-      to: user,
+    const messageId = await brevoSend({
+      to,
       subject: "✅ Email Test — Sky Official",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(34,197,94,0.3);padding:28px;">
@@ -722,15 +690,15 @@ router.post("/test-email", requireAdmin, async (_req, res) => {
             <div style="color:rgba(255,255,255,0.4);font-size:13px;margin-top:6px;">This is a test email from your Sky Official admin panel.</div>
           </div>
           <div style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:14px 16px;color:rgba(255,255,255,0.6);font-size:13px;line-height:1.6;text-align:center;">
-            Order and inquiry notifications will be delivered to <strong style="color:#fff;">${user}</strong>
+            Order and inquiry notifications will be delivered to <strong style="color:#fff;">${to}</strong>
           </div>
         </div>
       `,
     });
-    console.log("[email] Test email sent successfully to", user);
+    console.log(`[email] EMAIL_SENT_SUCCESS — test email to ${to}, messageId: ${messageId}`);
     res.json({ ok: true });
   } catch (err: any) {
-    console.error("[email] Test email failed:", err);
+    console.error(`[email] EMAIL_FAILED — test email: ${err?.message}`);
     res.status(500).json({ ok: false, error: err?.message || "Failed to send test email." });
   }
 });

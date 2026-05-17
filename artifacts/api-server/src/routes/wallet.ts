@@ -1,7 +1,7 @@
 import { Router } from "express";
 import pool from "../lib/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import nodemailer from "nodemailer";
+import { brevoSend } from "../lib/email";
 
 const router = Router();
 
@@ -44,35 +44,20 @@ router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
       [userId, Number(amount).toFixed(2), requestId]
     );
 
-    const notifyEmail = process.env.NOTIFY_EMAIL;
-    const notifyPass = process.env.NOTIFY_EMAIL_APP_PASSWORD;
-    if (notifyEmail && notifyPass) {
+    if (process.env.BREVO_API_KEY && process.env.FROM_EMAIL) {
+      const ownerEmail = process.env.NOTIFY_EMAIL ?? process.env.FROM_EMAIL;
+      console.log(`[notify] EMAIL_ATTEMPT_STARTED — wallet topup request ${requestId}`);
       try {
-        const transporter = nodemailer.createTransport({
-          host: "smtp.gmail.com",
-          port: 587,
-          secure: false,
-          requireTLS: true,
-          auth: { user: notifyEmail, pass: notifyPass },
-          family: 4,
-          connectionTimeout: 10000,
-          socketTimeout: 10000,
-          greetingTimeout: 10000,
-        });
-        console.log(`[notify] SMTP_VERIFY_STARTED — wallet topup request ${requestId}`);
-        await transporter.verify();
-        console.log(`[notify] SMTP_VERIFY_SUCCESS — wallet topup request ${requestId}`);
-        console.log(`[notify] EMAIL_ATTEMPT_STARTED — wallet topup request ${requestId}`);
-        await transporter.sendMail({
-          from: `"Sky Official Wallet" <${notifyEmail}>`,
-          to: "sky2026official@gmail.com",
-          subject: `💰 Wallet Top-up Request — S${Number(amount).toFixed(0)} (${requestId})`,
+        const messageId = await brevoSend({
+          to: ownerEmail,
+          fromName: "Sky Official Wallet",
+          subject: `💰 Wallet Top-up Request — ₹${Number(amount).toFixed(0)} (${requestId})`,
           html: `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.3);padding:28px;">
               <h2 style="color:#f59e0b;margin:0 0 16px;">💰 New Wallet Top-up Request</h2>
               <table style="width:100%;border-collapse:collapse;">
                 <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Request ID</td><td style="color:#f59e0b;font-weight:700;font-size:13px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">${requestId}</td></tr>
-                <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;font-size:16px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">S ${Number(amount).toFixed(0)}</td></tr>
+                <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.07);">Amount</td><td style="color:#fff;font-weight:700;font-size:16px;text-align:right;border-bottom:1px solid rgba(255,255,255,0.07);">₹${Number(amount).toFixed(0)}</td></tr>
                 <tr><td style="color:rgba(255,255,255,0.4);padding:8px 0;font-size:13px;">User ID</td><td style="color:rgba(255,255,255,0.7);font-size:11px;text-align:right;word-break:break-all;">${userId}</td></tr>
               </table>
               <div style="margin-top:20px;background:rgba(245,158,11,0.08);border-radius:10px;padding:14px;color:rgba(255,255,255,0.7);font-size:13px;line-height:1.6;">
@@ -81,7 +66,7 @@ router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
             </div>
           `,
         });
-        console.log(`[notify] EMAIL_SENT_SUCCESS — wallet topup request ${requestId}`);
+        console.log(`[notify] EMAIL_SENT_SUCCESS — wallet topup request ${requestId}, messageId: ${messageId}`);
       } catch (err: any) {
         console.error(`[notify] EMAIL_FAILED — wallet topup request ${requestId}: ${err?.message}`);
       }

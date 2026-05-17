@@ -39,12 +39,22 @@ async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
   }
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.NOTIFY_EMAIL,
         pass: process.env.NOTIFY_EMAIL_APP_PASSWORD,
       },
+      family: 4,
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+      greetingTimeout: 10000,
     });
+    console.log(`[email] SMTP_VERIFY_STARTED — order completed email to ${to}`);
+    await transporter.verify();
+    console.log(`[email] SMTP_VERIFY_SUCCESS — order completed email to ${to}`);
+    console.log(`[email] EMAIL_ATTEMPT_STARTED — order completed #${order.id} to ${to}`);
     await transporter.sendMail({
       from: `"Sky Official" <${process.env.NOTIFY_EMAIL}>`,
       to,
@@ -96,8 +106,9 @@ async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
         </div>
       `,
     });
-  } catch {
-    // Email send failure is non-fatal
+    console.log(`[email] EMAIL_SENT_SUCCESS — order completed #${order.id} to ${to}`);
+  } catch (err: any) {
+    console.error(`[email] EMAIL_FAILED — order completed #${order.id} to ${to}: ${err?.message}`);
   }
 }
 

@@ -9,10 +9,22 @@ function createTransporter() {
     port: 465,
     secure: true,
     auth: { user, pass },
+    family: 4,
     connectionTimeout: 10000,
     socketTimeout: 10000,
     greetingTimeout: 10000,
   });
+}
+
+async function verifyTransporter(transporter: ReturnType<typeof nodemailer.createTransport>, label: string) {
+  console.log(`[notify] SMTP_VERIFY_STARTED — ${label}`);
+  try {
+    await transporter.verify();
+    console.log(`[notify] SMTP_VERIFY_SUCCESS — ${label}`);
+  } catch (err: any) {
+    console.error(`[notify] SMTP_VERIFY_FAILED — ${label}: ${err?.message}`);
+    throw err;
+  }
 }
 
 export async function sendOrderEmail(order: {
@@ -33,6 +45,13 @@ export async function sendOrderEmail(order: {
   }
 
   const transporter = createTransporter()!;
+  try {
+    await verifyTransporter(transporter, `order #${order.orderId} to owner`);
+  } catch {
+    console.error(`[notify] EMAIL_FAILED — order #${order.orderId} to owner: SMTP verification failed, aborting send`);
+    return;
+  }
+
   const diamonds = Number(order.diamonds).toLocaleString("en-IN");
   const price = parseFloat(order.price).toFixed(0);
 
@@ -123,6 +142,13 @@ export async function notifyAvailableStaff(orderId: string, assignedStaffId: num
   console.log(`[notify] NOTIFICATION_TRIGGERED — notifying ${staffList.length} available staff for order ${orderId}`);
 
   const transporter = createTransporter()!;
+  try {
+    await verifyTransporter(transporter, `staff notifications for order ${orderId}`);
+  } catch {
+    console.error(`[notify] STAFF_EMAIL_FAILED — SMTP verification failed for order ${orderId}, aborting`);
+    return;
+  }
+
   const diamonds = Number(orderData.diamonds).toLocaleString("en-IN");
   const price = parseFloat(orderData.price).toFixed(0);
 
@@ -171,6 +197,13 @@ export async function sendInquiryEmail(inquiry: {
   }
 
   const transporter = createTransporter()!;
+  try {
+    await verifyTransporter(transporter, `inquiry notification from ${inquiry.userEmail || "anonymous"}`);
+  } catch {
+    console.error(`[notify] EMAIL_FAILED — inquiry notification: SMTP verification failed, aborting send`);
+    return;
+  }
+
   const typeLabels: Record<string, string> = {
     order: "Order Related",
     payment: "Payment Related",

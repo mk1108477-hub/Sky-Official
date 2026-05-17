@@ -49,9 +49,19 @@ router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
     if (notifyEmail && notifyPass) {
       try {
         const transporter = nodemailer.createTransport({
-          service: "gmail",
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true,
           auth: { user: notifyEmail, pass: notifyPass },
+          family: 4,
+          connectionTimeout: 10000,
+          socketTimeout: 10000,
+          greetingTimeout: 10000,
         });
+        console.log(`[notify] SMTP_VERIFY_STARTED — wallet topup request ${requestId}`);
+        await transporter.verify();
+        console.log(`[notify] SMTP_VERIFY_SUCCESS — wallet topup request ${requestId}`);
+        console.log(`[notify] EMAIL_ATTEMPT_STARTED — wallet topup request ${requestId}`);
         await transporter.sendMail({
           from: `"Sky Official Wallet" <${notifyEmail}>`,
           to: "sky2026official@gmail.com",
@@ -70,7 +80,10 @@ router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
             </div>
           `,
         });
-      } catch {}
+        console.log(`[notify] EMAIL_SENT_SUCCESS — wallet topup request ${requestId}`);
+      } catch (err: any) {
+        console.error(`[notify] EMAIL_FAILED — wallet topup request ${requestId}: ${err?.message}`);
+      }
     }
 
     res.json({ ok: true, message: "Top-up request submitted. Admin will credit your wallet shortly.", requestId });

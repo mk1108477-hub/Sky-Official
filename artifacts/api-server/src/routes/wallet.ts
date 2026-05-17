@@ -50,8 +50,9 @@ router.post("/topup", requireAuth, async (req: any, res): Promise<void> => {
       try {
         const transporter = nodemailer.createTransport({
           host: "smtp.gmail.com",
-          port: 465,
-          secure: true,
+          port: 587,
+          secure: false,
+          requireTLS: true,
           auth: { user: notifyEmail, pass: notifyPass },
           family: 4,
           connectionTimeout: 10000,

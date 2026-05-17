@@ -40,8 +40,9 @@ async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: {
         user: process.env.NOTIFY_EMAIL,
         pass: process.env.NOTIFY_EMAIL_APP_PASSWORD,

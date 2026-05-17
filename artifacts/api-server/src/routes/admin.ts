@@ -32,66 +32,113 @@ async function getClerkUserEmail(userId: string): Promise<string | null> {
   }
 }
 
-async function sendOrderCompletedEmail(to: string, order: any): Promise<void> {
+async function getClerkUserProfile(userId: string): Promise<{ email: string | null; name: string | null }> {
+  if (!process.env.CLERK_SECRET_KEY || !userId) return { email: null, name: null };
+  try {
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const user = await clerk.users.getUser(userId);
+    const email = user.emailAddresses[0]?.emailAddress ?? null;
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.username || null;
+    return { email, name };
+  } catch {
+    return { email: null, name: null };
+  }
+}
+
+async function sendOrderCompletedEmail(to: string, order: any, customerName: string | null): Promise<void> {
   if (!process.env.BREVO_API_KEY || !process.env.FROM_EMAIL) {
     console.error("[email] sendOrderCompletedEmail skipped — BREVO_API_KEY or FROM_EMAIL not set");
     return;
   }
-  console.log(`[email] EMAIL_ATTEMPT_STARTED — order completed #${order.id} to ${to}`);
+
+  const greeting = customerName ? customerName : "Customer";
+  const orderId = order.display_id || `#${order.id}`;
+  const diamonds = Number(order.diamonds).toLocaleString("en-IN");
+  const date = new Date(order.completed_at || order.created_at || Date.now())
+    .toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const storeName = "Sky Official";
+
+  console.log(`[email] EMAIL_ATTEMPT_STARTED — order completed ${orderId} to ${to}`);
   try {
     const messageId = await brevoSend({
       to,
-      subject: `Your ♦ ${Number(order.diamonds).toLocaleString()} Diamonds are delivered! — Sky Official`,
-      html: `
-        <div style="font-family:Inter,sans-serif;background:#0a0a0a;color:#f9fafb;padding:32px;max-width:480px;margin:0 auto;border-radius:16px;">
-          <div style="text-align:center;margin-bottom:24px;">
-            <div style="width:56px;height:56px;border-radius:50%;border:2px solid #f59e0b;margin:0 auto;background:#111;display:flex;align-items:center;justify-content:center;">
-              <span style="font-size:28px;">💎</span>
-            </div>
-            <h1 style="color:#f59e0b;margin:12px 0 4px;font-size:22px;font-weight:800;">Sky Official</h1>
-            <p style="color:rgba(255,255,255,0.4);margin:0;font-size:13px;letter-spacing:0.1em;">MLBB DIAMOND TOP-UP</p>
-          </div>
-          <div style="background:#111;border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:20px;margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-              <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span style="font-size:18px;">✅</span>
-              </div>
-              <div>
-                <div style="color:#4ade80;font-weight:700;font-size:16px;">Order Completed!</div>
-                <div style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:2px;">Your diamonds have been delivered</div>
-              </div>
-            </div>
-            <p style="color:rgba(255,255,255,0.6);margin:0 0 16px;font-size:14px;line-height:1.7;">
-              Your Mobile Legends diamonds have been successfully delivered to your account. Thank you for choosing Sky Official — your trusted MLBB top-up partner!
-            </p>
-            <table style="width:100%;border-collapse:collapse;">
+      subject: `Order Delivered — ♦${diamonds} Diamonds · ${storeName}`,
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Delivered</title></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:#0c0c0c;padding:28px 32px;text-align:center;">
+            <div style="color:#f59e0b;font-size:22px;font-weight:800;letter-spacing:0.04em;">${storeName}</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:11px;letter-spacing:0.14em;margin-top:4px;">MLBB DIAMOND TOP-UP</div>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <p style="margin:0 0 6px;color:#111827;font-size:15px;">Hello <strong>${greeting}</strong>,</p>
+            <p style="margin:0 0 28px;color:#374151;font-size:14px;line-height:1.7;">Good news — your order has been successfully completed.</p>
+
+            <!-- Order Details -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:28px;">
               <tr>
-                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Order ID</td>
-                <td style="color:#fff;text-align:right;font-size:13px;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);">#${order.id}</td>
+                <td colspan="2" style="background:#f9fafb;padding:10px 16px;border-bottom:1px solid #e5e7eb;">
+                  <span style="color:#374151;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Order Details</span>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6;">Order ID</td>
+                <td style="padding:12px 16px;color:#111827;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #f3f4f6;">${orderId}</td>
               </tr>
               <tr>
-                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Diamonds</td>
-                <td style="color:#f59e0b;text-align:right;font-size:14px;font-weight:800;border-bottom:1px solid rgba(255,255,255,0.06);">♦ ${Number(order.diamonds).toLocaleString()}</td>
+                <td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6;">Date</td>
+                <td style="padding:12px 16px;color:#111827;font-size:13px;text-align:right;border-bottom:1px solid #f3f4f6;">${date}</td>
               </tr>
               <tr>
-                <td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">Amount Paid</td>
-                <td style="color:#fff;text-align:right;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.06);">₹${Number(order.price).toLocaleString("en-IN")}</td>
+                <td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6;">Product</td>
+                <td style="padding:12px 16px;color:#111827;font-size:13px;text-align:right;border-bottom:1px solid #f3f4f6;">MLBB Diamonds</td>
               </tr>
-              ${order.mlbb_id ? `<tr><td style="color:rgba(255,255,255,0.4);padding:9px 0;font-size:13px;">MLBB ID</td><td style="color:#fff;text-align:right;font-size:13px;">${order.mlbb_id}</td></tr>` : ""}
+              <tr>
+                <td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6;">Quantity</td>
+                <td style="padding:12px 16px;color:#d97706;font-size:13px;font-weight:700;text-align:right;border-bottom:1px solid #f3f4f6;">&#9830; ${diamonds} Diamonds</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 16px;color:#6b7280;font-size:13px;">Status</td>
+                <td style="padding:12px 16px;text-align:right;">
+                  <span style="display:inline-block;background:#d1fae5;color:#065f46;font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;">Delivered</span>
+                </td>
+              </tr>
             </table>
-          </div>
-          <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:16px;">
-            💬 Need help or have questions? Contact us on <strong style="color:#25d366;">WhatsApp</strong> for instant support.
-          </div>
-          <p style="color:rgba(255,255,255,0.2);font-size:11px;text-align:center;margin:0;">
-            © 2026 Sky Official. All rights reserved.
-          </p>
-        </div>
-      `,
+
+            <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.7;">Your diamonds have been credited to your account.</p>
+            <p style="margin:0 0 28px;color:#374151;font-size:14px;line-height:1.7;">If you do not see them in your game, please wait a few minutes or contact support by replying to this email.</p>
+            <p style="margin:0 0 4px;color:#374151;font-size:14px;">Thank you for choosing <strong>${storeName}</strong>.</p>
+            <p style="margin:0 0 32px;color:#374151;font-size:14px;line-height:1.8;">Best regards,<br><strong>${storeName}</strong></p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 32px;text-align:center;">
+            <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 ${storeName}. All rights reserved.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
     });
-    console.log(`[email] EMAIL_SENT_SUCCESS — order completed #${order.id} to ${to}`);
+    console.log(`[email] EMAIL_SENT_SUCCESS — order completed ${orderId} to ${to}, messageId: ${messageId}`);
   } catch (err: any) {
-    console.error(`[email] EMAIL_FAILED — order completed #${order.id} to ${to}: ${err?.message}`);
+    console.error(`[email] EMAIL_FAILED — order completed ${orderId} to ${to}: ${err?.message}`);
   }
 }
 
@@ -200,10 +247,11 @@ router.put("/orders/:id", requireAdmin, async (req, res): Promise<void> => {
 
     // Send completion email when order is marked as completed
     if (status === "completed" && order.clerk_user_id) {
-      const email = await getClerkUserEmail(order.clerk_user_id);
-      if (email) {
-        sendOrderCompletedEmail(email, order).catch(() => {});
-      }
+      getClerkUserProfile(order.clerk_user_id).then(({ email, name }) => {
+        if (email) {
+          sendOrderCompletedEmail(email, order, name).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     res.json(order);

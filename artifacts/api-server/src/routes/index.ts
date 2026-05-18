@@ -28,14 +28,31 @@ router.get("/settings/category_popular", async (_req, res) => {
 
 router.get("/settings/qr", async (_req, res) => {
   try {
-    // Return active staff QR if any staff is available, else owner QR
-    const { rows: staffRows } = await pool.query(
-      "SELECT qr_image FROM recharge_staff WHERE status='available' AND qr_image IS NOT NULL ORDER BY sort_order, id LIMIT 1"
+    // Peek at the next staff in round-robin order (same logic as assignAvailableStaff,
+    // but does NOT increment the counter — so the order submission later picks the same person)
+    const { rows: staffList } = await pool.query(
+      `SELECT id, qr_image FROM recharge_staff WHERE status = 'available' ORDER BY sort_order ASC, id ASC`
     );
-    if (staffRows[0]?.qr_image) {
-      res.json({ qr: staffRows[0].qr_image });
-      return;
+
+    if (staffList.length > 0) {
+      // Read current round-robin index without touching it
+      await pool.query(
+        `INSERT INTO settings (key, value) VALUES ('staff_rr_idx', '0') ON CONFLICT (key) DO NOTHING`
+      );
+      const { rows: idxRows } = await pool.query(
+        `SELECT value FROM settings WHERE key = 'staff_rr_idx'`
+      );
+      const currentIdx = parseInt(idxRows[0]?.value ?? "0");
+      const peekIdx = currentIdx % staffList.length;
+      const nextStaff = staffList[peekIdx];
+
+      if (nextStaff?.qr_image) {
+        res.json({ qr: nextStaff.qr_image });
+        return;
+      }
     }
+
+    // Fallback to admin/owner QR if no staff available or staff has no QR uploaded
     const { rows } = await pool.query("SELECT value FROM settings WHERE key='qr_code'");
     res.json({ qr: rows[0]?.value || null });
   } catch { res.status(500).json({ error: "DB error" }); }

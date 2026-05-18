@@ -583,7 +583,7 @@ function HeroSection({ animate = false }: { animate?: boolean }) {
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-16" style={{ background: "transparent" }}>
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 45% at 50% 50%, rgba(251,191,36,0.10) 0%, rgba(245,158,11,0.04) 55%, transparent 75%)", zIndex: 2 }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 55% 38% at 50% 50%, rgba(251,191,36,0.03) 0%, transparent 70%)", zIndex: 2 }} />
       <div className="relative z-10 flex flex-col gap-2.5 px-5 pt-5 pb-9 max-w-lg mx-auto w-full">
         <div className="flex justify-center" style={el(0, 0)}>
           <span className="px-3 py-0.5 rounded-full font-bold uppercase" style={{ border: "1.5px solid rgba(245,158,11,0.55)", color: "#f59e0b", background: "rgba(245,158,11,0.07)", letterSpacing: "0.14em", fontSize: 8 }}>MLBB Diamond Top Up</span>
@@ -891,49 +891,60 @@ function AnnouncementBar() {
   );
 }
 
-// ── Latest News Popup (session-once) ────────────────────────────────────────
+// ── Latest News Popup (session-once, admin-configured) ───────────────────────
 let newsPopupShownThisSession = false;
+
+interface LatestEventData { enabled: boolean; image: string; targetCategory: string; }
 
 function LatestNewsPopup() {
   const [open, setOpen] = useState(!newsPopupShownThisSession);
+  const [eventData, setEventData] = useState<LatestEventData | null>(null);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     newsPopupShownThisSession = true;
+    fetch(`${API}/settings/latest_event`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setEventData(d); })
+      .catch(() => {});
   }, []);
 
-  if (!open) return null;
+  if (!open || !eventData?.enabled || !eventData?.image) return null;
+
+  const handleShopNow = () => {
+    setOpen(false);
+    const cat = eventData.targetCategory;
+    if (cat) sessionStorage.setItem("pendingOpenCategory", cat);
+    setLocation("/packages");
+  };
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.72)", backdropFilter: "blur(7px)", padding: "0 20px" }}
+      style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.82)", backdropFilter: "blur(7px)", padding: "0 20px" }}
       onClick={() => setOpen(false)}
     >
       <style>{`@keyframes newsPopIn{from{opacity:0;transform:scale(0.92) translateY(12px);}to{opacity:1;transform:scale(1) translateY(0);}}`}</style>
       <div
-        style={{ background: "#111318", border: "1px solid rgba(245,158,11,0.28)", borderRadius: 22, padding: "28px 24px", maxWidth: 340, width: "100%", position: "relative", animation: "newsPopIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}
+        style={{ background: "#111318", border: "1px solid rgba(245,158,11,0.28)", borderRadius: 22, overflow: "hidden", maxWidth: 360, width: "100%", position: "relative", animation: "newsPopIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both" }}
         onClick={e => e.stopPropagation()}
       >
         <button
           onClick={() => setOpen(false)}
-          style={{ position: "absolute", top: 14, right: 14, width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          style={{ position: "absolute", top: 12, right: 12, width: 28, height: 28, borderRadius: "50%", background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 2 }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round"/></svg>
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 20 }}>📢</div>
-          <div>
-            <div style={{ color: "#f59e0b", fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 2 }}>Latest News</div>
-            <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>New Packs Available!</div>
-          </div>
+        <div style={{ padding: "13px 16px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <span style={{ color: "#f59e0b", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.15em" }}>Latest Event</span>
         </div>
-        <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, lineHeight: 1.7, margin: "0 0 20px" }}>
-          We've added fresh diamond packs and limited-time deals. Double Diamond packs are live — get <strong style={{ color: "#fbbf24" }}>2× diamonds</strong> on your first recharge! 💎
-        </p>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ width: "100%", aspectRatio: "16/9", overflow: "hidden", background: "#000" }}>
+          <img src={eventData.image} alt="Latest Event" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+        <div style={{ display: "flex", gap: 8, padding: "14px 16px" }}>
           <button onClick={() => setOpen(false)} style={{ flex: 1, padding: "11px 0", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.55)", fontWeight: 700, fontSize: 13, borderRadius: 12, cursor: "pointer" }}>
             Later
           </button>
-          <button onClick={() => setOpen(false)} style={{ flex: 2, padding: "11px 0", background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, borderRadius: 12, border: "none", cursor: "pointer" }}>
+          <button onClick={handleShopNow} style={{ flex: 2, padding: "11px 0", background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 13, borderRadius: 12, border: "none", cursor: "pointer" }}>
             Shop Now →
           </button>
         </div>

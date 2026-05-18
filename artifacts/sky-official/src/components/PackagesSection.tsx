@@ -864,6 +864,15 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   useEffect(() => { activeCategoryRef.current = activeCategory; }, [activeCategory]);
 
   useEffect(() => {
+    const cat = sessionStorage.getItem("pendingOpenCategory") as CategoryId | null;
+    if (cat) {
+      sessionStorage.removeItem("pendingOpenCategory");
+      const found = CATEGORIES.find(c => c.id === cat);
+      if (found) setActiveCategory(found);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!isSignedIn) { setMlbbAccount(null); return; }
     getToken().then(token => {
       if (!token) return;
@@ -935,6 +944,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
 
   return (
     <section style={{ position: "relative", background: activeCategory ? "#0a0a0a" : "transparent", minHeight: "100vh", paddingBottom: 48, overflow: "hidden" }}>
+      {activeCategory && <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#0a0a0a", zIndex: 0, pointerEvents: "none" }} />}
       <style>{`
         @keyframes pkg-diagIn   { from{opacity:0;transform:translate(-20px,-20px)} to{opacity:1;transform:translate(0,0)} }
         @keyframes pkgSlideLeft { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }

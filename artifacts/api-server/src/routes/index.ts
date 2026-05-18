@@ -102,6 +102,13 @@ router.get("/settings/category_availability", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+router.get("/settings/latest_event", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='latest_event'");
+    res.json(rows[0] ? JSON.parse(rows[0].value) : { enabled: false, image: "", targetCategory: "" });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/packages", async (_req, res) => {
   try {
     const { rows } = await pool.query(

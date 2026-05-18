@@ -144,6 +144,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [newPkgImage, setNewPkgImage] = useState("");
   const [editingPkgImage, setEditingPkgImage] = useState("");
+  const [latestEvent, setLatestEvent] = useState<{ enabled: boolean; image: string; targetCategory: string }>({ enabled: false, image: "", targetCategory: "" });
+  const [latestEventSaving, setLatestEventSaving] = useState(false);
+  const [latestEventSaved, setLatestEventSaved] = useState(false);
+  const latestEventImgRef = useRef<HTMLInputElement>(null);
+  const [latestEventUploading, setLatestEventUploading] = useState(false);
 
   const uploadImage = async (file: File, onDone: (url: string) => void) => {
     const form = new FormData();
@@ -382,6 +387,20 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     setCatAvailSaving(false);
   };
 
+  const fetchLatestEvent = useCallback(async () => {
+    const res = await fetch(`${API}/admin/settings/latest_event`, { headers });
+    if (res.ok) setLatestEvent(await res.json());
+  }, [token]);
+
+  const saveLatestEvent = async (data: typeof latestEvent) => {
+    setLatestEventSaving(true);
+    await fetch(`${API}/admin/settings/latest_event`, { method: "PUT", headers, body: JSON.stringify(data) });
+    setLatestEvent(data);
+    setLatestEventSaved(true);
+    setTimeout(() => setLatestEventSaved(false), 3000);
+    setLatestEventSaving(false);
+  };
+
   const saveStarlightImages = async (images: Record<string, string>) => {
     await fetch(`${API}/admin/settings/starlight_images`, { method: "PUT", headers, body: JSON.stringify(images) });
   };
@@ -464,7 +483,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   }, [authed]);
 
   useEffect(() => {
-    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchStarlightImages(); fetchCategoryAvailability(); }
+    if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchStarlightImages(); fetchCategoryAvailability(); fetchLatestEvent(); }
     if (authed && tab === "events") fetchPromoEvents();
     if (authed && tab === "staff") fetchStaff();
   }, [authed, tab]);
@@ -1212,6 +1231,103 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               {/* ── SETTINGS TAB ── */}
               {tab === "settings" && (
                 <div className="flex flex-col gap-5">
+
+                  {/* Latest Event Popup */}
+                  <div>
+                    <div className="text-white font-bold text-sm mb-1">Latest Event Popup</div>
+                    <div className="text-gray-400 text-xs">Upload a 16:9 image for the popup shown to users on first visit. When enabled, users see it once per session with "Later" and "Shop Now" buttons.</div>
+                  </div>
+                  <div className="rounded-xl p-4 flex flex-col gap-4" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    {/* Enable toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-white text-sm font-semibold">Show popup</span>
+                      <button
+                        onClick={() => setLatestEvent(prev => ({ ...prev, enabled: !prev.enabled }))}
+                        className="relative flex-shrink-0"
+                        style={{ width: 44, height: 24, borderRadius: 12, background: latestEvent.enabled ? "#f59e0b" : "rgba(255,255,255,0.1)", border: `1px solid ${latestEvent.enabled ? "#d97706" : "rgba(255,255,255,0.15)"}`, transition: "all 0.2s", cursor: "pointer", padding: 0 }}
+                      >
+                        <span style={{ position: "absolute", top: 3, left: latestEvent.enabled ? 22 : 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", display: "block" }} />
+                      </button>
+                    </div>
+
+                    {/* Image upload */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Event Image (16:9)</span>
+                      {latestEvent.image && (
+                        <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: 10, overflow: "hidden", background: "#000", border: "1px solid rgba(255,255,255,0.08)" }}>
+                          <img src={latestEvent.image} alt="Event preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        </div>
+                      )}
+                      <input
+                        ref={latestEventImgRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={async e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setLatestEventUploading(true);
+                          await uploadImage(file, url => setLatestEvent(prev => ({ ...prev, image: url })));
+                          setLatestEventUploading(false);
+                          if (latestEventImgRef.current) latestEventImgRef.current.value = "";
+                        }}
+                      />
+                      <button
+                        onClick={() => latestEventImgRef.current?.click()}
+                        disabled={latestEventUploading}
+                        className="w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                        style={{ background: "rgba(245,158,11,0.09)", border: "1px solid rgba(245,158,11,0.25)", color: "#f59e0b", cursor: latestEventUploading ? "default" : "pointer", opacity: latestEventUploading ? 0.6 : 1 }}
+                      >
+                        {latestEventUploading && <span style={{ width: 13, height: 13, border: "2px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />}
+                        {latestEventUploading ? "Uploading…" : latestEvent.image ? "Replace Image" : "Upload Image"}
+                      </button>
+                      {latestEvent.image && (
+                        <button
+                          onClick={() => setLatestEvent(prev => ({ ...prev, image: "" }))}
+                          className="w-full py-2 rounded-xl text-xs font-bold transition-all"
+                          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171", cursor: "pointer" }}
+                        >
+                          Remove Image
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Target category */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">"Shop Now" Destination</span>
+                      <select
+                        value={latestEvent.targetCategory}
+                        onChange={e => setLatestEvent(prev => ({ ...prev, targetCategory: e.target.value }))}
+                        className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        <option value="">Packages Home</option>
+                        <option value="small">Small Pack</option>
+                        <option value="normal">Normal Pack</option>
+                        <option value="double">Double Diamond</option>
+                        <option value="passes">Passes &amp; Bundles</option>
+                        <option value="starlight">Starlight Cards</option>
+                        <option value="rank">Rank Boosting</option>
+                      </select>
+                    </div>
+
+                    {/* Save button */}
+                    <button
+                      onClick={() => saveLatestEvent(latestEvent)}
+                      disabled={latestEventSaving}
+                      className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                      style={{
+                        background: latestEventSaved ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.1)",
+                        border: `1px solid ${latestEventSaved ? "rgba(34,197,94,0.4)" : "rgba(245,158,11,0.3)"}`,
+                        color: latestEventSaved ? "#4ade80" : "#f59e0b",
+                        cursor: latestEventSaving ? "default" : "pointer",
+                        opacity: latestEventSaving ? 0.6 : 1,
+                      }}
+                    >
+                      {latestEventSaving && <span style={{ width: 13, height: 13, border: "2px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} />}
+                      {latestEventSaved ? "✓ Saved!" : latestEventSaving ? "Saving…" : "Save Latest Event"}
+                    </button>
+                  </div>
 
                   {/* Email Test */}
                   <div>

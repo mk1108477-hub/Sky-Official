@@ -751,4 +751,21 @@ router.post("/test-email", requireAdmin, async (_req, res) => {
   }
 });
 
+// ── Latest Event popup setting ────────────────────────────────────────────────
+router.get("/settings/latest_event", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='latest_event'");
+    res.json(rows[0] ? JSON.parse(rows[0].value) : { enabled: false, image: "", targetCategory: "" });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/latest_event", requireAdmin, async (req, res): Promise<void> => {
+  try {
+    const { enabled, image, targetCategory } = req.body;
+    const value = JSON.stringify({ enabled: !!enabled, image: image || "", targetCategory: targetCategory || "" });
+    await pool.query(`INSERT INTO settings (key, value) VALUES ('latest_event', $1) ON CONFLICT (key) DO UPDATE SET value = $1`, [value]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 export default router;

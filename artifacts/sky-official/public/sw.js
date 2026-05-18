@@ -3,8 +3,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Sky Official";
   const options = {
     body: data.body || "You have a new notification.",
-    icon: "/logo.jpg",
-    badge: "/logo.jpg",
+    icon: "/logo.png",
+    badge: "/logo.png",
     tag: data.tag || "sky-official",
     data: data.url || "/",
     vibrate: [200, 100, 200],

@@ -142,6 +142,63 @@ export default function SupportPage() {
             We typically respond within a few hours via WhatsApp or email.
           </p>
         </div>
+
+        <FAQ />
+      </div>
+    </div>
+  );
+}
+
+const FAQS = [
+  {
+    q: "How long does diamond delivery take?",
+    a: "Diamonds are credited to your MLBB account within minutes of payment confirmation. During peak hours it may take up to 15 minutes — we'll keep you updated on WhatsApp.",
+  },
+  {
+    q: "Which payment methods do you accept?",
+    a: "We accept all UPI apps — Google Pay, PhonePe, Paytm, BHIM, and direct bank UPI transfers. Simply scan the QR code shown at checkout.",
+  },
+  {
+    q: "What if I entered the wrong MLBB ID?",
+    a: "Contact us on WhatsApp immediately with your order details. If diamonds haven't been delivered yet we can correct the account. If already delivered, please review our Refund Policy.",
+  },
+  {
+    q: "Can I order without creating an account?",
+    a: "You can browse all packages without signing in. A free account lets you track orders, save your MLBB ID for faster checkout, and view full order history.",
+  },
+];
+
+function FAQ() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  return (
+    <div style={{ marginTop: 40, animation: "supIn 0.45s ease 0.15s both", opacity: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
+        <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", whiteSpace: "nowrap" }}>Frequently Asked</span>
+        <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {FAQS.map((faq, i) => (
+          <div
+            key={i}
+            style={{ background: "#111", border: `1px solid ${openIdx === i ? "rgba(245,158,11,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius: 14, overflow: "hidden", transition: "border-color 0.2s ease" }}
+          >
+            <button
+              onClick={() => setOpenIdx(openIdx === i ? null : i)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+            >
+              <span style={{ color: openIdx === i ? "#f59e0b" : "#fff", fontWeight: 700, fontSize: 13, lineHeight: 1.4, transition: "color 0.2s ease" }}>{faq.q}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, transform: openIdx === i ? "rotate(180deg)" : "none", transition: "transform 0.25s ease" }}>
+                <path d="M6 9l6 6 6-6" stroke={openIdx === i ? "#f59e0b" : "rgba(255,255,255,0.35)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {openIdx === i && (
+              <div style={{ padding: "0 16px 14px", color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.65 }}>
+                {faq.a}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

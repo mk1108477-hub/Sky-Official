@@ -58,6 +58,9 @@
     /* Remove iOS tap flash on every element */
     -webkit-tap-highlight-color: transparent;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   html, body, #root {
     background: #0a0a0a;
     margin: 0;
@@ -69,6 +72,14 @@
   /* Prevent double-tap zoom on interactive controls (iOS / Android) */
   button, a, select, [role="button"] {
     touch-action: manipulation;
+  }
+  /* Smooth transitions on all interactive elements */
+  button, a, [role="button"] {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  /* Ensure minimum 44px touch targets on small icon buttons */
+  button:not([style*="height"]):not([style*="width"]) {
+    min-height: 44px;
   }
   /* Prevent iOS Safari auto-zoom when an input is focused.
      Font-size must be ≥ 16px — this is a safety net for any

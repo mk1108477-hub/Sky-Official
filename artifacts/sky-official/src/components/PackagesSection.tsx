@@ -579,16 +579,20 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
         animation: isExiting
           ? `catFadeOut 0.25s ease ${index * 0.04}s both`
           : `catFadeIn 0.38s ease ${index * 0.1}s both`,
-        transition: "transform 0.18s ease",
+        transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
       }}
       onMouseEnter={e => {
         if (isUnavailable) return;
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "translateY(-3px) scale(1.02)";
+        el.style.borderColor = pack.is_popular ? "rgba(245,158,11,0.8)" : isDouble ? "rgba(0,229,255,0.55)" : "rgba(245,158,11,0.4)";
+        el.style.boxShadow = "0 8px 28px rgba(0,0,0,0.7)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "";
+        el.style.borderColor = pack.is_popular ? "rgba(245,158,11,0.5)" : isDouble ? "rgba(0,229,255,0.3)" : "rgba(255,255,255,0.08)";
+        el.style.boxShadow = "0 2px 14px rgba(0,0,0,0.6)";
       }}
     >
 
@@ -602,7 +606,7 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
         <div style={{ position: "absolute", top: 10, left: pack.status && pack.status !== "available" ? undefined : 10, right: pack.status && pack.status !== "available" ? 10 : undefined, zIndex: 3, background: "#dc2626", color: "#fff", fontSize: 9, fontWeight: 900, letterSpacing: "0.05em", padding: "3px 8px", borderRadius: 999 }}>2×</div>
       )}
       {pack.is_popular && (
-        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 3, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", padding: "3px 8px", borderRadius: 999, textTransform: "uppercase" }}>Popular</div>
+        <div style={{ position: "absolute", top: 0, right: 0, zIndex: 3, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 9, fontWeight: 900, letterSpacing: "0.1em", padding: "6px 12px 5px 8px", borderRadius: "0 18px 0 14px", textTransform: "uppercase", boxShadow: "0 2px 8px rgba(245,158,11,0.45)" }}>⭐ Best Value</div>
       )}
       <ImagePane src={getPackImage(pack.diamonds, packImagesCfg)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
@@ -621,6 +625,10 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>No bonus</div>
         )}
         <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 3 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 1 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.22)", borderRadius: 999, padding: "2px 6px", fontSize: 9, color: "#4ade80", fontWeight: 700 }}>⚡ Instant</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.22)", borderRadius: 999, padding: "2px 6px", fontSize: 9, color: "#7dd3fc", fontWeight: 700 }}>✓ Secure</span>
+        </div>
         <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
           {isUnavailable ? (
             <div style={{ flex: 1, textAlign: "center", padding: "6px 0", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
@@ -1060,7 +1068,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           <div key={activeCategory.id}>
             {loading && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+                {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
               </div>
             )}
             {!loading && activePacks.length === 0 && (

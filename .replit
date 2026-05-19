@@ -28,25 +28,25 @@ args = "artifacts/api-server: API Server"
 name = "artifacts/sky-official: web"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/sky-official run dev"
 waitForPort = 5000
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run dev"
 waitForPort = 8080
-
-[workflows.workflow.metadata]
-outputType = "console"
 
   [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -59,10 +59,6 @@ expertMode = true
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
 
 [[ports]]
 localPort = 8081
@@ -99,6 +95,10 @@ externalPort = 8000
 [[ports]]
 localPort = 24534
 externalPort = 80
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
 
   [nix]
 channel = "stable-25_05"

@@ -291,7 +291,7 @@ export default function PaymentPage() {
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, overflow: "hidden", border: "1.5px solid rgba(245,158,11,0.5)", flexShrink: 0 }}>
-            <img src="/logo.png" alt="Sky Official" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src="/logo.webp" alt="Sky Official" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Sky Official</div>

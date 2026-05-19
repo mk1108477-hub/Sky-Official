@@ -184,7 +184,7 @@ export default function StaffPortal() {
         <div style={{ width: "100%", maxWidth: 380, animation: "staffFadeIn 0.4s ease both" }}>
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", margin: "0 auto 16px", border: "3px solid #f59e0b", boxShadow: "0 0 24px rgba(245,158,11,0.4)" }}>
-              <img src="/logo.png" alt="Sky Official" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src="/logo.webp" alt="Sky Official" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: 22 }}>Staff Portal</div>
             <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 4 }}>Sky Official — Internal Use Only</div>
@@ -278,7 +278,7 @@ export default function StaffPortal() {
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 40, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: "50%", overflow: "hidden", border: "2px solid #f59e0b" }}>
-            <img src="/logo.png" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src="/logo.webp" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>{staff.name}</div>

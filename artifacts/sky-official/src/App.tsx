@@ -288,7 +288,7 @@ function Navbar() {
         style={{ background: "none", border: "none", cursor: "pointer", padding: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
       >
         <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.5)" }}>
-          <img src="/logo.png" alt="Sky Official" className="w-full h-full object-cover" />
+          <img src="/logo.webp" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div className="flex items-center gap-1.5">
           <div style={{ position: "relative", height: 26, minWidth: 80 }}>
@@ -809,7 +809,7 @@ function Footer() {
     <footer className="py-7 px-5 text-center" style={{ background: "#fff", borderTop: "1px solid #eee" }}>
       <div className="flex flex-col items-center gap-2.5 max-w-sm mx-auto">
         <div className="w-10 h-10 rounded-full overflow-hidden" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.4)" }}>
-          <img src="/logo.png" alt="Sky Official" className="w-full h-full object-cover" />
+          <img src="/logo.webp" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div>
           <div className="font-bold text-gray-900 text-sm">Sky Official</div>
@@ -1303,7 +1303,7 @@ function AuthPageShell({ children, title, subtitle }: { children: React.ReactNod
           {/* Logo + wordmark */}
           <div className="flex items-center gap-3 mb-8" style={diag(0.07)}>
             <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0" style={{ border: "1.5px solid rgba(245,158,11,0.5)" }}>
-              <img src="/logo.png" alt="Sky Official" className="w-full h-full object-cover" />
+              <img src="/logo.webp" alt="Sky Official" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="text-white font-bold text-base leading-tight">Sky Official</div>

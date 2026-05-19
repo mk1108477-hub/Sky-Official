@@ -125,6 +125,11 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
     onDone();
   };
 
+  useEffect(() => {
+    const t = setTimeout(triggerDone, 5000);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden" style={{ background: "#0a0a0a" }}>
       <video autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.45 }} onEnded={triggerDone} onError={triggerDone}>

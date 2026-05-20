@@ -83,7 +83,6 @@ export default function PaymentPage() {
   const [orderId, setOrderId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [upiOpened, setUpiOpened] = useState(false);
-  const [showUpiChooser, setShowUpiChooser] = useState(false);
   const [qrSrc, setQrSrc] = useState<string>(QR_FALLBACK);
   const [secondsLeft, setSecondsLeft] = useState(PAYMENT_TIMEOUT);
   const [expired, setExpired] = useState(false);
@@ -130,16 +129,7 @@ export default function PaymentPage() {
   const gpayLink    = `tez://upi/pay?${upiParams}`;
   const paytmLink   = `paytmmp://pay?${upiParams}`;
 
-  const moreUpiApps = [
-    { name: "BHIM",         link: `bhim://pay?${upiParams}`,              bg: "#1a237e", color: "#90caf9",  initials: "B"  },
-    { name: "Amazon Pay",   link: `amazonpay://pay?${upiParams}`,         bg: "#1a1200", color: "#f59e0b",  initials: "AP" },
-    { name: "Cred",         link: `credpay://upi/pay?${upiParams}`,       bg: "#0d0d0d", color: "#e0e0e0",  initials: "CR" },
-    { name: "Freecharge",   link: `freecharge://upi/pay?${upiParams}`,    bg: "#1a0033", color: "#c084fc",  initials: "FC" },
-    { name: "Mobikwik",     link: `mobikwik://upi/pay?${upiParams}`,      bg: "#001a33", color: "#38bdf8",  initials: "MK" },
-    { name: "iMobile Pay",  link: `imobile://upi/pay?${upiParams}`,       bg: "#001a0d", color: "#4ade80",  initials: "IM" },
-    { name: "Axis Pay",     link: `axispaynew://upi/pay?${upiParams}`,    bg: "#1a0000", color: "#f87171",  initials: "AX" },
-    { name: "Any UPI App",  link: upiLink,                                bg: "#111",    color: "#f59e0b",  initials: "⋯"  },
-  ];
+  const intentLink = `intent://pay?${upiParams}#Intent;scheme=upi;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
 
   function downloadQR() {
     const a = document.createElement("a");
@@ -430,51 +420,19 @@ export default function PaymentPage() {
                 <span style={{ color: "#34d399", fontWeight: 700, fontSize: 12 }}>Paytm</span>
               </button>
 
-              {/* More Apps */}
+              {/* Other UPI — triggers phone's native app picker */}
               <button
-                onClick={() => setShowUpiChooser(true)}
+                onClick={() => openUPI(intentLink)}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "rgba(245,158,11,0.08)", border: "1.5px solid rgba(245,158,11,0.28)", cursor: "pointer", transition: "all 0.18s" }}
               >
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.5" fill="#f59e0b"/><circle cx="12" cy="12" r="1.5" fill="#f59e0b"/><circle cx="19" cy="12" r="1.5" fill="#f59e0b"/></svg>
                 </div>
-                <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 12 }}>More Apps</span>
+                <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 12 }}>Other UPI</span>
               </button>
             </div>
           </div>
         </div>
-
-        {/* ── UPI App Chooser Bottom Sheet ── */}
-        {showUpiChooser && (
-          <div
-            onClick={() => setShowUpiChooser(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-          >
-            <div
-              onClick={e => e.stopPropagation()}
-              style={{ background: "#18191f", borderRadius: "22px 22px 0 0", width: "100%", maxWidth: 480, padding: "20px 20px 36px", animation: "slideUp 0.28s cubic-bezier(0.34,1.2,0.64,1) both" }}
-            >
-              <style>{`@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}`}</style>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.15)", margin: "0 auto 18px" }} />
-              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Choose UPI App</div>
-              <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 18 }}>Select the app you want to pay with</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {moreUpiApps.map(app => (
-                  <button
-                    key={app.name}
-                    onClick={() => { setShowUpiChooser(false); openUPI(app.link); }}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 13px", borderRadius: 13, background: app.bg, border: `1.5px solid ${app.color}28`, cursor: "pointer", transition: "all 0.15s", textAlign: "left" }}
-                  >
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: `${app.color}18`, border: `1.5px solid ${app.color}40`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 900, fontSize: 11, color: app.color }}>
-                      {app.initials}
-                    </div>
-                    <span style={{ color: app.color, fontWeight: 700, fontSize: 12, lineHeight: 1.2 }}>{app.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── Confirm Order ── */}
         <div style={{ background: upiOpened ? "linear-gradient(135deg,#0d1a00,#0a1200)" : "#111", border: `1.5px solid ${upiOpened ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.08)"}`, borderRadius: 20, padding: "18px 20px", animation: "payIn 0.4s ease 0.18s both", transition: "all 0.4s ease" }}>

@@ -167,8 +167,8 @@ export default function ProfilePage() {
               </div>
               <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginTop: 2 }}>1 S coin = ₹1</div>
             </div>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <DiamondIcon size={26} color="#f59e0b" />
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.25)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+              <img src="/scoin.png" alt="S Coin" style={{ width: 40, height: 40, objectFit: "contain" }} />
             </div>
           </div>
           <div style={{ background: "rgba(245,158,11,0.08)", borderRadius: 10, padding: "8px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
@@ -263,8 +263,8 @@ export default function ProfilePage() {
           </button>
           <button onClick={() => setLocation("/packages")} style={{ background: "#111", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <DiamondIcon size={18} color="#3b82f6" />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                <img src="/scoin.png" alt="S Coin" style={{ width: 30, height: 30, objectFit: "contain" }} />
               </div>
               <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>Browse Packages</span>
             </div>

@@ -312,10 +312,13 @@ export default function PaymentPage() {
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Amount to be paid</div>
             <div style={{ color: "#f59e0b", fontWeight: 900, fontSize: 46, letterSpacing: "-1px", lineHeight: 1 }}>₹{amount.toLocaleString("en-IN")}</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 8 }}>
-              {isCartMode
-                ? <>♦ {pkg.diamonds.toLocaleString()} Diamonds total · {cartItems.reduce((s, i) => s + i.quantity, 0)} packs</>
-                : <>♦ {pkg.diamonds.toLocaleString()} Diamonds {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}>+{pkg.bonus_diamonds.toLocaleString()} bonus</span>}</>
-              }
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", display: "inline-block" }} />
+                {isCartMode
+                  ? <>{pkg.diamonds.toLocaleString()} Diamonds total · {cartItems.reduce((s, i) => s + i.quantity, 0)} packs</>
+                  : <>{pkg.diamonds.toLocaleString()} Diamonds {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}>+{pkg.bonus_diamonds.toLocaleString()} bonus</span>}</>
+                }
+              </span>
             </div>
             <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
               <CountdownBadge seconds={secondsLeft} />
@@ -329,7 +332,7 @@ export default function PaymentPage() {
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", padding: "10px 0 4px" }}>Cart Summary</div>
             {cartItems.map(item => (
               <div key={item.pkg.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                <span style={{ color: "#fff", fontSize: 13 }}>♦ {item.pkg.diamonds.toLocaleString()} × {item.quantity}</span>
+                <span style={{ color: "#fff", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }}><img src="/diamond.png" alt="♦" style={{ width: 13, height: 13, objectFit: "contain" }} />{item.pkg.diamonds.toLocaleString()} × {item.quantity}</span>
                 <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 13 }}>₹{(parseFloat(item.pkg.price) * item.quantity).toLocaleString("en-IN")}</span>
               </div>
             ))}

@@ -669,7 +669,7 @@ function StatsSection() {
 
   const stats = [
     { value: real ? fmt(real.total_orders, FLOORS.orders) : FLOORS.orders.toLocaleString() + "+", label: "Total Orders", color: "#111", icon: null },
-    { value: real ? fmt(real.total_diamonds, FLOORS.diamonds) : FLOORS.diamonds.toLocaleString(), label: "Diamonds Sold", color: "#f59e0b", icon: "♦" },
+    { value: real ? fmt(real.total_diamonds, FLOORS.diamonds) : FLOORS.diamonds.toLocaleString(), label: "Diamonds Sold", color: "#f59e0b", icon: "img" },
     { value: real ? fmt(real.total_users, FLOORS.users) : FLOORS.users.toLocaleString() + "+", label: "Happy Gamers", color: "#111", icon: "★" },
   ];
   return (
@@ -678,7 +678,7 @@ function StatsSection() {
         {stats.map((s, i) => (
           <div key={i} className="rounded-xl p-4 text-center" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
             <div className="font-extrabold" style={{ fontSize: 32, color: s.color }}>{s.value}</div>
-            <div className="text-gray-400 mt-0.5" style={{ fontSize: 14 }}>{s.icon && <span style={{ color: s.color }} className="mr-1">{s.icon}</span>}{s.label}</div>
+            <div className="text-gray-400 mt-0.5" style={{ fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>{s.icon === "img" ? <img src="/diamond.png" alt="♦" style={{ width: 16, height: 16, objectFit: "contain", display: "inline-block" }} /> : s.icon ? <span style={{ color: s.color }}>{s.icon}</span> : null}{s.label}</div>
           </div>
         ))}
       </div>

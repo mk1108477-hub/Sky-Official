@@ -406,7 +406,7 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
         border: submitted ? "1px solid rgba(34,197,94,0.3)" : "none",
         boxShadow: submitted ? "none" : "0 0 24px rgba(245,158,11,0.28)",
       }}>
-        {submitted ? "✅ Order Sent — Opening WhatsApp…" : "Send Order on WhatsApp 🚀"}
+        {submitted ? "✅ Order Details Sent" : "Send Order Details 🚀"}
       </button>
 
       <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.25)", marginTop: 16, lineHeight: 1.6 }}>

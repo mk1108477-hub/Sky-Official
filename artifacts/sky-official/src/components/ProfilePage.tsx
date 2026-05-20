@@ -44,8 +44,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
-  const [topupQr, setTopupQr] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [topupMsg, setTopupMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -63,13 +61,6 @@ export default function ProfilePage() {
     if (isLoaded && !user) setLocation("/sign-in");
   }, [isLoaded, user]);
 
-  useEffect(() => {
-    if (!showTopup) return;
-    fetch(`${API}/settings/qr`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.qr) setTopupQr(d.qr); })
-      .catch(() => {});
-  }, [showTopup]);
 
   if (!isLoaded || !user) return (
     <div style={{ background: "#0a0a0a", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -79,33 +70,6 @@ export default function ProfilePage() {
 
   const displayName = user.username || user.firstName || user.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "Player";
 
-  async function submitTopup() {
-    const amt = parseFloat(topupAmount);
-    if (!amt || amt <= 0) { setTopupMsg({ ok: false, text: "Enter a valid amount." }); return; }
-    setSubmitting(true);
-    setTopupMsg(null);
-    try {
-      const r = await fetch(`${API}/wallet/topup`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: amt }),
-      });
-      const data = await r.json();
-      if (r.ok) {
-        setTopupMsg({ ok: true, text: data.message });
-        setTopupAmount("");
-        const wallet = await fetch(`${API}/wallet/balance`, { credentials: "include" }).then(r => r.json());
-        setTransactions(wallet.transactions ?? []);
-      } else {
-        setTopupMsg({ ok: false, text: data.error ?? "Failed." });
-      }
-    } catch {
-      setTopupMsg({ ok: false, text: "Network error." });
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   const statusColor: Record<string, string> = {
     pending: "#f59e0b",
@@ -173,7 +137,7 @@ export default function ProfilePage() {
           </div>
           <div style={{ background: "rgba(245,158,11,0.08)", borderRadius: 10, padding: "8px 12px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 14 }}>🏷️</span>
-            <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 600 }}>0.5% discount on all recharges paid via wallet</span>
+            <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 600 }}>0.5% discount on recharges above ₹1000 paid via wallet</span>
           </div>
           <button
             onClick={() => { setShowTopup(v => !v); setTopupMsg(null); }}
@@ -184,24 +148,27 @@ export default function ProfilePage() {
 
           {showTopup && (
             <div style={{ marginTop: 16 }}>
-              {topupQr ? (
-                <div style={{ textAlign: "center", marginBottom: 16 }}>
-                  <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>
-                    Scan the QR below to pay, then enter the amount you paid and submit.
-                  </div>
-                  <div style={{ display: "inline-block", background: "#fff", padding: 10, borderRadius: 14 }}>
-                    <img src={topupQr} alt="Payment QR" style={{ width: 160, height: 160, objectFit: "contain", display: "block" }} />
-                  </div>
-                  <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 8 }}>1 S coin = ₹1 — pay the same amount in rupees</div>
-                </div>
-              ) : (
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginBottom: 12, textAlign: "center", padding: "12px 0" }}>
-                  Loading payment QR…
-                </div>
-              )}
+              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginBottom: 14, lineHeight: 1.6 }}>
+                Pick an amount — you'll see the payment QR on the next screen.
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                {[100, 300, 500, 1000, 1500].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setTopupAmount(String(amt))}
+                    style={{
+                      padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700,
+                      background: topupAmount === String(amt) ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.06)",
+                      border: topupAmount === String(amt) ? "1.5px solid rgba(245,158,11,0.65)" : "1px solid rgba(255,255,255,0.1)",
+                      color: topupAmount === String(amt) ? "#f59e0b" : "rgba(255,255,255,0.6)",
+                      cursor: "pointer", touchAction: "manipulation",
+                    }}
+                  >₹{amt}</button>
+                ))}
+              </div>
               <input
                 type="number"
-                placeholder="Amount you paid (S coins)"
+                placeholder="Or enter custom amount"
                 value={topupAmount}
                 onChange={e => setTopupAmount(e.target.value)}
                 style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 14px", color: "#fff", fontSize: 14, marginBottom: 10, boxSizing: "border-box" }}
@@ -212,12 +179,15 @@ export default function ProfilePage() {
                 </div>
               )}
               <button
-                onClick={submitTopup}
-                disabled={submitting}
-                style={{ width: "100%", padding: "11px 0", borderRadius: 10, background: submitting ? "rgba(245,158,11,0.4)" : "#f59e0b", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: submitting ? "default" : "pointer" }}
-              >
-                {submitting ? "Submitting…" : "Submit Top-up Request"}
-              </button>
+                onClick={() => {
+                  const amt = parseFloat(topupAmount);
+                  if (!amt || amt <= 0) { setTopupMsg({ ok: false, text: "Enter a valid amount." }); return; }
+                  setTopupMsg(null);
+                  sessionStorage.setItem("walletTopupAmount", String(amt));
+                  setLocation("/pay");
+                }}
+                style={{ width: "100%", padding: "11px 0", borderRadius: 10, background: "#f59e0b", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+              >Pay Now</button>
             </div>
           )}
         </div>

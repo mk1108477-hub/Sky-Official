@@ -23,6 +23,10 @@ let _selectedPackage: SelectedPackage | null = null;
 export function setSelectedPackage(pkg: SelectedPackage | null) { _selectedPackage = pkg; }
 export function getSelectedPackage() { return _selectedPackage; }
 
+let _walletTopupAmount = 0;
+export function setWalletTopupAmount(n: number) { _walletTopupAmount = n; }
+export function getWalletTopupAmount() { return _walletTopupAmount; }
+
 function InfoRow({ label, value, mono, accent, action }: { label: string; value: string; mono?: boolean; accent?: boolean; action?: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 8 }}>
@@ -90,6 +94,12 @@ export default function PaymentPage() {
   const pkg = _selectedPackage;
   const target = getMLBBTarget();
   const isCartMode = pkg?.id === 0;
+  const [walletTopupAmt] = useState<number>(() => {
+    const stored = Number(sessionStorage.getItem("walletTopupAmount") ?? 0);
+    if (stored > 0) sessionStorage.removeItem("walletTopupAmount");
+    return stored;
+  });
+  const isWalletTopup = walletTopupAmt > 0;
 
   useEffect(() => {
     fetch(`${API}/settings/qr`)
@@ -117,12 +127,12 @@ export default function PaymentPage() {
   const refId = useMemo(() => `${Date.now()}`, []);
   const remark = useMemo(() => `SKY-${refId.slice(-8)}`, [refId]);
 
-  if (!pkg) {
+  if (!pkg && !isWalletTopup) {
     setTimeout(() => setLocation("/packages"), 0);
     return null;
   }
 
-  const amount = Number(pkg.price);
+  const amount = isWalletTopup ? walletTopupAmt : Number(pkg?.price ?? 0);
   const upiParams = `pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
   const upiLink     = `upi://pay?${upiParams}`;
   const phonePeLink = `phonepe://pay?${upiParams}`;
@@ -144,10 +154,37 @@ export default function PaymentPage() {
   }
 
   async function confirmOrder() {
-    if (!pkg) return;
+    if (!pkg && !isWalletTopup) return;
     setSubmitting(true);
     setError("");
     try {
+      const token = isSignedIn ? await getToken() : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      if (isWalletTopup) {
+        const r = await fetch(`${API}/wallet/topup`, {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ amount: walletTopupAmt, remark }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          setSubmitted(true);
+        } else {
+          setError(data.error ?? "Could not submit top-up request. Please try again.");
+        }
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      setError("Network error. Please check your connection and try again.");
+      setSubmitting(false);
+      return;
+    }
+    try {
+      if (!pkg) { setSubmitting(false); return; }
       const token = isSignedIn ? await getToken() : null;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -218,20 +255,25 @@ export default function PaymentPage() {
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, marginBottom: 8 }}>Order Placed!</div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: 22, marginBottom: 8 }}>{isWalletTopup ? "Top-up Submitted!" : "Order Placed!"}</div>
             <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 13, lineHeight: 1.6 }}>
-              {isCartMode
-                ? `Your cart order (${orderIds.length} order${orderIds.length !== 1 ? "s" : ""}) has been submitted.`
-                : <>Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg.diamonds.toLocaleString()} Diamonds</strong> has been submitted.</>
-              } Diamonds will be delivered once payment is confirmed.
+              {isWalletTopup
+                ? <>Your wallet top-up of <strong style={{ color: "#f59e0b" }}>₹{walletTopupAmt}</strong> has been submitted. Funds will be added once payment is verified.</>
+                : isCartMode
+                  ? `Your cart order (${orderIds.length} order${orderIds.length !== 1 ? "s" : ""}) has been submitted. Diamonds will be delivered once payment is confirmed.`
+                  : <>Your order for <strong style={{ color: "#f59e0b" }}>♦ {pkg?.diamonds.toLocaleString()} Diamonds</strong> has been submitted. Diamonds will be delivered once payment is confirmed.</>
+              }
             </div>
           </div>
           <div style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 18, padding: "4px 20px" }}>
             {orderId && <InfoRow label="Order ID" value={`#${orderId}`} />}
             {orderIds.length > 0 && <InfoRow label="Order IDs" value={orderIds.map(id => `#${id}`).join(", ")} />}
             <InfoRow label="Reference" value={remark} mono />
-            <InfoRow label="Diamonds" value={`♦ ${pkg.diamonds.toLocaleString()}`} accent />
-            <InfoRow label="Amount" value={`₹${amount.toLocaleString("en-IN")}`} accent />
+            {isWalletTopup
+              ? <InfoRow label="Top-up Amount" value={`₹${walletTopupAmt.toLocaleString("en-IN")}`} accent />
+              : <><InfoRow label="Diamonds" value={`♦ ${pkg?.diamonds.toLocaleString()}`} accent />
+                 <InfoRow label="Amount" value={`₹${amount.toLocaleString("en-IN")}`} accent /></>
+            }
             {target && <InfoRow label="MLBB Account" value={`${target.ign} (${target.userId})`} />}
             {target?.isForFriend && <InfoRow label="For" value="Friend / Relative" />}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 11 }}>
@@ -243,8 +285,11 @@ export default function PaymentPage() {
             💬 Need help? Chat with us on WhatsApp for instant support.
           </div>
           <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-            <button onClick={() => setLocation("/orders")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}>View My Orders</button>
-            <button onClick={() => setLocation("/packages")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Buy More Diamonds</button>
+            {isWalletTopup
+              ? <button onClick={() => setLocation("/profile")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}>Back to Profile</button>
+              : <><button onClick={() => setLocation("/orders")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}>View My Orders</button>
+                 <button onClick={() => setLocation("/packages")} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>Buy More Diamonds</button></>
+            }
           </div>
         </div>
       </div>
@@ -267,7 +312,7 @@ export default function PaymentPage() {
           The payment window has expired. Please go back and start a new transaction.
         </div>
         <button
-          onClick={() => setLocation(isCartMode ? "/cart" : "/packages")}
+          onClick={() => setLocation(isWalletTopup ? "/profile" : isCartMode ? "/cart" : "/packages")}
           style={{ padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: "pointer" }}
         >
           Go Back
@@ -288,7 +333,7 @@ export default function PaymentPage() {
 
       {/* Header */}
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 40, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(245,158,11,0.12)", display: "flex", alignItems: "center", gap: 12, padding: "10px 16px" }}>
-        <button onClick={() => setLocation(isCartMode ? "/cart" : "/packages")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+        <button onClick={() => setLocation(isWalletTopup ? "/profile" : isCartMode ? "/cart" : "/packages")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
@@ -314,13 +359,20 @@ export default function PaymentPage() {
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Amount to be paid</div>
             <div style={{ color: "#f59e0b", fontWeight: 900, fontSize: 46, letterSpacing: "-1px", lineHeight: 1 }}>₹{amount.toLocaleString("en-IN")}</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 8 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", display: "inline-block" }} />
-                {isCartMode
-                  ? <>{pkg.diamonds.toLocaleString()} Diamonds total · {cartItems.reduce((s, i) => s + i.quantity, 0)} packs</>
-                  : <>{pkg.diamonds.toLocaleString()} Diamonds {pkg.bonus_diamonds > 0 && <span style={{ color: "#4ade80" }}>+{pkg.bonus_diamonds.toLocaleString()} bonus</span>}</>
-                }
-              </span>
+              {isWalletTopup ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <img src="/scoin.png" alt="S" style={{ width: 14, height: 14, objectFit: "contain", display: "inline-block" }} />
+                  ₹{walletTopupAmt} will be added to your wallet
+                </span>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", display: "inline-block" }} />
+                  {isCartMode
+                    ? <>{pkg?.diamonds.toLocaleString()} Diamonds total · {cartItems.reduce((s, i) => s + i.quantity, 0)} packs</>
+                    : <>{pkg?.diamonds.toLocaleString()} Diamonds {(pkg?.bonus_diamonds ?? 0) > 0 && <span style={{ color: "#4ade80" }}>+{pkg?.bonus_diamonds.toLocaleString()} bonus</span>}</>
+                  }
+                </span>
+              )}
             </div>
             <div style={{ marginTop: 12, display: "flex", justifyContent: "center" }}>
               <CountdownBadge seconds={secondsLeft} />

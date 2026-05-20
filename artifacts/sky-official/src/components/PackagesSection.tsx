@@ -375,9 +375,10 @@ function getPassImage(name: string | null, cfg: PassImagesCfg = DEFAULT_PASS_IMA
   return (name && cfg[name]) || cfg["Weekly Pass"] || "/pass1.png";
 }
 
-function getStarlightImage(name: string | null, cfg: StarlightImagesCfg = DEFAULT_STARLIGHT_IMAGES): string | null {
-  if (!name) return null;
-  return cfg[name] || null;
+function getStarlightImage(name: string | null, _cfg?: StarlightImagesCfg): string {
+  const lower = (name ?? "").toLowerCase();
+  if (lower.includes("premium")) return "/starlight-premium.png";
+  return "/starlight-normal.png";
 }
 
 function CatPanelImage({ src, alt, dimmed }: { src: string; alt: string; dimmed: boolean }) {
@@ -452,11 +453,11 @@ function ImagePane({ src, onError }: { src: string; onError?: () => void }) {
 
 // ── Category card ───────────────────────────────────────────────────────────
 function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: Category; onClick: () => void; index: number; isPopularNow?: boolean; isExiting?: boolean }) {
-  const enterDelay = index * 0.13;
-  const exitDelay  = index * 0.08;
+  const enterDelay = index * 0.04;
+  const exitDelay  = index * 0.03;
   const anim = isExiting
-    ? `catFadeOut 0.28s ease ${exitDelay}s both`
-    : `catFadeIn 0.38s ease ${enterDelay}s both`;
+    ? `catFadeOut 0.15s ease ${exitDelay}s both`
+    : `catFadeIn 0.2s ease ${enterDelay}s both`;
   return (
     <div
       onClick={() => cat.available && onClick()}
@@ -547,52 +548,38 @@ function CategoryCard({ cat, onClick, index, isPopularNow, isExiting }: { cat: C
 }
 
 // ── Individual pack card (small / normal / double) ──────────────────────────
-function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packImagesCfg }: { pack: Package; isDouble?: boolean; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; packImagesCfg?: PackImagesCfg }) {
-  const [cartFlash, setCartFlash] = useState(false);
+function PackCard({ pack, isDouble, index, onSelect, isSelected, isExiting, packImagesCfg }: { pack: Package; isDouble?: boolean; index: number; onSelect?: (pkg: Package) => void; isSelected?: boolean; isExiting?: boolean; packImagesCfg?: PackImagesCfg }) {
   const hasBonus = pack.bonus_diamonds > 0;
   const base = pack.diamonds - pack.bonus_diamonds;
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
-  const glowColor = pack.is_popular ? "rgba(245,158,11,0.28)" : isDouble ? "rgba(0,229,255,0.2)" : "rgba(56,189,248,0.14)";
-
-  function handleAddToCart(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (isUnavailable) return;
-    onAddToCart?.(pack);
-    setCartFlash(true);
-    setTimeout(() => setCartFlash(false), 900);
-  }
-
   const glowBg = pack.is_popular ? "rgba(245,158,11,0.55)" : isDouble ? "rgba(0,229,255,0.5)" : "rgba(56,189,248,0.38)";
   return (
     <div style={{ position: "relative" }}>
       {/* Backlight — blurred glow sits BEHIND the card */}
       <div style={{ position: "absolute", inset: "-3px", borderRadius: 22, background: glowBg, filter: "blur(12px)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, zIndex: 0, pointerEvents: "none" }} />
       <div
+      onClick={() => { if (!isUnavailable) onSelect?.(pack); }}
       style={{
         background: "rgba(14,14,14,0.88)", borderRadius: 18,
         backdropFilter: "blur(6px)",
-        border: pack.is_popular ? "1.5px solid rgba(245,158,11,0.5)" : isDouble ? "1.5px solid rgba(0,229,255,0.3)" : "1px solid rgba(255,255,255,0.08)",
+        border: isSelected ? "2px solid rgba(245,158,11,0.85)" : pack.is_popular ? "1.5px solid rgba(245,158,11,0.5)" : isDouble ? "1.5px solid rgba(0,229,255,0.3)" : "1px solid rgba(255,255,255,0.08)",
         overflow: "hidden", display: "flex", flexDirection: "column",
-        boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+        boxShadow: isSelected ? "0 0 0 3px rgba(245,158,11,0.2), 0 8px 28px rgba(0,0,0,0.7)" : "0 2px 14px rgba(0,0,0,0.6)",
         position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
-          ? `catFadeOut 0.25s ease ${index * 0.04}s both`
-          : `catFadeIn 0.38s ease ${index * 0.1}s both`,
+          ? `catFadeOut 0.15s ease ${index * 0.03}s both`
+          : `catFadeIn 0.2s ease ${index * 0.03}s both`,
         transition: "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
       }}
       onMouseEnter={e => {
         if (isUnavailable) return;
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "translateY(-3px) scale(1.02)";
-        el.style.borderColor = pack.is_popular ? "rgba(245,158,11,0.8)" : isDouble ? "rgba(0,229,255,0.55)" : "rgba(245,158,11,0.4)";
-        el.style.boxShadow = "0 8px 28px rgba(0,0,0,0.7)";
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLDivElement;
         el.style.transform = "";
-        el.style.borderColor = pack.is_popular ? "rgba(245,158,11,0.5)" : isDouble ? "rgba(0,229,255,0.3)" : "rgba(255,255,255,0.08)";
-        el.style.boxShadow = "0 2px 14px rgba(0,0,0,0.6)";
       }}
     >
 
@@ -629,26 +616,20 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
           <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.22)", borderRadius: 999, padding: "2px 6px", fontSize: 9, color: "#4ade80", fontWeight: 700 }}>⚡ Instant</span>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 2, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.22)", borderRadius: 999, padding: "2px 6px", fontSize: 9, color: "#7dd3fc", fontWeight: 700 }}>✓ Secure</span>
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-          {isUnavailable ? (
-            <div style={{ flex: 1, textAlign: "center", padding: "6px 0", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
-              {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={handleAddToCart}
-                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-              >
-                {cartFlash ? "✓" : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                )}
-                {cartFlash ? "Added!" : "Cart"}
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
-            </>
-          )}
-        </div>
+        {isUnavailable && (
+          <div style={{ marginTop: 4, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
+            {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
+          </div>
+        )}
+        {isSelected && !isUnavailable && (
+          <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span style={{ color: "#f59e0b", fontWeight: 800, fontSize: 10 }}>Selected</span>
+          </div>
+        )}
+        {!isSelected && !isUnavailable && (
+          <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,0.25)", fontWeight: 600 }}>Tap to select</div>
+        )}
       </div>
       </div>
     </div>
@@ -676,8 +657,7 @@ function buildWhatsAppUrl(pack: Package, mlbbAccount: { mlbb_user_id: string; ml
 }
 
 // ── Starlight card ──────────────────────────────────────────────────────────
-function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount, userName }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg; mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null; userName: string | null }) {
-  const [imgError, setImgError] = useState(false);
+function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount, userName }: { pack: Package; index: number; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg; mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null; userName: string | null }) {
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
   const imgSrc = getStarlightImage(pack.name, starlightImagesCfg);
 
@@ -700,8 +680,8 @@ function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount
           position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
           opacity: isUnavailable ? 0.65 : 1,
           animation: isExiting
-            ? `catFadeOut 0.25s ease ${index * 0.04}s both`
-            : `catFadeIn 0.38s ease ${index * 0.1}s both`,
+            ? `catFadeOut 0.15s ease ${index * 0.03}s both`
+            : `catFadeIn 0.2s ease ${index * 0.03}s both`,
           transition: "transform 0.18s ease",
           touchAction: "manipulation", WebkitTapHighlightColor: "transparent",
         }}
@@ -714,10 +694,7 @@ function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount
         {pack.status === "coming_soon" && (
           <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
         )}
-        {imgSrc && !imgError
-          ? <ImagePane src={imgSrc} onError={() => setImgError(true)} />
-          : <div style={{ height: 148, background: "#0a0a0a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><StarlightAnim /></div>
-        }
+        <ImagePane src={imgSrc} />
         <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name || "Starlight Card"}</div>
           <div style={{ color: "#f5c842", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
@@ -743,34 +720,26 @@ function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount
 }
 
 // ── Pass card (Passes & Bundles) ────────────────────────────────────────────
-function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }: { pack: Package; index: number; onBuy?: (pkg: Package) => void; onAddToCart?: (pkg: Package) => void; isExiting?: boolean; passImagesCfg?: PassImagesCfg }) {
-  const [cartFlash, setCartFlash] = useState(false);
+function PassCard({ pack, index, onSelect, isSelected, isExiting, passImagesCfg }: { pack: Package; index: number; onSelect?: (pkg: Package) => void; isSelected?: boolean; isExiting?: boolean; passImagesCfg?: PassImagesCfg }) {
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
-
-  function handleAddToCart(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (isUnavailable) return;
-    onAddToCart?.(pack);
-    setCartFlash(true);
-    setTimeout(() => setCartFlash(false), 900);
-  }
 
   return (
     <div style={{ position: "relative" }}>
       {/* Backlight — blurred glow sits BEHIND the card */}
       <div style={{ position: "absolute", inset: "-3px", borderRadius: 22, background: "rgba(168,85,247,0.5)", filter: "blur(12px)", animation: `packGlow 2.8s ease-in-out ${index * 0.13 + 0.5}s infinite`, zIndex: 0, pointerEvents: "none" }} />
       <div
+      onClick={() => { if (!isUnavailable) onSelect?.(pack); }}
       style={{
         background: "rgba(14,14,14,0.88)", borderRadius: 18,
         backdropFilter: "blur(6px)",
-        border: "1.5px solid rgba(168,85,247,0.3)",
+        border: isSelected ? "2px solid rgba(245,158,11,0.85)" : "1.5px solid rgba(168,85,247,0.3)",
         overflow: "hidden", display: "flex", flexDirection: "column",
-        boxShadow: "0 2px 14px rgba(0,0,0,0.6)",
+        boxShadow: isSelected ? "0 0 0 3px rgba(245,158,11,0.2), 0 8px 28px rgba(0,0,0,0.7)" : "0 2px 14px rgba(0,0,0,0.6)",
         position: "relative", zIndex: 1, cursor: isUnavailable ? "default" : "pointer",
         opacity: isUnavailable ? 0.65 : 1,
         animation: isExiting
-          ? `catFadeOut 0.25s ease ${index * 0.04}s both`
-          : `catFadeIn 0.38s ease ${index * 0.1}s both`,
+          ? `catFadeOut 0.15s ease ${index * 0.03}s both`
+          : `catFadeIn 0.2s ease ${index * 0.03}s both`,
         transition: "transform 0.18s ease",
       }}
       onMouseEnter={e => {
@@ -794,26 +763,20 @@ function PassCard({ pack, index, onBuy, onAddToCart, isExiting, passImagesCfg }:
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
         <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name}</div>
         <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
-        <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-          {isUnavailable ? (
-            <div style={{ flex: 1, textAlign: "center", padding: "6px 0", fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
-              {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={handleAddToCart}
-                style={{ flex: 1, background: cartFlash ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.07)", border: cartFlash ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.12)", color: cartFlash ? "#22c55e" : "rgba(255,255,255,0.7)", fontSize: 10, fontWeight: 700, padding: "6px 0", borderRadius: 8, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
-              >
-                {cartFlash ? "✓" : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                )}
-                {cartFlash ? "Added!" : "Cart"}
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onBuy?.(pack); }} style={{ flex: 2, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 11, fontWeight: 800, padding: "6px 0", borderRadius: 8, cursor: "pointer", border: "none", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>Buy Now</button>
-            </>
-          )}
-        </div>
+        {isUnavailable && (
+          <div style={{ marginTop: 4, fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.3)" }}>
+            {pack.status === "out_of_stock" ? "Unavailable" : "Coming Soon"}
+          </div>
+        )}
+        {isSelected && !isUnavailable && (
+          <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span style={{ color: "#f59e0b", fontWeight: 800, fontSize: 10 }}>Selected</span>
+          </div>
+        )}
+        {!isSelected && !isUnavailable && (
+          <div style={{ marginTop: 6, fontSize: 10, color: "rgba(255,255,255,0.25)", fontWeight: 600 }}>Tap to select</div>
+        )}
       </div>
       </div>
     </div>
@@ -858,6 +821,12 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [starlightImagesCfg, setStarlightImagesCfg] = useState<StarlightImagesCfg>(DEFAULT_STARLIGHT_IMAGES);
   const [mlbbAccount, setMlbbAccount] = useState<{ mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null>(null);
   const activeCategoryRef = useRef<Category | null>(null);
+  const [selectedPack, setSelectedPack] = useState<Package | null>(null);
+  const [qty, setQty] = useState(1);
+  const [payMethod, setPayMethod] = useState<"upi" | "wallet">("upi");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [buyLoading, setBuyLoading] = useState(false);
+  const purchaseRef = useRef<HTMLDivElement>(null);
 
   const userName = user ? (user.fullName || user.username || user.primaryEmailAddress?.emailAddress || null) : null;
 
@@ -871,6 +840,28 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       if (found) setActiveCategory(found);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isSignedIn) { setWalletBalance(null); return; }
+    getToken().then(token => {
+      if (!token) return;
+      fetch(`${API}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" })
+        .then(r => r.json())
+        .then(d => setWalletBalance(Number(d.balance ?? 0)))
+        .catch(() => {});
+    });
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (selectedPack && purchaseRef.current) {
+      setTimeout(() => purchaseRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 80);
+    }
+  }, [selectedPack?.id]);
+
+  useEffect(() => {
+    setSelectedPack(null);
+    setQty(1);
+  }, [activeCategory?.id]);
 
   useEffect(() => {
     if (!isSignedIn) { setMlbbAccount(null); return; }
@@ -940,6 +931,19 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
     }
   };
 
+  const handleBuyNow = async () => {
+    if (!selectedPack) return;
+    setBuyLoading(true);
+    await new Promise(res => setTimeout(res, 650));
+    setBuyLoading(false);
+    if (qty > 1) {
+      for (let i = 0; i < qty; i++) onAddToCart?.(selectedPack);
+      onBuy?.({ ...selectedPack, id: 0 });
+    } else {
+      onBuy?.(selectedPack);
+    }
+  };
+
   const activePacks = activeCategory ? filterByCategory(packages, activeCategory.id) : [];
 
   return (
@@ -971,6 +975,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           0%   {transform:rotate(180deg) translateY(-22px) rotate(-180deg)}
           100% {transform:rotate(540deg) translateY(-22px) rotate(-540deg)}
         }
+        .pkg-pack-grid { transform: translateZ(0); backface-visibility: hidden; }
+        .pkg-pack-grid > * { contain: layout paint; }
         @keyframes sl-pulse    { 0%,100%{transform:scale(0.93);opacity:0.85} 50%{transform:scale(1.07);opacity:1} }
         @keyframes rb-line     { 0%{opacity:0;transform:scaleY(0)} 40%{opacity:1} 100%{opacity:0;transform:scaleY(1) translateY(-30px)} }
         @keyframes pkgPageIn   { from{opacity:0;transform:translateX(32px)} to{opacity:1;transform:translateX(0)} }
@@ -982,8 +988,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           const exitHeader = isExiting && !activeCategory;
           const hdrAnim = (delay: number) =>
             exitHeader
-              ? `catFadeOut 0.28s ease ${delay}s both`
-              : `catFadeIn 0.42s ease ${delay}s both`;
+              ? `catFadeOut 0.15s ease ${delay}s both`
+              : `catFadeIn 0.22s ease ${delay}s both`;
           return (
             <div style={{ textAlign: "center", marginBottom: 28 }}>
               <div style={{ display: "inline-block", padding: "5px 16px", borderRadius: 999,
@@ -993,10 +999,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                 animation: hdrAnim(0) }}>
                 Our Packages
               </div>
-              <h2 style={{ color: "#fff", fontSize: "clamp(1.6rem,6vw,2.2rem)", fontWeight: 800, lineHeight: 1.2, margin: 0, animation: hdrAnim(exitHeader ? 0.04 : 0.09) }}>
+              <h2 style={{ color: "#fff", fontSize: "clamp(1.6rem,6vw,2.2rem)", fontWeight: 800, lineHeight: 1.2, margin: 0, animation: hdrAnim(exitHeader ? 0.02 : 0.05) }}>
                 {activeCategory ? activeCategory.title : "Choose Your Pack"}
               </h2>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 8, animation: hdrAnim(exitHeader ? 0.08 : 0.16) }}>
+              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, marginTop: 8, animation: hdrAnim(exitHeader ? 0.04 : 0.09) }}>
                 {activeCategory ? "Tap a pack to purchase" : "Tap a category to view available packs"}
               </p>
             </div>
@@ -1013,8 +1019,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
             color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: 600,
             cursor: "pointer", marginBottom: 20,
             animation: isExiting && !activeCategory
-              ? `catFadeOut 0.28s ease 0.08s both`
-              : `catFadeIn 0.42s ease 0.14s both`,
+              ? `catFadeOut 0.15s ease 0.04s both`
+              : `catFadeIn 0.22s ease 0.07s both`,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -1087,16 +1093,75 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
               </div>
             )}
             {!loading && activePacks.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div className="pkg-pack-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {activePacks.map((pack, i) =>
                   activeCategory?.id === "passes"
-                    ? <PassCard key={pack.id} pack={pack} index={i} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} passImagesCfg={passImagesCfg} />
+                    ? <PassCard key={pack.id} pack={pack} index={i} onSelect={p => { setSelectedPack(p); setQty(1); }} isSelected={selectedPack?.id === pack.id} isExiting={isExiting} passImagesCfg={passImagesCfg} />
                     : activeCategory?.id === "starlight"
                     ? <StarlightCard key={pack.id} pack={pack} index={i} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} mlbbAccount={mlbbAccount} userName={userName} />
-                    : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onBuy={onBuy} onAddToCart={onAddToCart} isExiting={isExiting} packImagesCfg={packImagesCfg} />
+                    : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onSelect={p => { setSelectedPack(p); setQty(1); }} isSelected={selectedPack?.id === pack.id} isExiting={isExiting} packImagesCfg={packImagesCfg} />
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Purchase options panel ─────────────────────────────────── */}
+        {selectedPack && !["starlight", "rank"].includes(activeCategory?.id ?? "") && (
+          <div ref={purchaseRef} style={{
+            background: "rgba(14,14,14,0.97)", border: "1px solid rgba(245,158,11,0.35)",
+            borderRadius: 20, padding: "20px 16px", marginTop: 20,
+            boxShadow: "0 -4px 40px rgba(245,158,11,0.12), 0 8px 30px rgba(0,0,0,0.5)",
+            animation: "catFadeIn 0.2s ease both",
+          }}>
+            {/* Pack summary */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>Your Order</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <img src="/diamond.png" alt="♦" style={{ width: 15, height: 15, objectFit: "contain" }} />
+                  <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>{selectedPack.diamonds.toLocaleString()} Diamonds</span>
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 20 }}>₹{(Number(selectedPack.price) * qty).toLocaleString("en-IN")}</div>
+                {qty > 1 && <div style={{ color: "rgba(255,255,255,0.32)", fontSize: 10 }}>₹{Number(selectedPack.price).toLocaleString("en-IN")} × {qty}</div>}
+              </div>
+            </div>
+
+            {/* Quantity */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, padding: "10px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)" }}>
+              <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, fontWeight: 600 }}>Quantity</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{ width: 30, height: 30, borderRadius: "50%", background: qty === 1 ? "rgba(255,255,255,0.04)" : "rgba(245,158,11,0.15)", border: qty === 1 ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(245,158,11,0.4)", color: qty === 1 ? "rgba(255,255,255,0.2)" : "#f59e0b", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: qty === 1 ? "default" : "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>−</button>
+                <span style={{ color: "#fff", fontWeight: 800, fontSize: 17, minWidth: 24, textAlign: "center" }}>{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.4)", color: "#f59e0b", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>+</button>
+              </div>
+            </div>
+
+            {/* Payment method */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>Payment Method</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setPayMethod("upi")} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 11, background: payMethod === "upi" ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.04)", border: payMethod === "upi" ? "1.5px solid rgba(245,158,11,0.7)" : "1px solid rgba(255,255,255,0.1)", cursor: "pointer", transition: "all 0.15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke={payMethod === "upi" ? "#f59e0b" : "rgba(255,255,255,0.4)"} strokeWidth="2"/><path d="M2 10h20" stroke={payMethod === "upi" ? "#f59e0b" : "rgba(255,255,255,0.4)"} strokeWidth="2"/></svg>
+                  <span style={{ color: payMethod === "upi" ? "#f59e0b" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700 }}>Pay via UPI</span>
+                </button>
+                {walletBalance !== null && (
+                  <button onClick={() => setPayMethod("wallet")} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 11, background: payMethod === "wallet" ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.04)", border: payMethod === "wallet" ? "1.5px solid rgba(245,158,11,0.7)" : "1px solid rgba(255,255,255,0.1)", cursor: "pointer", transition: "all 0.15s", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+                    <img src="/scoin.png" alt="S" style={{ width: 14, height: 14, objectFit: "contain" }} />
+                    <span style={{ color: payMethod === "wallet" ? "#f59e0b" : "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 700 }}>Wallet · ₹{walletBalance.toFixed(0)}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Buy Now */}
+            <button onClick={handleBuyNow} disabled={buyLoading} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: buyLoading ? "rgba(245,158,11,0.45)" : "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: buyLoading ? "default" : "pointer", boxShadow: buyLoading ? "none" : "0 0 24px rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
+              {buyLoading
+                ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#000" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>Preparing order…</>
+                : "Buy Now →"}
+            </button>
           </div>
         )}
       </div>

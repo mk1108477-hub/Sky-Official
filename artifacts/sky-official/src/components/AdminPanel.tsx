@@ -1016,36 +1016,6 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               <option value="coming_soon">Coming Soon</option>
                             </select>
                           </div>
-                          {editingPkg.category === "starlight" && (
-                            <div className="col-span-2">
-                              <div className="text-xs mb-1" style={{ color: "#f5c842" }}>★ Card Image</div>
-                              <div className="flex gap-2 items-center">
-                                <input
-                                  value={editingPkgImage}
-                                  onChange={e => setEditingPkgImage(e.target.value)}
-                                  placeholder="/uploads/image.png or https://..."
-                                  className="flex-1 px-3 py-2 rounded-lg text-white text-xs outline-none font-mono"
-                                  style={{ background: "#111", border: "1px solid rgba(245,200,66,0.3)" }}
-                                />
-                                <label style={{ flexShrink: 0, cursor: "pointer" }} title="Upload image">
-                                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
-                                    const file = e.target.files?.[0]; if (!file) return;
-                                    setUploadingKey("__editpkg__");
-                                    await uploadImage(file, u => setEditingPkgImage(u));
-                                    setUploadingKey(null);
-                                    e.target.value = "";
-                                  }} />
-                                  <div style={{ width: 36, height: 32, borderRadius: 6, background: uploadingKey === "__editpkg__" ? "rgba(245,200,66,0.3)" : "rgba(245,200,66,0.1)", border: "1px solid rgba(245,200,66,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    {uploadingKey === "__editpkg__"
-                                      ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c842" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>
-                                      : <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#f5c842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="13" r="4" stroke="#f5c842" strokeWidth="2"/></svg>
-                                    }
-                                  </div>
-                                </label>
-                                {editingPkgImage && <img src={editingPkgImage} alt="" style={{ width: 40, height: 32, objectFit: "contain", borderRadius: 6, background: "#0d0d14", border: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />}
-                              </div>
-                            </div>
-                          )}
                           <div className="flex gap-2">
                             <button onClick={() => savePkg(editingPkg)} disabled={loading} className="flex-1 py-2 rounded-lg text-xs font-bold text-black" style={{ background: "#f59e0b" }}>Save</button>
                             <button onClick={() => setEditingPkg(null)} className="flex-1 py-2 rounded-lg text-xs font-bold text-gray-400" style={{ background: "#222" }}>Cancel</button>

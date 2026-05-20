@@ -302,9 +302,9 @@ function Navbar() {
         {isSignedIn && walletBalance !== null && !hideWallet && (
           <button
             onClick={() => setLocation("/profile")}
-            style={{ display: "flex", alignItems: "center", gap: 3, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 12, padding: "4px 9px", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+            style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 999, padding: "4px 10px 4px 6px", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="3" stroke="#f59e0b" strokeWidth="2"/><path d="M16 14a1 1 0 110-2 1 1 0 010 2z" fill="#f59e0b"/><path d="M2 11h20" stroke="#f59e0b" strokeWidth="2"/></svg>
+            <img src="/scoin.png" alt="S" style={{ width: 16, height: 16, objectFit: "contain" }} />
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: 800 }}>₹{walletBalance.toFixed(0)}</span>
           </button>
         )}
@@ -652,7 +652,6 @@ function FeaturesSection() {
 
 // ── Stats ──────────────────────────────────────────────────────────────────
 function StatsSection() {
-  const FLOORS = { orders: 300, diamonds: 10000, users: 250 };
   const [real, setReal] = useState<{ total_orders: number; total_diamonds: number; total_users: number } | null>(null);
 
   useEffect(() => {
@@ -662,15 +661,10 @@ function StatsSection() {
       .catch(() => {});
   }, []);
 
-  function fmt(val: number, floor: number): string {
-    if (val < floor) return floor.toLocaleString() + "+";
-    return val.toLocaleString();
-  }
-
   const stats = [
-    { value: real ? fmt(real.total_orders, FLOORS.orders) : FLOORS.orders.toLocaleString() + "+", label: "Total Orders", color: "#111", icon: null },
-    { value: real ? fmt(real.total_diamonds, FLOORS.diamonds) : FLOORS.diamonds.toLocaleString(), label: "Diamonds Sold", color: "#f59e0b", icon: "img" },
-    { value: real ? fmt(real.total_users, FLOORS.users) : FLOORS.users.toLocaleString() + "+", label: "Happy Gamers", color: "#111", icon: "★" },
+    { value: real ? real.total_orders.toLocaleString() : "—", label: "Total Orders", color: "#111", icon: null },
+    { value: real ? Number(real.total_diamonds).toLocaleString() : "—", label: "Diamonds Sold", color: "#f59e0b", icon: "img" },
+    { value: real ? real.total_users.toLocaleString() : "—", label: "Happy Gamers", color: "#111", icon: "★" },
   ];
   return (
     <section className="py-5 px-4" style={{ background: "#f5f5f5" }}>

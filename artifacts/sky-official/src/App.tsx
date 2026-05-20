@@ -502,12 +502,12 @@ function SharedVideoBg() {
       v.play().catch(() => {});
     };
 
-    if (introPlayedThisSession) {
-      startVideo();
-    } else {
+    if (!introPlayedThisSession) {
       window.addEventListener("skyIntroDone", startVideo, { once: true });
       return () => window.removeEventListener("skyIntroDone", startVideo);
     }
+    startVideo();
+    return undefined;
   }, []);
 
   const handleEnded = () => {
@@ -535,7 +535,7 @@ function SharedVideoBg() {
   return (
     <div style={{
       position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
-      width: "min(100vw, calc(100dvh * 9 / 16))",
+      width: "100vw",
       height: "100dvh", zIndex: 0, overflow: "hidden", pointerEvents: "none",
       opacity: active ? 1 : 0, transition: "opacity 0.38s ease",
     }}>
@@ -715,8 +715,8 @@ function HowItWorks() {
 
 // ── Live Ticker ────────────────────────────────────────────────────────────
 function maskName(name: string): string {
-  if (!name || name.length <= 4) return name || "Player";
-  return "xxxx" + name.slice(-2);
+  if (!name || name.length === 0) return "Player";
+  return name[0].toUpperCase() + "***";
 }
 
 interface RecentOrder { mlbb_ign: string | null; diamonds: number; created_at: string; }
@@ -872,7 +872,7 @@ function AnnouncementBar() {
     "⚡ Instant diamond delivery — credited within minutes!",
     "🔒 100% secure UPI payments — your data is safe",
     "💬 24/7 WhatsApp support — real humans, not bots",
-    "🏆 Trusted by 250+ happy MLBB players",
+    "🏆 Trusted by mlbb players across India",
     "💎 Best prices guaranteed — we beat any deal!",
     "🎮 5 categories — small packs, double diamond, passes & more",
   ];
@@ -958,7 +958,7 @@ function WhyChooseUs() {
     { icon: "⚡", title: "Instant Delivery",      desc: "Diamonds credited within minutes of payment. No waiting around." },
     { icon: "🔒", title: "100% Secure",           desc: "All transactions are protected. We never store your payment details." },
     { icon: "💰", title: "Best Prices",           desc: "Guaranteed lowest prices on all diamond packs — beat any deal." },
-    { icon: "🏆", title: "250+ Happy Gamers",     desc: "Join our growing community of satisfied MLBB players." },
+    { icon: "🏆", title: "A professional gamer's choice", desc: "Join our growing community of satisfied MLBB players." },
     { icon: "💬", title: "24/7 Support",          desc: "Reach us on WhatsApp anytime. Real humans, not bots." },
     { icon: "♦",  title: "All Pack Types",        desc: "Small packs, normal, double diamond, passes, and rank boosting." },
   ];

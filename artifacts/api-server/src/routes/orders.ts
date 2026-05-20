@@ -267,4 +267,90 @@ router.post("/cart", requireAuth, async (req: any, res): Promise<void> => {
   }
 });
 
+router.post("/wallet-pay", requireAuth, async (req: any, res): Promise<void> => {
+  console.log("[notify] ORDER_API_HIT — POST /api/orders/wallet-pay");
+  const clerkUserId = req.clerkUserId as string;
+  const { packageId, mlbbUserId, mlbbServerId, mlbbIgn, isForFriend } = req.body;
+
+  if (!packageId) {
+    res.status(400).json({ ok: false, error: "packageId is required." });
+    return;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const { rows: pkgs } = await client.query(
+      "SELECT id, diamonds, price FROM packages WHERE id = $1",
+      [packageId]
+    );
+    if (!pkgs[0]) {
+      await client.query("ROLLBACK");
+      res.status(404).json({ ok: false, error: "Package not found." });
+      return;
+    }
+    const pkg = pkgs[0];
+    const price = parseFloat(pkg.price);
+
+    const { rows: wallets } = await client.query(
+      "SELECT balance FROM wallets WHERE clerk_user_id = $1 FOR UPDATE",
+      [clerkUserId]
+    );
+    const balance = parseFloat(wallets[0]?.balance ?? "0");
+
+    if (balance < price) {
+      await client.query("ROLLBACK");
+      res.status(400).json({ ok: false, error: `Insufficient wallet balance. You have ₹${balance.toFixed(0)}, need ₹${price.toFixed(0)}.` });
+      return;
+    }
+
+    await client.query(
+      "UPDATE wallets SET balance = balance - $1 WHERE clerk_user_id = $2",
+      [price, clerkUserId]
+    );
+
+    await client.query(
+      `INSERT INTO wallet_transactions (clerk_user_id, amount, type, status, description)
+       VALUES ($1, $2, 'debit', 'approved', 'Diamond purchase via wallet')`,
+      [clerkUserId, price.toFixed(2)]
+    );
+
+    let mlbbId = mlbbUserId || null;
+    let serverId = mlbbServerId || null;
+    let ign = mlbbIgn || null;
+    if (!mlbbId) {
+      const { rows: accounts } = await client.query(
+        "SELECT mlbb_user_id, mlbb_server_id, mlbb_ign FROM mlbb_accounts WHERE clerk_user_id = $1",
+        [clerkUserId]
+      );
+      if (accounts[0]) { mlbbId = accounts[0].mlbb_user_id; serverId = accounts[0].mlbb_server_id; ign = accounts[0].mlbb_ign; }
+    }
+
+    const displayId = await getNextDisplayId();
+    const staffId = await assignAvailableStaff();
+
+    const { rows: inserted } = await client.query(
+      `INSERT INTO orders (clerk_user_id, package_id, diamonds, price, mlbb_id, mlbb_server_id, mlbb_ign, is_for_friend, status, note, display_id, assigned_staff_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', 'Paid via wallet', $9, $10) RETURNING id`,
+      [clerkUserId, pkg.id, pkg.diamonds, pkg.price, mlbbId, serverId, ign, isForFriend || false, displayId, staffId]
+    );
+
+    await client.query("COMMIT");
+
+    const orderId = inserted[0].id;
+    console.log(`[notify] WALLET_ORDER_SAVED — id: ${orderId}, displayId: ${displayId}`);
+    res.json({ ok: true, id: orderId, displayId });
+
+    fireNotifications(displayId, orderId, staffId, { diamonds: pkg.diamonds, price: pkg.price }, mlbbId, "Wallet payment", { serverId, ign, isForFriend: isForFriend || false });
+
+  } catch (err: any) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("[orders] wallet-pay failed:", err?.message, err?.stack);
+    res.status(500).json({ ok: false, error: "DB error. Please try again." });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;

@@ -100,11 +100,11 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [newPromo, setNewPromo] = useState({ title: "", description: "", badge: "", bgImage: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b4e)", packIds: [] as number[], active: true });
   const promoImgRef = useRef<HTMLInputElement>(null);
 
-  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; staff_pin: string | null; notify_orders: boolean; }
+  interface RechargeStaff { id: number; name: string; email: string | null; qr_image: string | null; whatsapp: string | null; upi_id: string | null; status: string; shift_hours: string | null; sort_order: number; created_at: string; staff_pin: string | null; notify_orders: boolean; }
   const [staffList, setStaffList] = useState<RechargeStaff[]>([]);
   const [staffSaving, setStaffSaving] = useState(false);
   const [showAddStaff, setShowAddStaff] = useState(false);
-  const [newStaff, setNewStaff] = useState({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline", pin: "" });
+  const [newStaff, setNewStaff] = useState({ name: "", email: "", whatsapp: "", upi_id: "", shift_hours: "", status: "offline", pin: "" });
   const [staffQrPreview, setStaffQrPreview] = useState<string | null>(null);
   const staffQrRef = useRef<HTMLInputElement>(null);
   const [staffQrFile, setStaffQrFile] = useState<File | null>(null);
@@ -547,13 +547,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       fd.append("name", newStaff.name);
       if (newStaff.email) fd.append("email", newStaff.email);
       if (newStaff.whatsapp) fd.append("whatsapp", newStaff.whatsapp);
+      if (newStaff.upi_id.trim()) fd.append("upi_id", newStaff.upi_id.trim());
       if (newStaff.shift_hours) fd.append("shift_hours", newStaff.shift_hours);
       fd.append("status", newStaff.status);
       if (staffQrFile) fd.append("qr_image", staffQrFile);
       if (newStaff.pin.trim()) fd.append("staff_pin", newStaff.pin.trim());
       await fetch(`${API}/admin/staff`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd });
       await fetchStaff();
-      setNewStaff({ name: "", email: "", whatsapp: "", shift_hours: "", status: "offline", pin: "" });
+      setNewStaff({ name: "", email: "", whatsapp: "", upi_id: "", shift_hours: "", status: "offline", pin: "" });
       setStaffQrFile(null); setStaffQrPreview(null);
       setShowAddStaff(false);
     } catch {} finally { setStaffSaving(false); }
@@ -1951,6 +1952,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       <input placeholder="Name *" value={newStaff.name} onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="Email (for order notifications)" value={newStaff.email} onChange={e => setNewStaff(s => ({ ...s, email: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="WhatsApp number" value={newStaff.whatsapp} onChange={e => setNewStaff(s => ({ ...s, whatsapp: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                      <input placeholder="UPI ID (e.g. 9876543210@upi)" value={newStaff.upi_id} onChange={e => setNewStaff(s => ({ ...s, upi_id: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none font-mono" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="Shift hours (e.g. 9AM–6PM)" value={newStaff.shift_hours} onChange={e => setNewStaff(s => ({ ...s, shift_hours: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
                       <input placeholder="Staff PIN (for staff portal login)" value={newStaff.pin} onChange={e => setNewStaff(s => ({ ...s, pin: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none font-mono" style={{ background: "#111", border: "1px solid rgba(245,158,11,0.25)" }} />
                       <select value={newStaff.status} onChange={e => setNewStaff(s => ({ ...s, status: e.target.value }))} className="px-3 py-2 rounded-lg text-white text-sm outline-none" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>

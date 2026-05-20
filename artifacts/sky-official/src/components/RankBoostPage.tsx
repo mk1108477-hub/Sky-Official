@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
-const WA_NUMBER = "919362003788";
+const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
+const WA_NUMBER_FALLBACK = "919362003788";
 
 const RANK_ORDER = ["warrior","elite","master","epic","legend","mythic","mythic_honor","mythic_glory","mythic_immortal"] as const;
 type RankKey = typeof RANK_ORDER[number];
 
 const RANK_BASE: Record<RankKey, number> = {
-  warrior:0, elite:26, master:52, epic:78, legend:104,
-  mythic:130, mythic_honor:155, mythic_glory:180, mythic_immortal:230,
+  warrior: 0, elite: 10, master: 27, epic: 44, legend: 70,
+  mythic: 96, mythic_honor: 121, mythic_glory: 146, mythic_immortal: 196,
 };
 const RANK_LABELS: Record<RankKey, string> = {
   warrior:"Warrior", elite:"Elite", master:"Master", epic:"Epic", legend:"Legend",
@@ -16,35 +17,51 @@ const RANK_LABELS: Record<RankKey, string> = {
 
 interface SubOption { value: string; label: string; }
 
-function starsIntoRank(level: number, stars: number) { return (5 - level) * 5 + stars; }
 function getTotalStars(rank: string, sub: string) { return (RANK_BASE[rank as RankKey] ?? 0) + parseInt(sub || "0"); }
 
 function buildSubOptions(rank: string): SubOption[] {
   if (!rank) return [];
   if (["mythic","mythic_honor","mythic_glory","mythic_immortal"].includes(rank)) {
-    const max = rank === "mythic_immortal" ? 100 : 24;
+    const max = rank === "mythic_immortal" ? 100 : rank === "mythic_glory" ? 49 : 24;
     const label = RANK_LABELS[rank as RankKey];
     return Array.from({ length: max + 1 }, (_, s) => ({ value: String(s), label: `${label} — ${s} ★` }));
   }
+  const divCount = rank === "warrior" ? 3 : (rank === "elite" || rank === "master") ? 4 : 5;
+  const starCount = divCount;
   const rName = RANK_LABELS[rank as RankKey] ?? rank;
   const opts: SubOption[] = [];
-  for (let lvl = 5; lvl >= 1; lvl--)
-    for (let s = 0; s <= 4; s++)
-      opts.push({ value: String(starsIntoRank(lvl, s)), label: `${rName} ${lvl} — ${"★".repeat(s)}${"☆".repeat(5-s)} (${s}/5)` });
-  opts.push({ value: "25", label: `${rName} 1 — ★★★★★ (promotion ready)` });
+  for (let lvl = divCount; lvl >= 1; lvl--)
+    for (let s = 0; s < starCount; s++)
+      opts.push({ value: String((divCount - lvl) * starCount + s), label: `${rName} ${lvl} — ${"★".repeat(s)}${"☆".repeat(starCount - s)} (${s}/${starCount})` });
+  opts.push({ value: String(divCount * starCount), label: `${rName} 1 — ${"★".repeat(starCount)} (promotion ready)` });
   return opts;
 }
 
-function calcPrice(curRank: string, curSub: string, tarRank: string, tarSub: string, service: "solo"|"duo") {
+function calcTieredBase(curT: number, tarT: number): number {
+  const ZONE2 = 70, ZONE3 = 121, ZONE4 = 146;
+  let price = 0;
+  const z1 = Math.min(tarT, ZONE2) - Math.min(curT, ZONE2);
+  if (z1 > 0) price += z1 * 5;
+  const z2 = Math.min(tarT, ZONE3) - Math.min(Math.max(curT, ZONE2), ZONE3);
+  if (z2 > 0) price += z2 * 10;
+  const z3 = Math.min(tarT, ZONE4) - Math.min(Math.max(curT, ZONE3), ZONE4);
+  if (z3 > 0) price += z3 * 15;
+  const z4 = tarT - Math.max(curT, ZONE4);
+  if (z4 > 0) price += z4 * 20;
+  return price;
+}
+
+function calcPrice(curRank: string, curSub: string, tarRank: string, tarSub: string, service: "urgent" | "not-urgent") {
   if (!curRank || !tarRank) return null;
   const curT = getTotalStars(curRank, curSub), tarT = getTotalStars(tarRank, tarSub);
   if (tarT <= curT) return null;
   const stars = tarT - curT;
-  const price = service === "duo" ? Math.round(stars * 10 * 1.2) : stars * 10;
-  return { stars, price, note: service === "duo" ? `${stars} stars × ₹10 + 20% duo premium` : `${stars} stars × ₹10` };
+  const base = calcTieredBase(curT, tarT);
+  const price = service === "urgent" ? Math.round(base * 1.2) : base;
+  const note = service === "urgent" ? `${stars} stars (tiered rate) + 20% urgent` : `${stars} stars (tiered rate)`;
+  return { stars, price, note };
 }
 
-// ── shared styles (solid dark — no transparency bleed) ───────────────────────
 const CARD: React.CSSProperties = {
   background: "#111316",
   border: "1px solid rgba(245,158,11,0.18)",
@@ -57,7 +74,6 @@ const LBL: React.CSSProperties = {
   textTransform: "uppercase", color: "rgba(255,255,255,0.4)",
   display: "block", marginBottom: 8,
 };
-// font-size:16px prevents iOS Safari auto-zoom on focus
 const INPUT: React.CSSProperties = {
   width: "100%", background: "#0d0d11",
   border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
@@ -85,7 +101,6 @@ const BTN_BASE: React.CSSProperties = {
   userSelect: "none",
 };
 
-// iOS: set state from select current value 150 ms after any touch (picker dismisses asynchronously)
 function useIosSelectPoll(ref: React.RefObject<HTMLSelectElement | null>, setter: (v: string) => void) {
   useEffect(() => {
     const el = ref.current;
@@ -124,7 +139,7 @@ function StepHead({ n, title, sub }: { n: number; title: string; sub: string }) 
 }
 
 export default function RankBoostPage({ onBack: _onBack }: { onBack?: () => void }) {
-  const [service, setService] = useState<"solo"|"duo">("solo");
+  const [service, setService] = useState<"urgent" | "not-urgent">("not-urgent");
   const [curRank, setCurRank] = useState("");
   const [curSub,  setCurSub]  = useState("0");
   const [tarRank, setTarRank] = useState("");
@@ -137,21 +152,27 @@ export default function RankBoostPage({ onBack: _onBack }: { onBack?: () => void
   const [agreed,     setAgreed]     = useState(false);
   const [submitted,  setSubmitted]  = useState(false);
   const [error,      setError]      = useState("");
+  const [staffWA,    setStaffWA]    = useState(WA_NUMBER_FALLBACK);
 
   const curSubRef  = useRef<HTMLSelectElement>(null);
   const tarSubRef  = useRef<HTMLSelectElement>(null);
   const curRankRef = useRef<HTMLSelectElement>(null);
   const tarRankRef = useRef<HTMLSelectElement>(null);
 
+  useEffect(() => {
+    fetch(`${API}/settings/qr`)
+      .then(r => r.json())
+      .then(d => { if (d.whatsapp) setStaffWA(d.whatsapp); })
+      .catch(() => {});
+  }, []);
+
   const curSubOpts = buildSubOptions(curRank);
   const tarSubOpts = buildSubOptions(tarRank);
   const priceResult = calcPrice(curRank, curSub, tarRank, tarSub, service);
 
-  // Reset sub when rank changes
   useEffect(() => { setCurSub(curSubOpts[0]?.value ?? "0"); }, [curRank]);
   useEffect(() => { setTarSub(tarSubOpts[0]?.value ?? "0"); }, [tarRank]);
 
-  // iOS Safari: poll select values after touch (native picker fires change asynchronously)
   useIosSelectPoll(curRankRef, v => { if (v) setCurRank(v); });
   useIosSelectPoll(tarRankRef, v => { if (v) setTarRank(v); });
   useIosSelectPoll(curSubRef,  v => { if (v) setCurSub(v);  });
@@ -166,7 +187,7 @@ export default function RankBoostPage({ onBack: _onBack }: { onBack?: () => void
 ━━━━━━━━━━━━━━
 👤 *Name/IGN:* ${playerName}
 📱 *Contact:* ${contact}
-⚔️ *Service:* ${service === "duo" ? "Duo Boost" : "Solo Boost"}
+⚡ *Urgency:* ${service === "urgent" ? "Urgent (ASAP) +20%" : "Not Urgent"}
 📊 *Current:* ${curLabel}
 🎯 *Target:* ${tarLabel}
 ⭐ *Stars to boost:* ${p?.stars ?? "?"}
@@ -187,7 +208,7 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
     if (!payment)           { setError("Please select a payment method."); return; }
     if (!agreed)            { setError("Please agree to the terms before submitting."); return; }
     setSubmitted(true);
-    window.location.href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(buildWaMsg())}`;
+    window.location.href = `https://wa.me/${staffWA}?text=${encodeURIComponent(buildWaMsg())}`;
   };
 
   return (
@@ -202,11 +223,11 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
         select option { background:#111316; color:#fff; }
       `}</style>
 
-      {/* ── Step 1: Service ─────────────────────────────────────────── */}
+      {/* ── Step 1: Urgency ─────────────────────────────────────────── */}
       <div className="rb-card" style={CARD}>
-        <StepHead n={1} title="Choose Service Type" sub="Solo: we play your account · Duo: we queue together" />
+        <StepHead n={1} title="Choose Urgency" sub="Urgent: completed ASAP (+20%) · Not Urgent: standard delivery" />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {(["solo","duo"] as const).map(type => (
+          {(["not-urgent","urgent"] as const).map(type => (
             <button
               key={type}
               onClick={() => setService(type)}
@@ -220,13 +241,13 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
               }}
             >
               <span style={{ fontSize: 22, display: "block", marginBottom: 8 }}>
-                {type === "solo" ? "🗡️" : "🤝"}
+                {type === "urgent" ? "⚡" : "🕐"}
               </span>
               <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: service === type ? "#f59e0b" : "#fff" }}>
-                {type === "solo" ? "Solo Boost" : "Duo Boost"}
+                {type === "urgent" ? "Urgent (+20%)" : "Not Urgent"}
               </span>
               <span style={{ display: "block", fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 3 }}>
-                {type === "solo" ? "We play on your account" : "Play together with us (+20%)"}
+                {type === "urgent" ? "Completed as soon as possible" : "Standard delivery time"}
               </span>
             </button>
           ))}
@@ -237,7 +258,6 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
       <div className="rb-card" style={CARD}>
         <StepHead n={2} title="Select Your Rank" sub="Where are you now, and where do you want to reach?" />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          {/* Current rank */}
           <div>
             <label style={LBL}>Current Rank</label>
             <select ref={curRankRef} value={curRank}
@@ -247,7 +267,6 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
               {RANK_ORDER.map(r => <option key={r} value={r}>{RANK_LABELS[r]}</option>)}
             </select>
           </div>
-          {/* Current sub */}
           <div>
             <label style={LBL}>Current Level / Stars</label>
             <select ref={curSubRef} value={curSub}
@@ -260,7 +279,6 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
                 : <option value="0">— select rank first —</option>}
             </select>
           </div>
-          {/* Target rank */}
           <div>
             <label style={LBL}>Target Rank</label>
             <select ref={tarRankRef} value={tarRank}
@@ -274,7 +292,6 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
               ))}
             </select>
           </div>
-          {/* Target sub */}
           <div>
             <label style={LBL}>Target Level / Stars</label>
             <select ref={tarSubRef} value={tarSub}
@@ -327,15 +344,13 @@ ${notes     ? `📝 *Notes:* ${notes}` : ""}
               style={INPUT} onFocus={focusOn as any} onBlur={focusOff as any} />
           </div>
         </div>
-        {service === "solo" && (
-          <div style={{ marginBottom: 12 }}>
-            <label style={LBL}>Account ID (Solo Boost only)</label>
-            <input type="text" value={accountId} onChange={e => setAccountId(e.target.value)}
-              placeholder="Your MLBB User ID — no password needed yet"
-              inputMode="numeric" autoComplete="off"
-              style={INPUT} onFocus={focusOn as any} onBlur={focusOff as any} />
-          </div>
-        )}
+        <div style={{ marginBottom: 12 }}>
+          <label style={LBL}>Account ID</label>
+          <input type="text" value={accountId} onChange={e => setAccountId(e.target.value)}
+            placeholder="Your MLBB User ID — no password needed yet"
+            inputMode="numeric" autoComplete="off"
+            style={INPUT} onFocus={focusOn as any} onBlur={focusOff as any} />
+        </div>
         <div>
           <label style={LBL}>Notes (optional)</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}

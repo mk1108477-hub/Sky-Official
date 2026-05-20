@@ -481,15 +481,15 @@ router.get("/staff", requireAdmin, async (_req, res) => {
 });
 
 router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, res: any) => {
-  const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders } = req.body;
+  const { name, email, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders, upi_id } = req.body;
   if (!name) { res.status(400).json({ error: "name is required" }); return; }
   const qrImage = req.file ? fileToDataUrl(req.file) : (req.body.qr_image || null);
   const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(
-      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, staff_pin || null, notifyOrders]
+      `INSERT INTO recharge_staff (name, email, qr_image, whatsapp, status, shift_hours, sort_order, staff_pin, notify_orders, upi_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, staff_pin || null, notifyOrders, upi_id || null]
     );
     res.json(rows[0]);
   } catch { res.status(500).json({ error: "DB error" }); }
@@ -497,14 +497,14 @@ router.post("/staff", requireAdmin, upload.single("qr_image"), async (req: any, 
 
 router.put("/staff/:id", requireAdmin, upload.single("qr_image"), async (req: any, res: any): Promise<void> => {
   const { id } = req.params;
-  const { name, email, whatsapp, status, shift_hours, sort_order, qr_image, notify_orders } = req.body;
+  const { name, email, whatsapp, status, shift_hours, sort_order, qr_image, notify_orders, upi_id } = req.body;
   const qrImage = req.file ? fileToDataUrl(req.file) : (qr_image || null);
   const notifyOrders = notify_orders === "false" || notify_orders === false ? false : true;
   try {
     const { rows } = await pool.query(
-      `UPDATE recharge_staff SET name=$1, email=$2, qr_image=COALESCE($3, qr_image), whatsapp=$4, status=$5, shift_hours=$6, sort_order=$7, notify_orders=$8
-       WHERE id=$9 RETURNING *`,
-      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, notifyOrders, id]
+      `UPDATE recharge_staff SET name=$1, email=$2, qr_image=COALESCE($3, qr_image), whatsapp=$4, status=$5, shift_hours=$6, sort_order=$7, notify_orders=$8, upi_id=$9
+       WHERE id=$10 RETURNING *`,
+      [name, email || null, qrImage, whatsapp || null, status || "offline", shift_hours || null, sort_order || 0, notifyOrders, upi_id || null, id]
     );
     if (!rows[0]) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);

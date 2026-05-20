@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
@@ -45,6 +45,14 @@ export default function ProfilePage() {
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupMsg, setTopupMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"name"|"password"|"photo">("name");
+  const [newName, setNewName] = useState("");
+  const [curPassword, setCurPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [settingsMsg, setSettingsMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -89,8 +97,145 @@ export default function ProfilePage() {
         <button onClick={() => setLocation("/")} style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>My Profile</span>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, flex: 1 }}>My Profile</span>
+        <button
+          onClick={() => { setShowSettings(true); setNewName(displayName); setSettingsMsg(null); setSettingsTab("name"); }}
+          style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+          title="Settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.82)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          onClick={e => { if (e.target === e.currentTarget) setShowSettings(false); }}>
+          <div style={{ width: "100%", maxWidth: 480, background: "#111316", borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", boxShadow: "0 -20px 60px rgba(0,0,0,0.6)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>Account Settings</span>
+              <button onClick={() => setShowSettings(false)} style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "none", color: "rgba(255,255,255,0.5)", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+              {(["name","password","photo"] as const).map(tab => (
+                <button key={tab} onClick={() => { setSettingsTab(tab); setSettingsMsg(null); }}
+                  style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: settingsTab === tab ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.05)",
+                    color: settingsTab === tab ? "#f59e0b" : "rgba(255,255,255,0.4)",
+                    outline: settingsTab === tab ? "1px solid rgba(245,158,11,0.4)" : "none",
+                  }}>
+                  {tab === "name" ? "Display Name" : tab === "password" ? "Password" : "Photo"}
+                </button>
+              ))}
+            </div>
+
+            {settingsMsg && (
+              <div style={{ marginBottom: 14, background: settingsMsg.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${settingsMsg.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`, borderRadius: 10, padding: "10px 14px", color: settingsMsg.ok ? "#22c55e" : "#ef4444", fontSize: 13 }}>
+                {settingsMsg.text}
+              </div>
+            )}
+
+            {settingsTab === "name" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 4 }}>Change your display name shown across the app.</div>
+                <input
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  placeholder="New display name"
+                  style={{ background: "#0d0d11", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#fff", fontSize: 15, padding: "12px 14px", outline: "none", fontFamily: "inherit" }}
+                />
+                <button
+                  disabled={settingsSaving}
+                  onClick={async () => {
+                    if (!newName.trim()) return;
+                    setSettingsSaving(true); setSettingsMsg(null);
+                    try {
+                      await user.update({ firstName: newName.trim() });
+                      setSettingsMsg({ ok: true, text: "Display name updated!" });
+                    } catch (e: any) {
+                      setSettingsMsg({ ok: false, text: e?.errors?.[0]?.message || "Failed to update name." });
+                    } finally { setSettingsSaving(false); }
+                  }}
+                  style={{ padding: "13px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+                >
+                  {settingsSaving ? "Saving…" : "Save Name"}
+                </button>
+              </div>
+            )}
+
+            {settingsTab === "password" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 4 }}>Update your password. Only available if you signed up with email.</div>
+                <input
+                  type="password"
+                  value={curPassword}
+                  onChange={e => setCurPassword(e.target.value)}
+                  placeholder="Current password"
+                  autoComplete="current-password"
+                  style={{ background: "#0d0d11", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#fff", fontSize: 15, padding: "12px 14px", outline: "none", fontFamily: "inherit" }}
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="New password (min. 8 characters)"
+                  autoComplete="new-password"
+                  style={{ background: "#0d0d11", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#fff", fontSize: 15, padding: "12px 14px", outline: "none", fontFamily: "inherit" }}
+                />
+                <button
+                  disabled={settingsSaving}
+                  onClick={async () => {
+                    if (!curPassword || !newPassword) { setSettingsMsg({ ok: false, text: "Both fields are required." }); return; }
+                    if (newPassword.length < 8) { setSettingsMsg({ ok: false, text: "New password must be at least 8 characters." }); return; }
+                    setSettingsSaving(true); setSettingsMsg(null);
+                    try {
+                      await user.updatePassword({ currentPassword: curPassword, newPassword, signOutOfOtherSessions: true });
+                      setSettingsMsg({ ok: true, text: "Password updated successfully!" });
+                      setCurPassword(""); setNewPassword("");
+                    } catch (e: any) {
+                      setSettingsMsg({ ok: false, text: e?.errors?.[0]?.message || "Failed to update password." });
+                    } finally { setSettingsSaving(false); }
+                  }}
+                  style={{ padding: "13px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+                >
+                  {settingsSaving ? "Saving…" : "Update Password"}
+                </button>
+              </div>
+            )}
+
+            {settingsTab === "photo" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
+                <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, marginBottom: 4, alignSelf: "flex-start" }}>Upload a new profile photo.</div>
+                <div style={{ width: 80, height: 80, borderRadius: "50%", border: "3px solid #f59e0b", overflow: "hidden" }}>
+                  <img src={user.imageUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setSettingsSaving(true); setSettingsMsg(null);
+                  try {
+                    await user.setProfileImage({ file });
+                    setSettingsMsg({ ok: true, text: "Profile photo updated!" });
+                  } catch (err: any) {
+                    setSettingsMsg({ ok: false, text: err?.errors?.[0]?.message || "Failed to update photo." });
+                  } finally { setSettingsSaving(false); if (photoInputRef.current) photoInputRef.current.value = ""; }
+                }} />
+                <button
+                  disabled={settingsSaving}
+                  onClick={() => photoInputRef.current?.click()}
+                  style={{ width: "100%", padding: "13px 0", borderRadius: 12, background: "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+                >
+                  {settingsSaving ? "Uploading…" : "Choose Photo"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "72px 16px 0" }}>
 

@@ -638,7 +638,7 @@ function PackCard({ pack, isDouble, index, onSelect, isSelected, isExiting, pack
 
 const WHATSAPP_NUMBER = "919362003788";
 
-function buildWhatsAppUrl(pack: Package, mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null, userName: string | null): string {
+function buildWhatsAppUrl(pack: Package, mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null, userName: string | null, staffWA?: string): string {
   const lines = [
     "Hi Sky Official! 👋",
     "",
@@ -653,18 +653,18 @@ function buildWhatsAppUrl(pack: Package, mlbbAccount: { mlbb_user_id: string; ml
     "Please help me with the gifting process. Thank you! 🙏",
   ];
   const message = lines.filter(l => l !== null).join("\n");
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${staffWA || WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
 // ── Starlight card ──────────────────────────────────────────────────────────
-function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount, userName }: { pack: Package; index: number; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg; mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null; userName: string | null }) {
+function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount, userName, staffWA }: { pack: Package; index: number; isExiting?: boolean; starlightImagesCfg?: StarlightImagesCfg; mlbbAccount: { mlbb_user_id: string; mlbb_server_id: string; mlbb_ign: string } | null; userName: string | null; staffWA?: string }) {
   const isUnavailable = pack.status === "out_of_stock" || pack.status === "coming_soon";
   const imgSrc = getStarlightImage(pack.name, starlightImagesCfg);
 
   function handleWhatsApp(e: React.MouseEvent) {
     e.stopPropagation();
     if (isUnavailable) return;
-    window.open(buildWhatsAppUrl(pack, mlbbAccount, userName), "_blank", "noopener,noreferrer");
+    window.open(buildWhatsAppUrl(pack, mlbbAccount, userName, staffWA), "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -709,7 +709,7 @@ function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount
                 style={{ flex: 1, background: "linear-gradient(135deg,#25d366,#128c7e)", color: "#fff", fontSize: 11, fontWeight: 800, padding: "7px 0", borderRadius: 8, cursor: "pointer", border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.523 5.847L0 24l6.335-1.498A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.005-1.371l-.36-.214-3.727.881.936-3.618-.235-.372A9.818 9.818 0 1112 21.818z"/></svg>
-                Order via WhatsApp
+                Order Now
               </button>
             )}
           </div>
@@ -826,6 +826,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [payMethod, setPayMethod] = useState<"upi" | "wallet">("upi");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [buyLoading, setBuyLoading] = useState(false);
+  const [walletPayResult, setWalletPayResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [staffWA, setStaffWA] = useState("");
   const purchaseRef = useRef<HTMLDivElement>(null);
 
   const userName = user ? (user.fullName || user.username || user.primaryEmailAddress?.emailAddress || null) : null;
@@ -861,6 +863,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   useEffect(() => {
     setSelectedPack(null);
     setQty(1);
+    setWalletPayResult(null);
   }, [activeCategory?.id]);
 
   useEffect(() => {
@@ -899,6 +902,10 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
       .then(r => r.json())
       .then(data => { if (data && typeof data === "object" && !Array.isArray(data)) setStarlightImagesCfg(data); })
       .catch(() => {});
+    fetch(`${API}/settings/qr`)
+      .then(r => r.json())
+      .then(d => { if (d.whatsapp) setStaffWA(d.whatsapp); })
+      .catch(() => {});
   }, []);
 
   const categories = CATEGORIES.map(cat => {
@@ -933,6 +940,45 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
 
   const handleBuyNow = async () => {
     if (!selectedPack) return;
+
+    if (payMethod === "wallet") {
+      const totalPrice = Number(selectedPack.price) * qty;
+      if (walletBalance === null || walletBalance < totalPrice) {
+        setWalletPayResult({ ok: false, msg: `Insufficient wallet balance. You have ₹${(walletBalance ?? 0).toFixed(0)}, need ₹${totalPrice.toFixed(0)}.` });
+        return;
+      }
+      setBuyLoading(true);
+      try {
+        const token = await getToken();
+        const displayIds: string[] = [];
+        let failed = false;
+        for (let i = 0; i < qty; i++) {
+          const r = await fetch(`${API}/orders/wallet-pay`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ packageId: selectedPack.id }),
+          });
+          const d = await r.json();
+          if (!d.ok) {
+            setWalletPayResult({ ok: false, msg: d.error || "Payment failed. Please try again." });
+            failed = true;
+            break;
+          }
+          displayIds.push(d.displayId);
+        }
+        if (!failed) {
+          setWalletPayResult({ ok: true, msg: `Order${qty > 1 ? "s" : ""} placed! (${displayIds.join(", ")}) Diamonds will be credited shortly.` });
+          const bal = await fetch(`${API}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({}));
+          if (bal.balance !== undefined) setWalletBalance(Number(bal.balance));
+        }
+      } catch {
+        setWalletPayResult({ ok: false, msg: "Network error. Please try again." });
+      } finally {
+        setBuyLoading(false);
+      }
+      return;
+    }
+
     setBuyLoading(true);
     await new Promise(res => setTimeout(res, 650));
     setBuyLoading(false);
@@ -1062,7 +1108,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
                   {[
-                    { step: "1", text: "Tap 'Order via WhatsApp' on any card" },
+                    { step: "1", text: "Tap 'Order Now' on any card" },
                     { step: "2", text: "Send us your MLBB ID & IGN to add as friend" },
                     { step: "3", text: "After 7 days of friendship, we send your gift!" },
                   ].map(({ step, text }) => (
@@ -1098,7 +1144,7 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
                   activeCategory?.id === "passes"
                     ? <PassCard key={pack.id} pack={pack} index={i} onSelect={p => { setSelectedPack(p); setQty(1); }} isSelected={selectedPack?.id === pack.id} isExiting={isExiting} passImagesCfg={passImagesCfg} />
                     : activeCategory?.id === "starlight"
-                    ? <StarlightCard key={pack.id} pack={pack} index={i} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} mlbbAccount={mlbbAccount} userName={userName} />
+                    ? <StarlightCard key={pack.id} pack={pack} index={i} isExiting={isExiting} starlightImagesCfg={starlightImagesCfg} mlbbAccount={mlbbAccount} userName={userName} staffWA={staffWA} />
                     : <PackCard key={pack.id} pack={pack} index={i} isDouble={activeCategory?.id === "double"} onSelect={p => { setSelectedPack(p); setQty(1); }} isSelected={selectedPack?.id === pack.id} isExiting={isExiting} packImagesCfg={packImagesCfg} />
                 )}
               </div>
@@ -1156,6 +1202,18 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
               </div>
             </div>
 
+            {/* Wallet pay result */}
+            {walletPayResult && (
+              <div style={{
+                marginBottom: 10,
+                background: walletPayResult.ok ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+                border: `1px solid ${walletPayResult.ok ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                borderRadius: 10, padding: "10px 14px",
+                color: walletPayResult.ok ? "#22c55e" : "#ef4444", fontSize: 13,
+              }}>
+                {walletPayResult.msg}
+              </div>
+            )}
             {/* Buy Now */}
             <button onClick={handleBuyNow} disabled={buyLoading} style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: buyLoading ? "rgba(245,158,11,0.45)" : "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 15, border: "none", cursor: buyLoading ? "default" : "pointer", boxShadow: buyLoading ? "none" : "0 0 24px rgba(245,158,11,0.3)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}>
               {buyLoading

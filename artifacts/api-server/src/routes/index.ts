@@ -31,7 +31,7 @@ router.get("/settings/qr", async (_req, res) => {
     // Peek at the next staff in round-robin order (same logic as assignAvailableStaff,
     // but does NOT increment the counter — so the order submission later picks the same person)
     const { rows: staffList } = await pool.query(
-      `SELECT id, qr_image FROM recharge_staff WHERE status = 'available' ORDER BY sort_order ASC, id ASC`
+      `SELECT id, qr_image, whatsapp, upi_id FROM recharge_staff WHERE status = 'available' ORDER BY sort_order ASC, id ASC`
     );
 
     if (staffList.length > 0) {
@@ -47,14 +47,23 @@ router.get("/settings/qr", async (_req, res) => {
       const nextStaff = staffList[peekIdx];
 
       if (nextStaff?.qr_image) {
-        res.json({ qr: nextStaff.qr_image });
+        res.json({ qr: nextStaff.qr_image, upi_id: nextStaff.upi_id || null, whatsapp: nextStaff.whatsapp || null });
         return;
       }
     }
 
     // Fallback to admin/owner QR if no staff available or staff has no QR uploaded
     const { rows } = await pool.query("SELECT value FROM settings WHERE key='qr_code'");
-    res.json({ qr: rows[0]?.value || null });
+    res.json({ qr: rows[0]?.value || null, upi_id: null, whatsapp: null });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/settings/staff-contact", async (_req, res) => {
+  try {
+    const { rows: staffList } = await pool.query(
+      `SELECT whatsapp, upi_id FROM recharge_staff WHERE status = 'available' ORDER BY sort_order ASC, id ASC LIMIT 1`
+    );
+    res.json({ whatsapp: staffList[0]?.whatsapp || null, upi_id: staffList[0]?.upi_id || null });
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 

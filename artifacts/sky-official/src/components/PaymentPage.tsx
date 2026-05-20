@@ -5,7 +5,7 @@ import { getMLBBTarget } from "./MLBBTargetPage";
 import { useCart } from "../context/CartContext";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
-const UPI_ID = "8974666701@ptyes";
+const UPI_ID_FALLBACK = "8974666701@ptyes";
 const UPI_NAME = "Mantoshkumar Sarangthem";
 const QR_FALLBACK = "/upi-qr.jpg";
 const PAYMENT_TIMEOUT = 5 * 60; // 300 seconds
@@ -88,6 +88,7 @@ export default function PaymentPage() {
   const [error, setError] = useState("");
   const [upiOpened, setUpiOpened] = useState(false);
   const [qrSrc, setQrSrc] = useState<string>(QR_FALLBACK);
+  const [upiId, setUpiId] = useState(UPI_ID_FALLBACK);
   const [secondsLeft, setSecondsLeft] = useState(PAYMENT_TIMEOUT);
   const [expired, setExpired] = useState(false);
 
@@ -104,7 +105,7 @@ export default function PaymentPage() {
   useEffect(() => {
     fetch(`${API}/settings/qr`)
       .then(r => r.json())
-      .then(data => { if (data.qr) setQrSrc(data.qr); })
+      .then(data => { if (data.qr) setQrSrc(data.qr); if (data.upi_id) setUpiId(data.upi_id); })
       .catch(() => {});
   }, []);
 
@@ -133,7 +134,7 @@ export default function PaymentPage() {
   }
 
   const amount = isWalletTopup ? walletTopupAmt : Number(pkg?.price ?? 0);
-  const upiParams = `pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
+  const upiParams = `pa=${upiId}&pn=${encodeURIComponent(UPI_NAME)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(remark)}`;
   const upiLink     = `upi://pay?${upiParams}`;
   const phonePeLink = `phonepe://pay?${upiParams}`;
   const gpayLink    = `tez://upi/pay?${upiParams}`;
@@ -397,7 +398,7 @@ export default function PaymentPage() {
         <div style={{ background: "#111", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "4px 20px 4px", animation: "payIn 0.4s ease 0.06s both" }}>
           <InfoRow label="Order ID" value={refId} mono />
           <InfoRow label="Remark" value={remark} mono action={<CopyBtn text={remark} />} />
-          <InfoRow label="Payee UPI" value={UPI_ID} mono action={<CopyBtn text={UPI_ID} />} />
+          <InfoRow label="Payee UPI" value={upiId} mono action={<CopyBtn text={upiId} />} />
           {target && (
             <>
               <InfoRow label="MLBB IGN" value={target.ign} />
@@ -522,7 +523,7 @@ export default function PaymentPage() {
             <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-            Only pay to UPI ID <strong style={{ color: "rgba(255,255,255,0.65)" }}>{UPI_ID}</strong>. Always verify before paying.
+            Only pay to UPI ID <strong style={{ color: "rgba(255,255,255,0.65)" }}>{upiId}</strong>. Always verify before paying.
           </p>
         </div>
 

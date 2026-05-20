@@ -610,8 +610,8 @@ function PackCard({ pack, isDouble, index, onBuy, onAddToCart, isExiting, packIm
       )}
       <ImagePane src={getPackImage(pack.diamonds, packImagesCfg)} />
       <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", verticalAlign: "middle", flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", flexShrink: 0 }} />
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>{pack.diamonds.toLocaleString()}</span>
           <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 10 }}>Diamonds</span>
         </div>

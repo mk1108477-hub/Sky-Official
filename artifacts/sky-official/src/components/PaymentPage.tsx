@@ -5,7 +5,7 @@ import { getMLBBTarget } from "./MLBBTargetPage";
 import { useCart } from "../context/CartContext";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
-const UPI_ID_FALLBACK = "8974666701@ptyes";
+const UPI_ID_FALLBACK = "mk1108477-1@okhdfcbank";
 const UPI_NAME = "Mantoshkumar Sarangthem";
 const QR_FALLBACK = "/upi-qr.jpg";
 const PAYMENT_TIMEOUT = 5 * 60; // 300 seconds

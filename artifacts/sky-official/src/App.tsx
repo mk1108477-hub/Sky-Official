@@ -302,7 +302,7 @@ function Navbar() {
         {isSignedIn && walletBalance !== null && !hideWallet && (
           <button
             onClick={() => setLocation("/profile")}
-            style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 999, padding: "4px 10px 4px 6px", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+            style={{ display: "flex", alignItems: "center", gap: 4, height: 34, background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 999, padding: "0 10px 0 6px", cursor: "pointer", flexShrink: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           >
             <img src="/scoin.png" alt="S" style={{ width: 16, height: 16, objectFit: "contain" }} />
             <span style={{ color: "#f59e0b", fontSize: 11, fontWeight: 800 }}>₹{walletBalance.toFixed(0)}</span>
@@ -315,7 +315,7 @@ function Navbar() {
                 onClick={() => setShowProfileMenu(v => !v)}
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer", borderRadius: "50%", touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
               >
-                <div className="w-7 h-7 rounded-full overflow-hidden border flex-shrink-0" style={{ borderColor: "#f59e0b", boxShadow: showProfileMenu ? "0 0 0 2px rgba(245,158,11,0.45)" : "none", transition: "box-shadow 0.15s" }}>
+                <div className="rounded-full overflow-hidden border flex-shrink-0" style={{ width: 34, height: 34, borderColor: "#f59e0b", boxShadow: showProfileMenu ? "0 0 0 2px rgba(245,158,11,0.45)" : "none", transition: "box-shadow 0.15s" }}>
                   <img src={user.imageUrl} alt={user.firstName ?? "User"} className="w-full h-full object-cover" />
                 </div>
               </button>
@@ -567,6 +567,61 @@ function SharedVideoBg() {
   );
 }
 
+
+// ── Promo Banner Slider ─────────────────────────────────────────────────────
+interface PromoBannerItem { id: string; image: string; link?: string; active?: boolean; }
+
+function PromoBannerSlider() {
+  const [banners, setBanners] = useState<PromoBannerItem[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const touchStartX = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    fetch(`${API}/settings/promo_banners`)
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setBanners(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (banners.length < 2) return;
+    timerRef.current = setInterval(() => setActiveIdx(i => (i + 1) % banners.length), 3500);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+  const banner = banners[activeIdx];
+
+  function go(dir: 1 | -1) {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setActiveIdx(i => (i + dir + banners.length) % banners.length);
+    timerRef.current = setInterval(() => setActiveIdx(i => (i + 1) % banners.length), 3500);
+  }
+
+  return (
+    <div style={{ background: "#0a0a0a", padding: "0 0 2px" }}>
+      <div
+        style={{ position: "relative", width: "100%", aspectRatio: "21/9", overflow: "hidden", cursor: banner.link ? "pointer" : "default", boxShadow: "0 0 0 1px rgba(245,158,11,0.18), 0 4px 24px rgba(0,0,0,0.45)" }}
+        onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={e => { const dx = e.changedTouches[0].clientX - touchStartX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); }}
+        onClick={() => { if (banner.link) { if (banner.link.startsWith("/")) setLocation(banner.link); else window.open(banner.link, "_blank", "noopener,noreferrer"); } }}
+      >
+        {banners.map((b, i) => (
+          <img key={b.id} src={b.image} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: i === activeIdx ? 1 : 0, transition: "opacity 0.4s ease", pointerEvents: "none" }} />
+        ))}
+        {banners.length > 1 && (
+          <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5, zIndex: 5 }}>
+            {banners.map((_, i) => (
+              <div key={i} onClick={e => { e.stopPropagation(); if (timerRef.current) clearInterval(timerRef.current); setActiveIdx(i); timerRef.current = setInterval(() => setActiveIdx(j => (j + 1) % banners.length), 3500); }} style={{ width: i === activeIdx ? 20 : 6, height: 6, borderRadius: 999, background: i === activeIdx ? "#f59e0b" : "rgba(255,255,255,0.4)", transition: "all 0.3s ease", cursor: "pointer" }} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Hero ───────────────────────────────────────────────────────────────────
 
@@ -1136,6 +1191,7 @@ function MainSite() {
       {/* Main content always rendered so video starts immediately */}
       <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
         <AnimatedPage>
+          <PromoBannerSlider />
           <HeroSection animate={introDone} />
           <AnnouncementBar />
           <PromoCarousel />
@@ -1545,6 +1601,11 @@ function AppRoutes() {
 }
 
 export default function App() {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
   return (
     <WouterRouter base={basePath}>
       <CartProvider>

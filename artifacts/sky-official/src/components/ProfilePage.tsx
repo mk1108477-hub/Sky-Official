@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/react";
+import { useUser, useSignIn } from "@clerk/react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -38,6 +38,7 @@ function DiamondIcon({ size = 18, color = "#f59e0b" }: { size?: number; color?: 
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
+  const { signIn } = useSignIn();
   const [, setLocation] = useLocation();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [transactions, setTransactions] = useState<WalletTx[]>([]);
@@ -53,6 +54,10 @@ export default function ProfilePage() {
   const [settingsMsg, setSettingsMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [fpStep, setFpStep] = useState(0);
+  const [fpCode, setFpCode] = useState("");
+  const [fpNewPw, setFpNewPw] = useState("");
+  const [fpLoading, setFpLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -76,7 +81,7 @@ export default function ProfilePage() {
     </div>
   );
 
-  const displayName = user.username || user.firstName || user.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "Player";
+  const displayName = user.firstName || user.username || user.emailAddresses?.[0]?.emailAddress?.split("@")[0] || "Player";
 
 
   const statusColor: Record<string, string> = {
@@ -155,6 +160,7 @@ export default function ProfilePage() {
                     setSettingsSaving(true); setSettingsMsg(null);
                     try {
                       await user.update({ firstName: newName.trim() });
+                      await user.reload();
                       setSettingsMsg({ ok: true, text: "Display name updated!" });
                     } catch (e: any) {
                       setSettingsMsg({ ok: false, text: e?.errors?.[0]?.message || "Failed to update name." });
@@ -204,6 +210,52 @@ export default function ProfilePage() {
                 >
                   {settingsSaving ? "Saving…" : "Update Password"}
                 </button>
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginTop: 4 }}>
+                  {fpStep === 0 ? (
+                    <button
+                      disabled={fpLoading}
+                      onClick={async () => {
+                        const email = user.primaryEmailAddress?.emailAddress;
+                        if (!email || !signIn) return;
+                        setFpLoading(true);
+                        try {
+                          await signIn.create({ strategy: "reset_password_email_code", identifier: email });
+                          setFpStep(1); setSettingsMsg(null);
+                        } catch (e: any) {
+                          setSettingsMsg({ ok: false, text: e?.errors?.[0]?.message || "Could not send reset code." });
+                        } finally { setFpLoading(false); }
+                      }}
+                      style={{ background: "none", border: "none", color: "#38bdf8", fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: "4px 0", opacity: fpLoading ? 0.5 : 1, textDecoration: "underline" }}
+                    >
+                      {fpLoading ? "Sending code…" : "Forgot password? Send reset code"}
+                    </button>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 12, color: "#38bdf8", lineHeight: 1.55 }}>Reset code sent to <strong>{user.primaryEmailAddress?.emailAddress}</strong>. Check your email.</div>
+                      <input value={fpCode} onChange={e => setFpCode(e.target.value)} placeholder="Enter reset code" style={{ background: "#0d0d11", border: "1px solid rgba(56,189,248,0.35)", borderRadius: 10, color: "#fff", fontSize: 14, padding: "11px 14px", outline: "none", fontFamily: "inherit" }} />
+                      <input type="password" value={fpNewPw} onChange={e => setFpNewPw(e.target.value)} placeholder="New password (min. 8 chars)" style={{ background: "#0d0d11", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, color: "#fff", fontSize: 14, padding: "11px 14px", outline: "none", fontFamily: "inherit" }} />
+                      <button
+                        disabled={fpLoading || !fpCode || fpNewPw.length < 8}
+                        onClick={async () => {
+                          if (!signIn || !fpCode || fpNewPw.length < 8) { setSettingsMsg({ ok: false, text: "Enter the code and a password of at least 8 characters." }); return; }
+                          setFpLoading(true);
+                          try {
+                            await signIn.attemptFirstFactor({ strategy: "reset_password_email_code", code: fpCode });
+                            await (signIn as any).resetPassword({ password: fpNewPw });
+                            setSettingsMsg({ ok: true, text: "Password reset! You can now sign in with your new password." });
+                            setFpStep(0); setFpCode(""); setFpNewPw("");
+                          } catch (e: any) {
+                            setSettingsMsg({ ok: false, text: e?.errors?.[0]?.message || "Invalid code or error. Try again." });
+                          } finally { setFpLoading(false); }
+                        }}
+                        style={{ padding: "12px 0", borderRadius: 12, background: (!fpCode || fpNewPw.length < 8) ? "rgba(56,189,248,0.2)" : "linear-gradient(135deg,#38bdf8,#0ea5e9)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+                      >
+                        {fpLoading ? "Resetting…" : "Reset Password"}
+                      </button>
+                      <button onClick={() => { setFpStep(0); setFpCode(""); setFpNewPw(""); }} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: "2px 0" }}>Cancel</button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

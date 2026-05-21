@@ -321,6 +321,20 @@ router.put("/settings/offer_banners", requireAdmin, async (req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+router.get("/settings/promo_banners", requireAdmin, async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='promo_banners'");
+    res.json(JSON.parse(rows[0]?.value || "[]"));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/settings/promo_banners", requireAdmin, async (req, res) => {
+  try {
+    await pool.query(`INSERT INTO settings (key,value) VALUES ('promo_banners',$1) ON CONFLICT (key) DO UPDATE SET value=$1`, [JSON.stringify(req.body)]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 router.get("/settings/trustpilot", requireAdmin, async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT key, value FROM settings WHERE key IN ('trustpilot_url','trustpilot_enabled')");

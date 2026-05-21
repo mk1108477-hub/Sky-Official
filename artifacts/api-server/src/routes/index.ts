@@ -157,6 +157,15 @@ router.get("/orders/recent", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+// ── Promo banners (active only, public) ───────────────────────────────────────
+router.get("/settings/promo_banners", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key='promo_banners'");
+    const banners = JSON.parse(rows[0]?.value || "[]");
+    res.json(banners.filter((b: any) => b.active !== false));
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 // ── Promo events (active only) ────────────────────────────────────────────────
 router.get("/promo-events", async (_req, res) => {
   try {

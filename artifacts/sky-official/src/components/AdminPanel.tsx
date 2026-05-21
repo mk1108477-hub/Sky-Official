@@ -45,7 +45,7 @@ interface WalletRequest {
   created_at: string;
 }
 
-type Tab = "packages" | "orders" | "wallet" | "featured" | "events" | "staff" | "settings";
+type Tab = "packages" | "orders" | "wallet" | "featured" | "events" | "staff" | "settings" | "banners";
 type NotifState = "unknown" | "loading" | "subscribed" | "denied" | "unsupported";
 
 async function registerSW(): Promise<ServiceWorkerRegistration | null> {
@@ -91,6 +91,36 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [bannersSaving, setBannersSaving] = useState(false);
   const [showAddBanner, setShowAddBanner] = useState(false);
   const [newBanner, setNewBanner] = useState({ emoji: "", title: "", subtitle: "", bgGradient: "linear-gradient(135deg,#1a0a2e,#2d1b69)", ctaText: "", ctaLink: "" });
+
+  interface PromoBannerAdmin { id: string; image: string; link: string; active: boolean; }
+  const [promoBanners, setPromoBanners] = useState<PromoBannerAdmin[]>([]);
+  const [promoBannersSaving, setPromoBannersSaving] = useState(false);
+  const [newBannerLink, setNewBannerLink] = useState("");
+  const promoBannerImgRef = useRef<HTMLInputElement>(null);
+
+  const fetchPromoBanners = async () => {
+    try {
+      const res = await fetch(`${API}/admin/settings/promo_banners`, { headers });
+      if (res.ok) setPromoBanners(await res.json());
+    } catch {}
+  };
+  const savePromoBanners = async (updated: PromoBannerAdmin[]) => {
+    setPromoBannersSaving(true);
+    try {
+      await fetch(`${API}/admin/settings/promo_banners`, { method: "PUT", headers, body: JSON.stringify(updated) });
+      setPromoBanners(updated);
+    } finally { setPromoBannersSaving(false); }
+  };
+  const addPromoBanner = async () => {
+    if (!promoBannerImgRef.current?.files?.[0]) return;
+    if (promoBanners.length >= 5) return;
+    const file = promoBannerImgRef.current.files[0];
+    const image = await new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result as string); r.readAsDataURL(file); });
+    const banner: PromoBannerAdmin = { id: Date.now().toString(), image, link: newBannerLink.trim(), active: true };
+    await savePromoBanners([...promoBanners, banner]);
+    setNewBannerLink("");
+    if (promoBannerImgRef.current) promoBannerImgRef.current.value = "";
+  };
 
   interface PromoEventAdmin { id: string; title: string; description: string; badge: string; bgImage: string; bgGradient: string; packIds: number[]; active: boolean; sortOrder: number; }
   const [promoEvents, setPromoEvents] = useState<PromoEventAdmin[]>([]);
@@ -486,6 +516,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     if (authed && tab === "settings") { fetchQr(); fetchTrustpilot(); fetchBanners(); fetchPackImages(); fetchPassImages(); fetchStarlightImages(); fetchCategoryAvailability(); fetchLatestEvent(); }
     if (authed && tab === "events") fetchPromoEvents();
     if (authed && tab === "staff") fetchStaff();
+    if (authed && tab === "banners") fetchPromoBanners();
   }, [authed, tab]);
 
   const fetchPromoEvents = async () => {
@@ -862,7 +893,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              {(["packages", "orders", "wallet", "events", "staff", "featured", "settings"] as Tab[]).map((t) => {
+              {(["packages", "orders", "wallet", "events", "staff", "featured", "banners", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
@@ -1025,14 +1056,14 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       ) : (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs" style={{ background: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>♦</div>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(56,189,248,0.12)" }}><img src="/diamond.png" alt="♦" style={{ width: 22, height: 22, objectFit: "contain" }} /></div>
                             <div>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-white font-bold text-sm">{pkg.name || `${pkg.diamonds.toLocaleString()} Diamonds`}</span>
                                 {pkg.category && <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "rgba(255,255,255,0.08)", color: "#9ca3af" }}>{pkg.category}</span>}
                               </div>
-                              <div className="text-amber-400 text-xs font-semibold mt-0.5">
-                                ♦ {pkg.diamonds.toLocaleString()}{pkg.bonus_diamonds > 0 ? <span className="text-green-400"> +{pkg.bonus_diamonds.toLocaleString()} bonus</span> : null}
+                              <div className="text-amber-400 text-xs font-semibold mt-0.5 flex items-center gap-1">
+                                <img src="/diamond.png" alt="♦" style={{ width: 12, height: 12, objectFit: "contain", flexShrink: 0 }} /> {pkg.diamonds.toLocaleString()}{pkg.bonus_diamonds > 0 ? <span className="text-green-400"> +{pkg.bonus_diamonds.toLocaleString()} bonus</span> : null}
                                 <span className="text-gray-500 mx-1">·</span>₹{parseFloat(pkg.price).toFixed(0)}
                                 {pkg.label ? <span className="text-gray-400 font-normal"> · {pkg.label}</span> : null}
                               </div>
@@ -1060,7 +1091,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       {[
                         { label: "Total Orders", value: stats.total_orders, icon: "📦" },
                         { label: "Revenue", value: `₹${parseFloat(stats.total_revenue).toFixed(0)}`, icon: "💰" },
-                        { label: "Diamonds Sold", value: parseInt(stats.total_diamonds).toLocaleString(), icon: "♦" },
+                        { label: "Diamonds Sold", value: parseInt(stats.total_diamonds).toLocaleString(), icon: <img src="/diamond.png" alt="♦" style={{ width: 22, height: 22, objectFit: "contain", display: "inline-block" }} /> },
                       ].map((s) => (
                         <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
                           <div className="text-xl mb-1">{s.icon}</div>
@@ -1105,7 +1136,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                     <div key={order.id} className="rounded-xl p-4 flex items-center justify-between gap-3" style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.07)" }}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-white font-bold text-sm">{order.diamonds.toLocaleString()} ♦</span>
+                          <span className="text-white font-bold text-sm flex items-center gap-1">{order.diamonds.toLocaleString()} <img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain", flexShrink: 0 }} /></span>
                           <span className="text-amber-400 text-xs font-semibold">₹{parseFloat(order.price).toFixed(0)}</span>
                           {order.mlbb_id && <span className="text-gray-400 text-xs">ID: {order.mlbb_id}</span>}
                         </div>
@@ -1147,8 +1178,8 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                   </div>
 
                   {[
-                    { id: "small",     label: "Small Pack",       icon: "♦",  color: "#38bdf8" },
-                    { id: "normal",    label: "Normal Pack",       icon: "♦♦", color: "#f59e0b" },
+                    { id: "small",     label: "Small Pack",       icon: <img src="/diamond.png" alt="♦" style={{ width: 18, height: 18, objectFit: "contain" }} />,  color: "#38bdf8" },
+                    { id: "normal",    label: "Normal Pack",       icon: <span style={{ display:"flex", gap: 2 }}><img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain" }} /><img src="/diamond.png" alt="♦" style={{ width: 14, height: 14, objectFit: "contain" }} /></span>, color: "#f59e0b" },
                     { id: "double",    label: "Double Diamond",    icon: "×2", color: "#00e5ff" },
                     { id: "passes",    label: "Passes & Bundles",  icon: "🎫", color: "#a855f7" },
                     { id: "starlight", label: "Starlight Cards",   icon: "★",  color: "#f5c842" },
@@ -1868,7 +1899,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                       <div>
                         <div className="text-gray-400 text-xs mb-1.5">Link packages (hold Ctrl/Cmd to select multiple)</div>
                         <select multiple value={newPromo.packIds.map(String)} onChange={e => setNewPromo(p => ({ ...p, packIds: Array.from(e.target.selectedOptions).map(o => parseInt(o.value)) }))} className="px-3 py-2 rounded-lg text-white text-xs outline-none w-full" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)", height: 90 }}>
-                          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.name || `♦${pkg.diamonds}`} — ₹{parseFloat(pkg.price).toFixed(0)}</option>)}
+                          {packages.map(pkg => <option key={pkg.id} value={pkg.id}>{pkg.name || `💎${pkg.diamonds}`} — ₹{parseFloat(pkg.price).toFixed(0)}</option>)}
                         </select>
                       </div>
                       <div className="flex gap-2">
@@ -1937,7 +1968,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               <span className="text-amber-400 font-bold text-xs font-mono">{(o as any).display_id || `#${o.id}`}</span>
                               <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: o.status === "completed" ? "rgba(34,197,94,0.12)" : o.status === "pending" ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.06)", color: o.status === "completed" ? "#22c55e" : o.status === "pending" ? "#f59e0b" : "#9ca3af" }}>{o.status}</span>
                             </div>
-                            <div className="text-gray-300 text-xs mt-1">♦{Number(o.diamonds).toLocaleString()} · ₹{parseFloat(o.price).toFixed(0)}</div>
+                            <div className="text-gray-300 text-xs mt-1 flex items-center gap-1"><img src="/diamond.png" alt="♦" style={{ width: 11, height: 11, objectFit: "contain" }} />{Number(o.diamonds).toLocaleString()} · ₹{parseFloat(o.price).toFixed(0)}</div>
                             {o.mlbb_id && <div className="text-gray-500 text-xs mt-0.5">MLBB: {o.mlbb_id}</div>}
                             {(o as any).staff_name && <div className="text-gray-500 text-xs mt-0.5">Staff: {(o as any).staff_name}</div>}
                           </div>
@@ -2096,6 +2127,54 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
             </div>
           </>
         )}
+
+              {/* ── BANNERS TAB ── */}
+              {tab === "banners" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div>
+                    <div className="text-amber-400 text-sm font-bold mb-1">Promo Banners</div>
+                    <div className="text-gray-500 text-xs mb-4">Upload up to 5 promotional images (21:9 ratio recommended, e.g. 1280×549 px). Shown as a carousel at the top of the homepage.</div>
+                    {promoBanners.length === 0 ? (
+                      <div className="text-gray-500 text-xs py-4 text-center">No banners yet. Add one below.</div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {promoBanners.map((b, i) => (
+                          <div key={b.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px 12px", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 12 }}>
+                            <img src={b.image} alt="" style={{ width: 80, height: Math.round(80 / 21 * 9), objectFit: "cover", borderRadius: 8, flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)" }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div className="text-gray-400 text-xs truncate">{b.link || "(no link)"}</div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                <button onClick={() => savePromoBanners(promoBanners.map((x, j) => j === i ? { ...x, active: !x.active } : x))} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 8, background: b.active ? "rgba(34,197,94,0.12)" : "rgba(255,255,255,0.06)", color: b.active ? "#22c55e" : "#9ca3af", border: "none", cursor: "pointer" }}>{b.active ? "Active" : "Hidden"}</button>
+                                <button onClick={() => savePromoBanners(promoBanners.filter((_, j) => j !== i))} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 8, background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", cursor: "pointer" }}>Delete</button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {promoBanners.length < 5 ? (
+                    <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 14, padding: "18px 16px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <div className="text-amber-400 text-sm font-bold mb-4">Add New Banner ({promoBanners.length}/5)</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div>
+                          <div className="text-gray-400 text-xs mb-1.5">Image file (21:9 ratio recommended)</div>
+                          <input ref={promoBannerImgRef} type="file" accept="image/*" style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }} />
+                        </div>
+                        <div>
+                          <div className="text-gray-400 text-xs mb-1.5">Link when tapped (optional, e.g. /packages)</div>
+                          <input value={newBannerLink} onChange={e => setNewBannerLink(e.target.value)} placeholder="e.g. /packages" className="px-3 py-2 rounded-lg text-white text-sm outline-none w-full" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }} />
+                        </div>
+                        <button onClick={addPromoBanner} disabled={promoBannersSaving} className="py-2.5 rounded-xl text-sm font-bold text-black" style={{ background: promoBannersSaving ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
+                          {promoBannersSaving ? "Saving…" : "Upload & Add Banner"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-xs text-center py-2">Maximum 5 banners reached. Delete one to add more.</div>
+                  )}
+                </div>
+              )}
       </div>
     </div>
   );

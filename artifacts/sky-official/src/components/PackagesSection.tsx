@@ -407,7 +407,7 @@ function ImagePane({ src, onError }: { src: string; onError?: () => void }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <div style={{
-      position: "relative", height: 148, overflow: "hidden", flexShrink: 0,
+      position: "relative", height: 112, overflow: "hidden", flexShrink: 0,
       background: "radial-gradient(ellipse at 50% 65%, #0c1a2e 0%, #080a10 100%)",
     }}>
       {/* Ambient glow layer */}
@@ -596,7 +596,7 @@ function PackCard({ pack, isDouble, index, onSelect, isSelected, isExiting, pack
         <div style={{ position: "absolute", top: 0, right: 0, zIndex: 3, background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontSize: 9, fontWeight: 900, letterSpacing: "0.1em", padding: "6px 12px 5px 8px", borderRadius: "0 18px 0 14px", textTransform: "uppercase", boxShadow: "0 2px 8px rgba(245,158,11,0.45)" }}>⭐ Best Value</div>
       )}
       <ImagePane src={getPackImage(pack.diamonds, packImagesCfg)} />
-      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <img src="/diamond.png" alt="♦" style={{ width: 17, height: 17, objectFit: "contain", flexShrink: 0 }} />
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>{pack.diamonds.toLocaleString()}</span>
@@ -695,7 +695,7 @@ function StarlightCard({ pack, index, isExiting, starlightImagesCfg, mlbbAccount
           <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
         )}
         <ImagePane src={imgSrc} />
-        <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name || "Starlight Card"}</div>
           <div style={{ color: "#f5c842", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
           <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
@@ -760,7 +760,7 @@ function PassCard({ pack, index, onSelect, isSelected, isExiting, passImagesCfg 
         <div style={{ position: "absolute", top: 10, left: 10, zIndex: 5, background: "rgba(99,102,241,0.92)", color: "#fff", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", padding: "3px 8px", borderRadius: 999 }}>Coming Soon</div>
       )}
       <ImagePane src={getPassImage(pack.name, passImagesCfg)} />
-      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
         <div style={{ color: "#fff", fontWeight: 800, fontSize: 13, lineHeight: 1.3, minHeight: "2.6em", display: "flex", alignItems: "flex-start" }}>{pack.name}</div>
         <div style={{ color: "#f59e0b", fontWeight: 800, fontSize: 16, marginTop: 4 }}>₹{Number(pack.price).toLocaleString("en-IN")}</div>
         {isUnavailable && (
@@ -827,6 +827,8 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [buyLoading, setBuyLoading] = useState(false);
   const [walletPayResult, setWalletPayResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [showMlbbModal, setShowMlbbModal] = useState(false);
+  const [walletMlbb, setWalletMlbb] = useState({ uid: "", sid: "2900", ign: "" });
   const [staffWA, setStaffWA] = useState("");
   const purchaseRef = useRef<HTMLDivElement>(null);
 
@@ -938,6 +940,43 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
     }
   };
 
+  const executeWalletPay = async (mlbbUid: string | null, mlbbSid: string | null, mlbbIgn: string | null) => {
+    if (!selectedPack) return;
+    setBuyLoading(true);
+    try {
+      const token = await getToken();
+      const displayIds: string[] = [];
+      let failed = false;
+      for (let i = 0; i < qty; i++) {
+        const r = await fetch(`${API}/orders/wallet-pay`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            packageId: selectedPack.id,
+            ...(mlbbUid ? { mlbbUserId: mlbbUid, mlbbServerId: mlbbSid, mlbbIgn } : {}),
+          }),
+        });
+        const d = await r.json();
+        if (!d.ok) {
+          setWalletPayResult({ ok: false, msg: d.error || "Payment failed. Please try again." });
+          failed = true;
+          break;
+        }
+        displayIds.push(d.displayId);
+      }
+      if (!failed) {
+        setWalletPayResult({ ok: true, msg: `Order${qty > 1 ? "s" : ""} placed! (${displayIds.join(", ")}) Diamonds will be credited shortly.` });
+        const bal = await fetch(`${API}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({}));
+        if (bal.balance !== undefined) setWalletBalance(Number(bal.balance));
+      }
+    } catch {
+      setWalletPayResult({ ok: false, msg: "Network error. Please try again." });
+    } finally {
+      setBuyLoading(false);
+      setShowMlbbModal(false);
+    }
+  };
+
   const handleBuyNow = async () => {
     if (!selectedPack) return;
 
@@ -947,35 +986,12 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
         setWalletPayResult({ ok: false, msg: `Insufficient wallet balance. You have ₹${(walletBalance ?? 0).toFixed(0)}, need ₹${totalPrice.toFixed(0)}.` });
         return;
       }
-      setBuyLoading(true);
-      try {
-        const token = await getToken();
-        const displayIds: string[] = [];
-        let failed = false;
-        for (let i = 0; i < qty; i++) {
-          const r = await fetch(`${API}/orders/wallet-pay`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ packageId: selectedPack.id }),
-          });
-          const d = await r.json();
-          if (!d.ok) {
-            setWalletPayResult({ ok: false, msg: d.error || "Payment failed. Please try again." });
-            failed = true;
-            break;
-          }
-          displayIds.push(d.displayId);
-        }
-        if (!failed) {
-          setWalletPayResult({ ok: true, msg: `Order${qty > 1 ? "s" : ""} placed! (${displayIds.join(", ")}) Diamonds will be credited shortly.` });
-          const bal = await fetch(`${API}/wallet/balance`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({}));
-          if (bal.balance !== undefined) setWalletBalance(Number(bal.balance));
-        }
-      } catch {
-        setWalletPayResult({ ok: false, msg: "Network error. Please try again." });
-      } finally {
-        setBuyLoading(false);
+      if (!mlbbAccount) {
+        setWalletMlbb({ uid: "", sid: "2900", ign: "" });
+        setShowMlbbModal(true);
+        return;
       }
+      await executeWalletPay(null, null, null);
       return;
     }
 
@@ -1223,6 +1239,56 @@ export default function PackagesSection({ onPackageSelect: _p, onBack, onBuy, on
           </div>
         )}
       </div>
+
+      {/* ── MLBB ID Modal (wallet pay, no saved account) ── */}
+      {showMlbbModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "#111117", border: "1px solid rgba(245,158,11,0.25)", borderRadius: 20, padding: "28px 24px", width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 16, boxShadow: "0 20px 60px rgba(0,0,0,0.7)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <img src="/diamond.png" alt="" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>Enter Your MLBB ID</div>
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, lineHeight: 1.55 }}>
+              No saved MLBB account found. Please enter your Player ID and Server ID to proceed with wallet payment.
+            </div>
+            <div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Player ID</div>
+              <input
+                value={walletMlbb.uid}
+                onChange={e => setWalletMlbb(p => ({ ...p, uid: e.target.value }))}
+                placeholder="e.g. 123456789"
+                inputMode="numeric"
+                style={{ width: "100%", background: "#0d0d11", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 10, color: "#fff", fontSize: 15, padding: "11px 14px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginBottom: 6, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Server ID</div>
+              <input
+                value={walletMlbb.sid}
+                onChange={e => setWalletMlbb(p => ({ ...p, sid: e.target.value }))}
+                placeholder="e.g. 2900"
+                inputMode="numeric"
+                style={{ width: "100%", background: "#0d0d11", border: "1px solid rgba(245,158,11,0.22)", borderRadius: 10, color: "#fff", fontSize: 15, padding: "11px 14px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+              <button
+                onClick={() => setShowMlbbModal(false)}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!walletMlbb.uid.trim() || !walletMlbb.sid.trim() || buyLoading}
+                onClick={() => executeWalletPay(walletMlbb.uid.trim(), walletMlbb.sid.trim(), walletMlbb.ign.trim() || null)}
+                style={{ flex: 2, padding: "12px 0", borderRadius: 12, background: (!walletMlbb.uid.trim() || !walletMlbb.sid.trim()) ? "rgba(245,158,11,0.3)" : "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#000", fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                {buyLoading ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#000" strokeWidth="2" strokeDasharray="56" strokeDashoffset="14"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></circle></svg>Processing…</> : "Confirm & Pay"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

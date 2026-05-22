@@ -194,9 +194,9 @@ function CartNavIcon({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      style={{ position: "relative", width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+      style={{ position: "relative", width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.06)", border: "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(255,255,255,0.6)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(0,0,0,0.5)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
       {totalItems > 0 && (
         <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #0a0a0a" }}>
           {totalItems > 9 ? "9+" : totalItems}
@@ -250,29 +250,31 @@ function Navbar() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2"
+      className="fixed z-40 flex items-center justify-between px-3 py-2"
       style={{
-        background: "rgba(7,8,10,0.88)",
-        backdropFilter: "blur(18px)",
-        borderBottom: "1px solid rgba(245,158,11,0.1)",
-        boxShadow: "0 1px 24px rgba(0,0,0,0.4)",
+        top: 10,
+        left: 12,
+        right: 12,
+        background: "#fff",
+        borderRadius: 20,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07)",
         animation: "navSlideDown 0.38s cubic-bezier(0.22,1,0.36,1) both",
       }}
     >
       <style>{`
         @keyframes navSlideDown {
-          from { opacity: 0; transform: translateY(-100%); }
+          from { opacity: 0; transform: translateY(-120%); }
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes glitch {
           0%,83%,100% { text-shadow: none; filter: none; }
-          84% { text-shadow: -5px 0 #f43f5e, 5px 0 #38bdf8; filter: brightness(1.5); }
-          85% { text-shadow: 5px 0 #f43f5e, -5px 0 #a78bfa; filter: brightness(0.7) hue-rotate(20deg); }
-          86% { text-shadow: -6px 0 #38bdf8, 4px 0 #f43f5e; filter: brightness(1.8); }
-          87% { text-shadow: none; filter: brightness(0.6); }
-          88% { text-shadow: 4px 0 #a78bfa, -4px 0 #f43f5e; filter: brightness(1.6) hue-rotate(-15deg); }
-          89% { text-shadow: -3px 0 #38bdf8, 3px 0 #f59e0b; filter: brightness(1.3); }
-          90% { text-shadow: 6px 0 #f43f5e, -3px 0 #38bdf8; filter: none; }
+          84% { text-shadow: -3px 0 #f43f5e, 3px 0 #38bdf8; filter: brightness(1.3); }
+          85% { text-shadow: 3px 0 #f43f5e, -3px 0 #a78bfa; filter: brightness(0.8) hue-rotate(20deg); }
+          86% { text-shadow: -4px 0 #38bdf8, 3px 0 #f43f5e; filter: brightness(1.5); }
+          87% { text-shadow: none; filter: brightness(0.7); }
+          88% { text-shadow: 3px 0 #a78bfa, -3px 0 #f43f5e; filter: brightness(1.4) hue-rotate(-15deg); }
+          89% { text-shadow: -2px 0 #38bdf8, 2px 0 #f59e0b; filter: brightness(1.2); }
+          90% { text-shadow: 4px 0 #f43f5e, -2px 0 #38bdf8; filter: none; }
           91%,100% { text-shadow: none; filter: none; }
         }
         .sky-glitch {
@@ -287,12 +289,12 @@ function Navbar() {
         className="flex items-center gap-2"
         style={{ background: "none", border: "none", cursor: "pointer", padding: 0, touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
       >
-        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.5)" }}>
+        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0" style={{ background: "#000", border: "1.5px solid #f59e0b", boxShadow: "0 0 8px 1.5px rgba(245,158,11,0.4)" }}>
           <img src="/logo.webp" alt="Sky Official" className="w-full h-full object-cover" />
         </div>
         <div className="flex items-center gap-1.5">
           <div style={{ position: "relative", height: 26, minWidth: 80 }}>
-            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 13, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap", letterSpacing: "0.01em" }}>Sky Official</span>
+            <span className="sky-glitch font-bold" style={{ color: "#111", fontSize: 13, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap", letterSpacing: "0.01em" }}>Sky Official</span>
             <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", textAlign: "left", whiteSpace: "nowrap", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>

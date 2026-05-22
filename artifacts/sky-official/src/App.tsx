@@ -643,67 +643,60 @@ function GameSelectSection() {
 
   if (games.length === 0) return null;
 
+  const PANEL_GLOWS = [
+    { glow: "rgba(245,158,11,0.28)", border: "rgba(245,158,11,0.55)", icon: "rgba(245,158,11,0.5)" },
+    { glow: "rgba(99,102,241,0.28)",  border: "rgba(99,102,241,0.55)",  icon: "rgba(99,102,241,0.5)" },
+    { glow: "rgba(239,68,68,0.28)",   border: "rgba(239,68,68,0.55)",   icon: "rgba(239,68,68,0.5)" },
+    { glow: "rgba(34,197,94,0.28)",   border: "rgba(34,197,94,0.55)",   icon: "rgba(34,197,94,0.5)" },
+    { glow: "rgba(168,85,247,0.28)",  border: "rgba(168,85,247,0.55)",  icon: "rgba(168,85,247,0.5)" },
+    { glow: "rgba(6,182,212,0.28)",   border: "rgba(6,182,212,0.55)",   icon: "rgba(6,182,212,0.5)" },
+  ];
+
   return (
-    <section style={{ background: "#0a0a0a", padding: "20px 16px 24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+    <section style={{ background: "transparent", padding: "20px 16px 28px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 6H3a1 1 0 00-1 1v10a1 1 0 001 1h18a1 1 0 001-1V7a1 1 0 00-1-1zM7 12H5m2 0H5m2 0v-2m0 2v2M17 10l1 1 2-2" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "0.02em" }}>Select Game</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {games.map(game => (
-          <button
-            key={game.id}
-            onClick={() => navigateTo("/packages", "forward")}
-            style={{
-              background: "#fff",
-              borderRadius: 14,
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.35)",
-              WebkitTapHighlightColor: "transparent",
-              touchAction: "manipulation",
-              transition: "transform 0.15s ease",
-            }}
-            onTouchStart={e => (e.currentTarget.style.transform = "scale(0.96)")}
-            onTouchEnd={e => (e.currentTarget.style.transform = "scale(1)")}
-          >
-            <div style={{
-              width: "100%",
-              aspectRatio: "1/1",
-              background: game.image ? "transparent" : "rgba(0,0,0,0.06)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}>
-              {game.image ? (
-                <img src={game.image} alt={game.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              ) : (
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke="rgba(0,0,0,0.18)" strokeWidth="1.5"/><path d="M7 12h4m-2-2v4M15 12h2" stroke="rgba(0,0,0,0.18)" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              )}
-            </div>
-            <div style={{
-              padding: "6px 8px 8px",
-              background: "#fff",
-              textAlign: "center",
-            }}>
-              <span style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "#111",
-                display: "block",
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {games.map((game, idx) => {
+          const c = PANEL_GLOWS[idx % PANEL_GLOWS.length];
+          return (
+            <button
+              key={game.id}
+              onClick={() => navigateTo("/packages", "forward")}
+              style={{
+                background: "rgba(13,13,13,0.72)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                borderRadius: 16,
+                border: `1px solid ${c.border}`,
+                cursor: "pointer",
+                padding: 0,
                 overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                lineHeight: 1.3,
-              }}>{game.name}</span>
-            </div>
-          </button>
-        ))}
+                display: "flex",
+                flexDirection: "column",
+                boxShadow: `0 0 22px 5px ${c.glow}, 0 4px 20px rgba(0,0,0,0.55)`,
+                WebkitTapHighlightColor: "transparent",
+                touchAction: "manipulation",
+                transition: "transform 0.15s ease",
+              }}
+              onTouchStart={e => (e.currentTarget.style.transform = "scale(0.96)")}
+              onTouchEnd={e => (e.currentTarget.style.transform = "scale(1)")}
+            >
+              <div style={{ width: "100%", aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                {game.image ? (
+                  <img src={game.image} alt={game.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="3" stroke={c.icon} strokeWidth="1.5"/><path d="M7 12h4m-2-2v4M15 12h2" stroke={c.icon} strokeWidth="1.5" strokeLinecap="round"/></svg>
+                )}
+              </div>
+              <div style={{ padding: "6px 8px 10px", textAlign: "center" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.3 }}>{game.name}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -1279,7 +1272,6 @@ function MainSite() {
         <AnimatedPage>
           <PromoBannerSlider />
           <GameSelectSection />
-          <HeroSection animate={introDone} />
           <AnnouncementBar />
           <PromoCarousel />
           <StatsSection />

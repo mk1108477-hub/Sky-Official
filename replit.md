@@ -64,6 +64,29 @@ When this project is opened on any new device or account:
 4. Database tables are created automatically on first API server start
 5. The only manual step is adding the three secrets above (ADMIN_PASSWORD, CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY)
 
+## Page Reference (Custom Names)
+
+Use these names when asking for changes to a specific page:
+
+| Custom Name | Route | What it is |
+|---|---|---|
+| **Home** | `/` | Landing page — hero, promo banners, stats, how it works |
+| **Packages** | `/packages` | Diamond pack listings and rank boosting services |
+| **Target** | `/mlbb-target` | Enter MLBB User ID & Server ID, verify account before buying |
+| **Cart** | `/cart` | Shopping cart — review items before checkout |
+| **Payment** | `/pay` | Checkout — UPI QR code, payment details, order submission |
+| **Verify** | `/verify` | Standalone MLBB account verification page |
+| **Profile** | `/profile` | User profile — wallet balance, account info |
+| **Orders** | `/orders` | Order history — past and pending orders with status |
+| **Support** | `/support` | WhatsApp support links and FAQs |
+| **Admin** | `/admin` | Admin dashboard — manage orders, packages, users, settings |
+| **Staff** | `/staff` | Staff portal — fulfill and manage orders |
+| **Sign In** | `/sign-in` | Clerk-powered login page |
+| **Sign Up** | `/sign-up` | Clerk-powered registration page |
+| **Terms** | `/terms` | Terms of Service |
+| **Privacy** | `/privacy` | Privacy Policy |
+| **Refund** | `/refund` | Refund Policy |
+
 ## User preferences
 
 - Keep secrets out of code and `.replit` — use Replit's secret store only

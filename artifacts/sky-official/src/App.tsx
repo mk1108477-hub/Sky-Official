@@ -126,58 +126,36 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
   };
 
   useEffect(() => {
-    const t = setTimeout(triggerDone, 5000);
+    const t = setTimeout(triggerDone, 2500);
     return () => clearTimeout(t);
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden" style={{ background: "#0a0a0a" }}>
-      <video autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.45 }} onEnded={triggerDone} onError={triggerDone}>
-        <source src="/intro.mp4" type="video/mp4" />
-      </video>
-      <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.52)" }} />
-      <div className="relative flex flex-col items-center gap-3 z-10">
-        <AnimatedDiamonds size={72} />
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="intro-glitch font-bold uppercase" style={{ color: "#fff", fontSize: 13, letterSpacing: "0.3em" }}>SKY OFFICIAL</h1>
-          <p className="uppercase font-bold" style={{ fontSize: 9, letterSpacing: "0.38em", background: "linear-gradient(90deg, transparent 0%, #f59e0b 20%, #fcd34d 50%, #f59e0b 80%, transparent 100%)", backgroundSize: "200% 100%", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "shimmerLR 2.8s ease-in-out infinite" }}>
-            INSTANT TOP UP
-          </p>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: "#0a0a0a" }}>
+      <div style={{ position: "absolute", width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(245,158,11,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
+      <div className="relative flex flex-col items-center z-10" style={{ gap: 28 }}>
+        <div style={{ position: "relative", width: 58, height: 58 }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(245,158,11,0.15)" }} />
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid transparent", borderTopColor: "#f59e0b", animation: "skySpin 1.1s linear infinite" }} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#f59e0b", opacity: 0.85 }} />
+          </div>
+        </div>
+        <div className="flex flex-col items-center" style={{ gap: 6 }}>
+          <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "0.3em" }}>SKY OFFICIAL</span>
+          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.38em", background: "linear-gradient(90deg, transparent, #f59e0b, #fcd34d, #f59e0b, transparent)", backgroundSize: "200% 100%", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "skyShimmer 2s ease-in-out infinite" }}>INSTANT DELIVERY</span>
+        </div>
+        <div style={{ width: 100, height: 1, background: "rgba(255,255,255,0.07)", borderRadius: 999, overflow: "hidden" }}>
+          <div style={{ height: "100%", background: "linear-gradient(90deg,#f59e0b,#fcd34d)", borderRadius: 999, animation: "skyBar 2s ease-out forwards" }} />
         </div>
       </div>
       <style>{`
-        @keyframes diamondSeq {
-          0%   { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
-          30%  { opacity: 1;    transform: rotate(45deg) scale(1.08); }
-          60%  { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
-          100% { opacity: 0.25; transform: rotate(45deg) scale(0.85); }
-        }
+        @keyframes skySpin    { to { transform: rotate(360deg); } }
+        @keyframes skyShimmer { 0% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
+        @keyframes skyBar     { 0% { width: 0%; } 70% { width: 80%; } 100% { width: 100%; } }
         @keyframes shimmerLR {
           0%   { background-position: 150% 0; }
           100% { background-position: -150% 0; }
-        }
-        @keyframes introGlitch {
-          0%,77%,100% { text-shadow: none; filter: none; }
-          78% { text-shadow: -5px 0 #f43f5e, 5px 0 #38bdf8; filter: brightness(1.5); }
-          81% { text-shadow: 5px 0 #f43f5e, -5px 0 #a78bfa; filter: brightness(0.7) hue-rotate(20deg); }
-          84% { text-shadow: -6px 0 #38bdf8, 4px 0 #f43f5e; filter: brightness(1.8); }
-          87% { text-shadow: none; filter: brightness(0.6); }
-          90% { text-shadow: 4px 0 #a78bfa, -4px 0 #f43f5e; filter: brightness(1.6) hue-rotate(-15deg); }
-          93% { text-shadow: -3px 0 #38bdf8, 3px 0 #f59e0b; filter: brightness(1.3); }
-          96% { text-shadow: 6px 0 #f43f5e, -3px 0 #38bdf8; filter: none; }
-          99%,100% { text-shadow: none; filter: none; }
-        }
-        .intro-glitch {
-          animation: introGlitch 4.5s ease-in-out infinite;
-          display: block;
-          will-change: filter;
-        }
-        @keyframes smokeMove {
-          0% { transform: scale(1) translateX(0) translateY(0); }
-          25% { transform: scale(1.05) translateX(-2%) translateY(1%); }
-          50% { transform: scale(1.1) translateX(2%) translateY(-1%); }
-          75% { transform: scale(1.05) translateX(-1%) translateY(2%); }
-          100% { transform: scale(1) translateX(0) translateY(0); }
         }
         @keyframes scrollTicker {
           0% { transform: translateX(0); }
@@ -402,65 +380,6 @@ function AnimatedPage({ children, skipPageAnim = false }: { children: React.Reac
   useEffect(() => { locationRef.current = location;  }, [location]);
   useEffect(() => { navigateRef.current = navigateTo;}, [navigateTo]);
 
-  // Touch state refs — no React state = zero render delay during drag
-  const startXRef  = useRef(0);
-  const startYRef  = useRef(0);
-  const axisRef    = useRef<"h" | "v" | null>(null);
-  const activeRef  = useRef(false);
-  const liveXRef   = useRef(0);
-
-  useEffect(() => {
-    const onStart = (e: TouchEvent) => {
-      startXRef.current = e.touches[0].clientX;
-      startYRef.current = e.touches[0].clientY;
-      axisRef.current   = null;
-      activeRef.current = false;
-      liveXRef.current  = 0;
-    };
-
-    const onMove = (e: TouchEvent) => {
-      if (exitingRef.current) return;
-      const dx = e.touches[0].clientX - startXRef.current;
-      const dy = e.touches[0].clientY - startYRef.current;
-
-      // Lock axis after 5 px of movement
-      if (axisRef.current === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-        axisRef.current = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
-      }
-      if (axisRef.current !== "h") return;
-
-      const loc = locationRef.current;
-      const canForward  = loc === "/"         && dx < 0;
-      const canBackward = loc === "/packages" && dx > 0;
-      if (!canForward && !canBackward) return;
-
-      activeRef.current = true;
-      liveXRef.current = dx;
-    };
-
-    const onEnd = () => {
-      if (!activeRef.current) return;
-      activeRef.current = false;
-      const dx = liveXRef.current;
-      liveXRef.current = 0;
-      const threshold = window.innerWidth * 0.18;
-
-      if (Math.abs(dx) >= threshold) {
-        navigateRef.current(dx < 0 ? "/packages" : "/", dx < 0 ? "forward" : "backward");
-      }
-    };
-
-    document.addEventListener("touchstart",  onStart, { passive: true });
-    document.addEventListener("touchmove",   onMove,  { passive: true });
-    document.addEventListener("touchend",    onEnd,   { passive: true });
-    document.addEventListener("touchcancel", onEnd,   { passive: true });
-    return () => {
-      document.removeEventListener("touchstart",  onStart);
-      document.removeEventListener("touchmove",   onMove);
-      document.removeEventListener("touchend",    onEnd);
-      document.removeEventListener("touchcancel", onEnd);
-    };
-  }, []); // empty — reads only from refs
 
   // Before first button-nav: still render the wrapper so sections sit above
   // the fixed video (position:relative z-index:1 creates the needed stacking context)

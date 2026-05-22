@@ -1,10 +1,10 @@
-const CACHE_NAME = "sky-official-v3";
-const SHELL_ASSETS = ["/", "/logo.png", "/diamond.png", "/scoin.png"];
+const CACHE_NAME = "sky-official-v4";
+const STATIC_ASSETS = ["/logo.png", "/diamond.png", "/scoin.png", "/logo.webp"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS).catch(() => {}))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {}))
   );
 });
 
@@ -19,18 +19,24 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
+
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/__clerk")) return;
-  if (url.origin === self.location.origin) {
+
+  const ext = url.pathname.split(".").pop().toLowerCase();
+  const isStaticImage = ["png", "jpg", "jpeg", "webp", "gif", "svg", "ico"].includes(ext)
+    && !url.pathname.startsWith("/src/");
+
+  if (isStaticImage && url.origin === self.location.origin) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
         return fetch(event.request).then((resp) => {
-          if (resp && resp.ok && resp.status < 300) {
+          if (resp && resp.ok) {
             const clone = resp.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
           return resp;
-        }).catch(() => caches.match("/"));
+        }).catch(() => caches.match("/logo.png"));
       })
     );
   }

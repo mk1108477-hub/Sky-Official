@@ -198,7 +198,7 @@ function CartNavIcon({ onClick }: { onClick: () => void }) {
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(0,0,0,0.5)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
       {totalItems > 0 && (
-        <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #0a0a0a" }}>
+        <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #fff" }}>
           {totalItems > 9 ? "9+" : totalItems}
         </span>
       )}

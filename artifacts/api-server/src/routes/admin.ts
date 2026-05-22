@@ -601,8 +601,6 @@ router.post("/test-notification", requireAdmin, async (_req, res): Promise<void>
   result.env.NOTIFY_EMAIL = notifyEmail ? `set (${notifyEmail})` : "NOT SET";
   result.env.BREVO_API_KEY = brevoKey ? "set (hidden)" : "NOT SET";
   result.env.FROM_EMAIL = fromEmail ? `set (${fromEmail})` : "NOT SET";
-  result.env.GREENAPI_INSTANCE_ID = process.env.GREENAPI_INSTANCE_ID ? "set" : "not set";
-  result.env.GREENAPI_TOKEN = process.env.GREENAPI_TOKEN ? "set" : "not set";
 
   log.push("STEP_1: env vars checked");
 

@@ -6,25 +6,6 @@ import { sendOrderEmail, notifyAvailableStaff } from "../lib/email";
 
 const router = Router();
 
-const ADMIN_WHATSAPP_CHAT_ID = "919362003788@c.us";
-
-async function sendWhatsApp(message: string) {
-  const instanceId = process.env.GREENAPI_INSTANCE_ID;
-  const token = process.env.GREENAPI_TOKEN;
-  if (!instanceId || !token) return;
-  try {
-    await fetch(
-      `https://api.green-api.com/waInstance${instanceId}/sendMessage/${token}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId: ADMIN_WHATSAPP_CHAT_ID, message }),
-      }
-    );
-  } catch (err: any) {
-    console.error("[notify] WHATSAPP_FAILED:", err?.message);
-  }
-}
 
 async function getNextDisplayId(): Promise<string> {
   const year = new Date().getFullYear();
@@ -74,22 +55,6 @@ function fireNotifications(displayId: string, orderId: number, staffId: number |
     tag: "new-order",
     url: "/admin",
   });
-
-  const lines = [
-    "🛒 *New Order — Sky Official*",
-    "",
-    `🆔 *Order:* ${displayId}`,
-    `📦 *Package:* ♦ ${diamonds} Diamonds`,
-    `💰 *Amount:* ₹${price}`,
-    mlbbId ? `🎮 *MLBB ID:* ${mlbbId}` : null,
-    extra.serverId ? `🌐 *Server:* ${extra.serverId}` : null,
-    extra.ign ? `👤 *IGN:* ${extra.ign}` : null,
-    extra.isForFriend ? "👥 *Recharge:* For a Friend" : null,
-    remark ? `🔑 *Remark:* ${remark}` : null,
-    "",
-    "Open admin panel to fulfill →",
-  ];
-  sendWhatsApp(lines.filter(Boolean).join("\n"));
 
   sendOrderEmail({ orderId, diamonds: pkg.diamonds, price: pkg.price, mlbbId, remark }).catch((err) => {
     console.error(`[notify] EMAIL_FAILED — owner email for order ${displayId}:`, err?.message);
@@ -239,8 +204,6 @@ router.post("/cart", requireAuth, async (req: any, res): Promise<void> => {
     console.log(`[notify] NOTIFICATION_TRIGGERED — cart order, ${orderIds.length} items, ₹${totalPrice.toFixed(0)}`);
 
     sendPushToAll({ title: "🛒 Cart Order!", body: `${orderIds.length} items · ₹${totalPrice.toFixed(0)}`, tag: "new-order", url: "/admin" });
-
-    sendWhatsApp(`🛒 *Cart Order*\n${orderIds.length} items · ♦${totalDiamonds} diamonds · ₹${totalPrice.toFixed(0)}\n${mlbbId ? `🎮 ID: ${mlbbId}` : ""}\nIDs: ${displayIds.join(", ")}`);
 
     const firstDisplayId = displayIds[0] ?? "CART";
     sendOrderEmail({

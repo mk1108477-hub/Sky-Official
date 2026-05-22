@@ -257,7 +257,7 @@ function Navbar() {
         right: 12,
         background: "#fff",
         borderRadius: 20,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1px 4px rgba(0,0,0,0.07)",
+        boxShadow: "0 0 0 1.5px rgba(245,158,11,0.55), 0 0 18px 3px rgba(245,158,11,0.22), 0 4px 24px rgba(0,0,0,0.18)",
         animation: "navSlideDown 0.38s cubic-bezier(0.22,1,0.36,1) both",
       }}
     >

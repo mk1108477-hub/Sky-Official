@@ -194,11 +194,11 @@ function CartNavIcon({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      style={{ position: "relative", width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.06)", border: "1px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+      style={{ position: "relative", width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(0,0,0,0.5)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" stroke={totalItems > 0 ? "#f59e0b" : "rgba(255,255,255,0.65)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
       {totalItems > 0 && (
-        <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #fff" }}>
+        <span style={{ position: "absolute", top: -4, right: -4, background: "#f59e0b", color: "#000", fontSize: 9, fontWeight: 900, width: 16, height: 16, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #0d0d0d" }}>
           {totalItems > 9 ? "9+" : totalItems}
         </span>
       )}
@@ -255,9 +255,11 @@ function Navbar() {
         top: 10,
         left: 12,
         right: 12,
-        background: "#fff",
+        background: "rgba(13,13,13,0.96)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
         borderRadius: 20,
-        boxShadow: "0 0 0 1.5px rgba(245,158,11,0.55), 0 0 18px 3px rgba(245,158,11,0.22), 0 4px 24px rgba(0,0,0,0.18)",
+        boxShadow: "0 0 28px 8px rgba(245,158,11,0.18), 0 6px 36px rgba(0,0,0,0.55)",
         animation: "navSlideDown 0.38s cubic-bezier(0.22,1,0.36,1) both",
       }}
     >
@@ -294,7 +296,7 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-1.5">
           <div style={{ position: "relative", height: 26, minWidth: 80 }}>
-            <span className="sky-glitch font-bold" style={{ color: "#111", fontSize: 13, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap", letterSpacing: "0.01em" }}>Sky Official</span>
+            <span className="sky-glitch font-bold" style={{ color: "#fff", fontSize: 13, position: "absolute", top: -1, left: 0, whiteSpace: "nowrap", letterSpacing: "0.01em" }}>Sky Official</span>
             <div style={{ position: "absolute", bottom: 0, left: 0, fontSize: 8, lineHeight: 1, color: "#f59e0b", opacity: visible ? 1 : 0, transition: "opacity 0.35s ease", textAlign: "left", whiteSpace: "nowrap", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>{NAV_SUBTITLES[subtitleIdx]}</div>
           </div>
         </div>

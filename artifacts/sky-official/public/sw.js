@@ -1,4 +1,4 @@
-const CACHE_NAME = "sky-official-v2";
+const CACHE_NAME = "sky-official-v3";
 const SHELL_ASSETS = ["/", "/logo.png", "/diamond.png", "/scoin.png"];
 
 self.addEventListener("install", (event) => {

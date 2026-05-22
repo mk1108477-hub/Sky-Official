@@ -765,6 +765,50 @@ router.post("/test-email", requireAdmin, async (_req, res) => {
   }
 });
 
+// ── Games CRUD ────────────────────────────────────────────────────────────────
+router.get("/games", requireAdmin, async (_req, res): Promise<void> => {
+  try {
+    const { rows } = await pool.query("SELECT id, name, image, sort_order FROM games ORDER BY sort_order ASC, id ASC");
+    res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.post("/games", requireAdmin, upload.single("image"), async (req, res): Promise<void> => {
+  try {
+    const { name, sort_order } = req.body;
+    if (!name?.trim()) { res.status(400).json({ error: "Name is required" }); return; }
+    const image = req.file ? fileToDataUrl(req.file) : null;
+    const { rows } = await pool.query(
+      "INSERT INTO games (name, image, sort_order) VALUES ($1, $2, $3) RETURNING *",
+      [name.trim(), image, parseInt(sort_order) || 0]
+    );
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.put("/games/:id", requireAdmin, upload.single("image"), async (req, res): Promise<void> => {
+  try {
+    const { name, sort_order } = req.body;
+    const id = parseInt(req.params.id);
+    if (!name?.trim()) { res.status(400).json({ error: "Name is required" }); return; }
+    if (req.file) {
+      const image = fileToDataUrl(req.file);
+      await pool.query("UPDATE games SET name=$1, image=$2, sort_order=$3 WHERE id=$4", [name.trim(), image, parseInt(sort_order) || 0, id]);
+    } else {
+      await pool.query("UPDATE games SET name=$1, sort_order=$2 WHERE id=$3", [name.trim(), parseInt(sort_order) || 0, id]);
+    }
+    const { rows } = await pool.query("SELECT * FROM games WHERE id=$1", [id]);
+    res.json(rows[0]);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.delete("/games/:id", requireAdmin, async (req, res): Promise<void> => {
+  try {
+    await pool.query("DELETE FROM games WHERE id=$1", [parseInt(req.params.id)]);
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 // ── Latest Event popup setting ────────────────────────────────────────────────
 router.get("/settings/latest_event", requireAdmin, async (_req, res): Promise<void> => {
   try {

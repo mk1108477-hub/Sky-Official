@@ -89,6 +89,14 @@ async function initDb() {
       status TEXT DEFAULT 'open',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS games (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      image TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   // Step 2: Add columns that may be missing on older installs (all tables exist by now)

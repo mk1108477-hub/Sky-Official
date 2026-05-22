@@ -166,6 +166,14 @@ router.get("/settings/promo_banners", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
+// ── Games (public) ────────────────────────────────────────────────────────────
+router.get("/games", async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT id, name, image, sort_order FROM games ORDER BY sort_order ASC, id ASC");
+    res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
 // ── Promo events (active only) ────────────────────────────────────────────────
 router.get("/promo-events", async (_req, res) => {
   try {

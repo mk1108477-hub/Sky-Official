@@ -45,7 +45,7 @@ interface WalletRequest {
   created_at: string;
 }
 
-type Tab = "packages" | "orders" | "wallet" | "featured" | "events" | "staff" | "settings" | "banners";
+type Tab = "games" | "packages" | "orders" | "wallet" | "featured" | "events" | "staff" | "settings" | "banners";
 type NotifState = "unknown" | "loading" | "subscribed" | "denied" | "unsupported";
 
 async function registerSW(): Promise<ServiceWorkerRegistration | null> {
@@ -97,6 +97,44 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [promoBannersSaving, setPromoBannersSaving] = useState(false);
   const [newBannerLink, setNewBannerLink] = useState("");
   const promoBannerImgRef = useRef<HTMLInputElement>(null);
+
+  interface Game { id: number; name: string; image: string | null; sort_order: number; }
+  const [games, setGames] = useState<Game[]>([]);
+  const [newGame, setNewGame] = useState({ name: "", sort_order: "0" });
+  const [gamesSaving, setGamesSaving] = useState(false);
+  const gameImgRef = useRef<HTMLInputElement>(null);
+
+  const fetchGames = async () => {
+    try {
+      const res = await fetch(`${API}/admin/games`, { headers });
+      if (res.ok) setGames(await res.json());
+    } catch {}
+  };
+
+  const addGame = async () => {
+    if (!newGame.name.trim()) return;
+    setGamesSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("name", newGame.name.trim());
+      fd.append("sort_order", newGame.sort_order);
+      if (gameImgRef.current?.files?.[0]) fd.append("image", gameImgRef.current.files[0]);
+      const res = await fetch(`${API}/admin/games`, { method: "POST", headers: { Authorization: headers.Authorization }, body: fd });
+      if (res.ok) {
+        const g = await res.json();
+        setGames(prev => [...prev, g]);
+        setNewGame({ name: "", sort_order: "0" });
+        if (gameImgRef.current) gameImgRef.current.value = "";
+      }
+    } finally { setGamesSaving(false); }
+  };
+
+  const deleteGame = async (id: number) => {
+    try {
+      await fetch(`${API}/admin/games/${id}`, { method: "DELETE", headers });
+      setGames(prev => prev.filter(g => g.id !== id));
+    } catch {}
+  };
 
   const fetchPromoBanners = async () => {
     try {
@@ -517,6 +555,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
     if (authed && tab === "events") fetchPromoEvents();
     if (authed && tab === "staff") fetchStaff();
     if (authed && tab === "banners") fetchPromoBanners();
+    if (authed && tab === "games") fetchGames();
   }, [authed, tab]);
 
   const fetchPromoEvents = async () => {
@@ -893,7 +932,7 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              {(["packages", "orders", "wallet", "events", "staff", "featured", "banners", "settings"] as Tab[]).map((t) => {
+              {(["games", "packages", "orders", "wallet", "events", "staff", "featured", "banners", "settings"] as Tab[]).map((t) => {
                 const pendingCount = t === "wallet" ? walletRequests.filter(r => r.status === "pending").length : 0;
                 return (
                   <button
@@ -917,6 +956,67 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
             </div>
 
             <div className="overflow-y-auto flex-1 p-5">
+              {/* ── GAMES TAB ── */}
+              {tab === "games" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div>
+                    <div className="text-amber-400 text-sm font-bold mb-1">Game Selection Panels</div>
+                    <div className="text-gray-500 text-xs mb-4">These panels appear on the Home page under "Select Game". Add as many games as you want. Each panel shows the game image and name.</div>
+                    {games.length === 0 ? (
+                      <div className="text-gray-500 text-xs py-4 text-center">No games added yet. Add one below.</div>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        {games.map((g) => (
+                          <div key={g.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px", border: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div style={{ width: "100%", aspectRatio: "1/1", borderRadius: 8, background: g.image ? "transparent" : "rgba(255,255,255,0.06)", border: g.image ? "none" : "1px dashed rgba(255,255,255,0.15)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {g.image ? (
+                                <img src={g.image} alt={g.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              ) : (
+                                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 11 }}>No image</span>
+                              )}
+                            </div>
+                            <div style={{ color: "#fff", fontSize: 12, fontWeight: 700, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                            <button onClick={() => deleteGame(g.id)} style={{ fontSize: 11, padding: "4px 0", borderRadius: 8, background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", cursor: "pointer", width: "100%" }}>Delete</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 14, padding: "18px 16px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div className="text-amber-400 text-sm font-bold mb-4">Add New Game</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <input
+                        placeholder="Game name (e.g. Mobile Legends)"
+                        value={newGame.name}
+                        onChange={e => setNewGame(g => ({ ...g, name: e.target.value }))}
+                        className="px-3 py-2 rounded-lg text-white text-sm outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+                      <div>
+                        <div className="text-gray-400 text-xs mb-1.5">Game image (square ratio recommended)</div>
+                        <input ref={gameImgRef} type="file" accept="image/*" style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }} />
+                      </div>
+                      <input
+                        placeholder="Sort order (0 = first)"
+                        type="number"
+                        value={newGame.sort_order}
+                        onChange={e => setNewGame(g => ({ ...g, sort_order: e.target.value }))}
+                        className="px-3 py-2 rounded-lg text-white text-sm outline-none"
+                        style={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                      />
+                      <button
+                        onClick={addGame}
+                        disabled={gamesSaving || !newGame.name.trim()}
+                        className="py-2.5 rounded-xl text-sm font-bold text-black"
+                        style={{ background: (gamesSaving || !newGame.name.trim()) ? "rgba(245,158,11,0.5)" : "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
+                      >
+                        {gamesSaving ? "Saving…" : "+ Add Game"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ── PACKAGES TAB ── */}
               {tab === "packages" && (
                 <div className="flex flex-col gap-4">

@@ -1268,7 +1268,7 @@ function MainSite() {
   return (
     <>
       {/* Main content always rendered so video starts immediately */}
-      <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden", paddingTop: "60px" }}>
+      <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden", paddingTop: "88px" }}>
         <AnimatedPage>
           <PromoBannerSlider />
           <GameSelectSection />

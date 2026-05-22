@@ -605,9 +605,9 @@ function PromoBannerSlider() {
   }
 
   return (
-    <div style={{ background: "#0a0a0a", padding: "0 0 2px" }}>
+    <div style={{ background: "transparent", padding: "6px 14px 12px" }}>
       <div
-        style={{ position: "relative", width: "100%", aspectRatio: "21/9", overflow: "hidden", cursor: banner.link ? "pointer" : "default", boxShadow: "0 0 0 1px rgba(245,158,11,0.18), 0 4px 24px rgba(0,0,0,0.45)" }}
+        style={{ position: "relative", width: "100%", aspectRatio: "21/9", overflow: "hidden", cursor: banner.link ? "pointer" : "default", borderRadius: 18, boxShadow: "0 0 0 1px rgba(245,158,11,0.35), 0 8px 32px rgba(245,158,11,0.18), 0 4px 24px rgba(0,0,0,0.6)" }}
         onTouchStart={e => { touchStartX.current = e.touches[0].clientX; }}
         onTouchEnd={e => { const dx = e.changedTouches[0].clientX - touchStartX.current; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); }}
         onClick={() => { if (banner.link) { if (banner.link.startsWith("/")) setLocation(banner.link); else window.open(banner.link, "_blank", "noopener,noreferrer"); } }}

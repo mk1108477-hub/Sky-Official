@@ -103,6 +103,8 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
   const [newGame, setNewGame] = useState({ name: "", sort_order: "0" });
   const [gamesSaving, setGamesSaving] = useState(false);
   const gameImgRef = useRef<HTMLInputElement>(null);
+  const [updatingGameId, setUpdatingGameId] = useState<number | null>(null);
+  const gameUpdateImgRef = useRef<HTMLInputElement>(null);
 
   const fetchGames = async () => {
     try {
@@ -134,6 +136,27 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
       await fetch(`${API}/admin/games/${id}`, { method: "DELETE", headers });
       setGames(prev => prev.filter(g => g.id !== id));
     } catch {}
+  };
+
+  const updateGameImage = async (file: File, gameId: number) => {
+    setGamesSaving(true);
+    try {
+      const game = games.find(g => g.id === gameId);
+      if (!game) return;
+      const fd = new FormData();
+      fd.append("name", game.name);
+      fd.append("sort_order", String(game.sort_order || 0));
+      fd.append("image", file);
+      const res = await fetch(`${API}/admin/games/${gameId}`, { method: "PUT", headers: { Authorization: headers.Authorization }, body: fd });
+      if (res.ok) {
+        const updated = await res.json();
+        setGames(prev => prev.map(g => g.id === gameId ? updated : g));
+      }
+    } finally {
+      setGamesSaving(false);
+      setUpdatingGameId(null);
+      if (gameUpdateImgRef.current) gameUpdateImgRef.current.value = "";
+    }
   };
 
   const fetchPromoBanners = async () => {
@@ -962,6 +985,16 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                   <div>
                     <div className="text-amber-400 text-sm font-bold mb-1">Game Selection Panels</div>
                     <div className="text-gray-500 text-xs mb-4">These panels appear on the Home page under "Select Game". Add as many games as you want. Each panel shows the game image and name.</div>
+                    <input
+                      ref={gameUpdateImgRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file && updatingGameId !== null) updateGameImage(file, updatingGameId);
+                      }}
+                    />
                     {games.length === 0 ? (
                       <div className="text-gray-500 text-xs py-4 text-center">No games added yet. Add one below.</div>
                     ) : (
@@ -976,6 +1009,13 @@ export default function AdminPanel({ onClose, fullPage = false }: { onClose: () 
                               )}
                             </div>
                             <div style={{ color: "#fff", fontSize: 12, fontWeight: 700, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.name}</div>
+                            <button
+                              onClick={() => { setUpdatingGameId(g.id); gameUpdateImgRef.current?.click(); }}
+                              disabled={gamesSaving}
+                              style={{ fontSize: 11, padding: "4px 0", borderRadius: 8, background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)", cursor: "pointer", width: "100%" }}
+                            >
+                              {gamesSaving && updatingGameId === g.id ? "Saving…" : "Upload Image"}
+                            </button>
                             <button onClick={() => deleteGame(g.id)} style={{ fontSize: 11, padding: "4px 0", borderRadius: 8, background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "none", cursor: "pointer", width: "100%" }}>Delete</button>
                           </div>
                         ))}

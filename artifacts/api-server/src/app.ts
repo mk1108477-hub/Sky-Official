@@ -38,8 +38,8 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 if (process.env.CLERK_SECRET_KEY) {
   app.use(

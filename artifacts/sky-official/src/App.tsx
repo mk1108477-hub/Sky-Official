@@ -653,7 +653,7 @@ function GameSelectSection() {
   ];
 
   return (
-    <section style={{ background: "transparent", padding: "20px 16px 28px" }}>
+    <section style={{ background: "transparent", padding: "28px 16px 28px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 6H3a1 1 0 00-1 1v10a1 1 0 001 1h18a1 1 0 001-1V7a1 1 0 00-1-1zM7 12H5m2 0H5m2 0v-2m0 2v2M17 10l1 1 2-2" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
         <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "0.02em" }}>Select Game</span>
@@ -1268,7 +1268,7 @@ function MainSite() {
   return (
     <>
       {/* Main content always rendered so video starts immediately */}
-      <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden" }}>
+      <div style={{ pointerEvents: introDone ? "auto" : "none", overflowX: "hidden", paddingTop: "60px" }}>
         <AnimatedPage>
           <PromoBannerSlider />
           <GameSelectSection />

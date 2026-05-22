@@ -716,7 +716,7 @@ function StatsSection() {
 
   const stats = [
     { value: real ? real.total_orders.toLocaleString() : "—", label: "Total Orders", color: "#111", icon: null },
-    { value: real ? Number(real.total_diamonds).toLocaleString() : "—", label: "Diamonds Sold", color: "#f59e0b", icon: "img" },
+    { value: real ? Number(real.total_diamonds).toLocaleString() : "—", label: "Products Sold", color: "#f59e0b", icon: "box" },
     { value: real ? real.total_users.toLocaleString() : "—", label: "Happy Gamers", color: "#111", icon: "★" },
   ];
   return (
@@ -725,7 +725,7 @@ function StatsSection() {
         {stats.map((s, i) => (
           <div key={i} className="rounded-xl p-4 text-center" style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.07)" }}>
             <div className="font-extrabold" style={{ fontSize: 32, color: s.color }}>{s.value}</div>
-            <div className="text-gray-400 mt-0.5" style={{ fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>{s.icon === "img" ? <img src="/diamond.png" alt="♦" style={{ width: 16, height: 16, objectFit: "contain", display: "inline-block" }} /> : s.icon ? <span style={{ color: s.color }}>{s.icon}</span> : null}{s.label}</div>
+            <div className="text-gray-400 mt-0.5" style={{ fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>{s.icon === "box" ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><polyline points="3.27 6.96 12 12.01 20.73 6.96" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="22.08" x2="12" y2="12" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg> : s.icon ? <span style={{ color: s.color }}>{s.icon}</span> : null}{s.label}</div>
           </div>
         ))}
       </div>
@@ -860,10 +860,10 @@ function Footer() {
         </div>
         <div>
           <div className="font-bold text-gray-900 text-sm">Sky Official</div>
-          <p className="text-gray-400 mt-0.5 leading-relaxed max-w-xs" style={{ fontSize: 10 }}>The trusted diamond top-up shop for Mobile Legends Bang Bang. Fast, safe, and secure.</p>
+          <p className="text-gray-400 mt-0.5 leading-relaxed max-w-xs" style={{ fontSize: 10 }}>The most trusted top up shop for mobile game products and services.</p>
         </div>
         <div className="flex items-center gap-4 mt-1">
-          {["Packages", "How It Works", "Contact"].map((link) => (
+          {["Packages", "Contact"].map((link) => (
             <a key={link} href="#" className="text-gray-400 hover:text-gray-700 transition-colors" style={{ textDecoration: "none", fontSize: 11 }}>{link}</a>
           ))}
         </div>
@@ -1194,7 +1194,6 @@ function MainSite() {
           <AnnouncementBar />
           <PromoCarousel />
           <StatsSection />
-          <HowItWorks />
           <WhyChooseUs />
           <LiveTicker />
           <WhatsAppSection />

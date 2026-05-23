@@ -10,6 +10,7 @@ import PaymentPage, { setSelectedPackage } from "./components/PaymentPage";
 import type { SelectedPackage } from "./components/PaymentPage";
 import SupportPage from "./components/SupportPage";
 import StaffPortal from "./components/StaffPortal";
+import GameProductsPage from "./components/GameProductsPage";
 import { CartProvider, useCart } from "./context/CartContext";
 import {
   ClerkProvider,
@@ -583,7 +584,11 @@ function GameSelectSection() {
           return (
             <button
               key={game.id}
-              onClick={() => navigateTo("/packages", "forward")}
+              onClick={() => {
+                const n = game.name.toLowerCase();
+                const isMlbb = n.includes("mobile legends") || n.includes("mlbb") || n.includes("bang bang");
+                navigateTo(isMlbb ? "/packages" : `/game/${game.id}`, "forward");
+              }}
               style={{
                 background: "rgba(13,13,13,0.72)",
                 backdropFilter: "blur(14px)",
@@ -1590,6 +1595,7 @@ function AppRoutes() {
           <Route path="/refund" component={RefundPage} />
           <Route path="/support" component={SupportPage} />
           <Route path="/staff" component={StaffPortal} />
+          <Route path="/game/:gameId" component={GameProductsPage} />
           <Route component={MainSite} />
         </Switch>
       </TransitionProvider>

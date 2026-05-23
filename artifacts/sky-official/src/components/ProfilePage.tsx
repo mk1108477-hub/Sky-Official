@@ -1,5 +1,5 @@
 import { useUser, useSignIn } from "@clerk/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 
 const API = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/[^/]+/, "") + "/api";
@@ -58,6 +58,79 @@ export default function ProfilePage() {
   const [fpCode, setFpCode] = useState("");
   const [fpNewPw, setFpNewPw] = useState("");
   const [fpLoading, setFpLoading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropImgEl, setCropImgEl] = useState<HTMLImageElement | null>(null);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [cropScale, setCropScale] = useState(1);
+  const cropDragRef = useRef<{ startX: number; startY: number; startOx: number; startOy: number } | null>(null);
+  const CROP_SIZE = 220;
+
+  const handleCropMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    cropDragRef.current = { startX: e.clientX, startY: e.clientY, startOx: cropOffset.x, startOy: cropOffset.y };
+  }, [cropOffset]);
+
+  const handleCropMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!cropDragRef.current) return;
+    setCropOffset({ x: cropDragRef.current.startOx + e.clientX - cropDragRef.current.startX, y: cropDragRef.current.startOy + e.clientY - cropDragRef.current.startY });
+  }, []);
+
+  const handleCropTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    cropDragRef.current = { startX: t.clientX, startY: t.clientY, startOx: cropOffset.x, startOy: cropOffset.y };
+  }, [cropOffset]);
+
+  const handleCropTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!cropDragRef.current) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    setCropOffset({ x: cropDragRef.current.startOx + t.clientX - cropDragRef.current.startX, y: cropDragRef.current.startOy + t.clientY - cropDragRef.current.startY });
+  }, []);
+
+  const handleCropEnd = useCallback(() => { cropDragRef.current = null; }, []);
+
+  const openCropForFile = useCallback((file: File) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.max(CROP_SIZE / img.naturalWidth, CROP_SIZE / img.naturalHeight);
+      setCropImgEl(img);
+      setCropScale(Math.max(scale, 0.5));
+      setCropOffset({ x: 0, y: 0 });
+      setCropSrc(url);
+    };
+    img.src = url;
+  }, [CROP_SIZE]);
+
+  const confirmCrop = useCallback(async () => {
+    if (!cropImgEl || !user) return;
+    setSettingsSaving(true);
+    setSettingsMsg(null);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = CROP_SIZE;
+      canvas.height = CROP_SIZE;
+      const ctx = canvas.getContext("2d")!;
+      ctx.beginPath();
+      ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2, 0, Math.PI * 2);
+      ctx.clip();
+      const imgW = cropImgEl.naturalWidth * cropScale;
+      const imgH = cropImgEl.naturalHeight * cropScale;
+      ctx.drawImage(cropImgEl, CROP_SIZE / 2 - imgW / 2 + cropOffset.x, CROP_SIZE / 2 - imgH / 2 + cropOffset.y, imgW, imgH);
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      if (!blob) throw new Error("Crop failed");
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      await user.setProfileImage({ file });
+      setSettingsMsg({ ok: true, text: "Profile photo updated!" });
+      setCropSrc(null);
+      setCropImgEl(null);
+    } catch (err: any) {
+      setSettingsMsg({ ok: false, text: err?.errors?.[0]?.message || "Failed to update photo." });
+    } finally {
+      setSettingsSaving(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }, [cropImgEl, cropScale, cropOffset, user, CROP_SIZE]);
 
   useEffect(() => {
     if (!isLoaded || !user) return;
@@ -216,7 +289,8 @@ export default function ProfilePage() {
                       disabled={fpLoading}
                       onClick={async () => {
                         const email = user.primaryEmailAddress?.emailAddress;
-                        if (!email || !signIn) return;
+                        if (!email) { setSettingsMsg({ ok: false, text: "No email address found on your account." }); return; }
+                        if (!signIn) { setSettingsMsg({ ok: false, text: "Password reset unavailable right now. Sign out and use 'Forgot password?' on the sign-in page instead." }); return; }
                         setFpLoading(true);
                         try {
                           await signIn.create({ strategy: "reset_password_email_code", identifier: email });
@@ -265,16 +339,11 @@ export default function ProfilePage() {
                 <div style={{ width: 80, height: 80, borderRadius: "50%", border: "3px solid #f59e0b", overflow: "hidden" }}>
                   <img src={user.imageUrl} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
-                <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={async e => {
+                <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  setSettingsSaving(true); setSettingsMsg(null);
-                  try {
-                    await user.setProfileImage({ file });
-                    setSettingsMsg({ ok: true, text: "Profile photo updated!" });
-                  } catch (err: any) {
-                    setSettingsMsg({ ok: false, text: err?.errors?.[0]?.message || "Failed to update photo." });
-                  } finally { setSettingsSaving(false); if (photoInputRef.current) photoInputRef.current.value = ""; }
+                  openCropForFile(file);
+                  if (photoInputRef.current) photoInputRef.current.value = "";
                 }} />
                 <button
                   disabled={settingsSaving}
@@ -439,6 +508,75 @@ export default function ProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* Crop modal */}
+      {cropSrc && cropImgEl && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.93)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22, padding: 24 }}
+          onMouseMove={handleCropMouseMove}
+          onMouseUp={handleCropEnd}
+          onMouseLeave={handleCropEnd}
+        >
+          <div style={{ color: "#fff", fontSize: 15, fontWeight: 700 }}>Position your photo</div>
+          <div style={{ color: "rgba(255,255,255,0.38)", fontSize: 12, marginTop: -14 }}>Drag to reposition · Pinch or use +/− to zoom</div>
+
+          {/* Circular crop viewport */}
+          <div
+            style={{ width: CROP_SIZE, height: CROP_SIZE, borderRadius: "50%", overflow: "hidden", border: "3px solid #f59e0b", boxShadow: "0 0 0 4px rgba(245,158,11,0.18), 0 8px 32px rgba(0,0,0,0.7)", position: "relative", cursor: "grab", userSelect: "none", touchAction: "none", flexShrink: 0 }}
+            onMouseDown={handleCropMouseDown}
+            onTouchStart={handleCropTouchStart}
+            onTouchMove={handleCropTouchMove}
+            onTouchEnd={handleCropEnd}
+          >
+            <img
+              src={cropSrc}
+              alt="crop preview"
+              style={{
+                position: "absolute",
+                width: cropImgEl.naturalWidth * cropScale,
+                height: cropImgEl.naturalHeight * cropScale,
+                left: "50%",
+                top: "50%",
+                transform: `translate(calc(-50% + ${cropOffset.x}px), calc(-50% + ${cropOffset.y}px))`,
+                pointerEvents: "none",
+                userSelect: "none",
+                maxWidth: "none",
+              }}
+              draggable={false}
+            />
+          </div>
+
+          {/* Zoom controls */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => setCropScale(s => Math.max(0.15, s - 0.1))}
+              style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+            >−</button>
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, minWidth: 48, textAlign: "center" }}>{Math.round(cropScale * 100)}%</span>
+            <button
+              onClick={() => setCropScale(s => Math.min(5, s + 0.1))}
+              style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.12)", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}
+            >+</button>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 300 }}>
+            <button
+              onClick={() => { setCropSrc(null); setCropImgEl(null); }}
+              style={{ flex: 1, padding: "13px 0", borderRadius: 12, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              disabled={settingsSaving}
+              onClick={confirmCrop}
+              style={{ flex: 2, padding: "13px 0", borderRadius: 12, background: settingsSaving ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg,#fcd34d,#f59e0b)", color: "#000", fontWeight: 700, fontSize: 14, border: "none", cursor: settingsSaving ? "not-allowed" : "pointer" }}
+            >
+              {settingsSaving ? "Uploading…" : "Crop & Set Photo"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

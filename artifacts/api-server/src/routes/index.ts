@@ -118,11 +118,17 @@ router.get("/settings/latest_event", async (_req, res) => {
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
-router.get("/packages", async (_req, res) => {
+router.get("/packages", async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      "SELECT * FROM packages ORDER BY sort_order ASC, diamonds ASC"
-    );
+    const gameId = req.query.game_id ? parseInt(req.query.game_id as string, 10) : null;
+    let query = "SELECT * FROM packages";
+    const params: unknown[] = [];
+    if (gameId && !isNaN(gameId)) {
+      query += " WHERE game_id = $1";
+      params.push(gameId);
+    }
+    query += " ORDER BY sort_order ASC, diamonds ASC";
+    const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch {
     res.status(500).json({ error: "DB error" });
@@ -171,6 +177,14 @@ router.get("/games", async (_req, res) => {
   try {
     const { rows } = await pool.query("SELECT id, name, image, sort_order FROM games ORDER BY sort_order ASC, id ASC");
     res.json(rows);
+  } catch { res.status(500).json({ error: "DB error" }); }
+});
+
+router.get("/games/:id", async (req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT id, name, image, sort_order FROM games WHERE id = $1", [req.params.id]);
+    if (rows.length === 0) { res.status(404).json({ error: "Game not found" }); return; }
+    res.json(rows[0]);
   } catch { res.status(500).json({ error: "DB error" }); }
 });
 
